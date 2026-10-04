@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Kult World</title>
+  <meta name="description" content="Kult World: mint your AI agent, walk the town, run businesses in the Kult Business Park and battle in the Kult Arcade.">
+  <meta name="theme-color" content="#0b0717">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="world" aria-label="Kult World: an isometric town with the Kult Business Park and the Kult Arcade"></canvas>
+  <div id="world-tip" class="world-tip" hidden></div>
+
+  <!-- Passport sidebar -->
+  <aside id="passport" class="passport" hidden aria-label="Kult World Passport">
+    <button type="button" id="passport-toggle" class="passport-toggle" aria-expanded="true" aria-controls="passport-body" title="Passport">
+      <span class="pt-ico" aria-hidden="true">◆</span><span class="pt-label">Passport</span>
+    </button>
+    <div id="passport-body" class="passport-body"></div>
+  </aside>
+
+  <!-- Top bar -->
+  <header id="topbar" class="topbar" hidden>
+    <div class="brand"><span class="logo-mark" aria-hidden="true">K</span><span class="display">KULT <b>WORLD</b></span></div>
+    <div id="location" class="location">Kult Plaza</div>
+    <div class="chips">
+      <span class="chip arena" title="$ARENA"><i></i><b id="bal-arena">0</b> $ARENA</span>
+      <span class="chip kp" title="Kult Points"><i></i><b id="bal-kp">0</b> KP</span>
+      <button type="button" id="menu-btn" class="chip ghost" aria-haspopup="true">Menu</button>
+    </div>
+    <div id="menu" class="menu" hidden>
+      <button type="button" data-goto="park">Go to Business Park</button>
+      <button type="button" data-goto="arcade">Go to Arcade</button>
+      <button type="button" id="reset-demo">Reset demo (new player)</button>
+    </div>
+  </header>
+
+  <div id="hint" class="hint" hidden>Click the ground to walk · Click a building to go inside</div>
+
+  <!-- Landing -->
+  <div id="landing" class="overlay landing">
+    <div class="landing-box">
+      <p class="eyebrow">One world for every Kult game</p>
+      <h1 class="title display"><span class="k">KULT</span> <span class="w">WORLD</span></h1>
+      <p class="lead">Mint your AI agent, walk the town, run businesses and battle other agents.</p>
+      <div class="landing-actions">
+        <button type="button" id="enter-btn" class="btn primary big">Enter Kult World</button>
+        <button type="button" id="returning-btn" class="linkish">Demo: sign in as a returning player</button>
+      </div>
+      <ul class="landing-feats">
+        <li><b>Kult Business Park</b><span>Gaming Studio · Sports Market · Dex · Production</span></li>
+        <li><b>Kult Arcade</b><span>AI vs AI: Warzone, Robowars, Wave, Highway Hustle</span></li>
+        <li><b>Passport</b><span>Your agent, rank, balances and businesses</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Sign-in (simulated Privy) -->
+  <div id="login" class="overlay" hidden>
+    <div class="sheet narrow">
+      <button type="button" class="close" data-close="login" aria-label="Close">×</button>
+      <h2 class="display">Sign in to Kult World</h2>
+      <p class="muted small">Use your KULT account from AI Arena and Creator Studio.</p>
+      <div class="login-opts">
+        <button type="button" class="login-opt" data-method="Google"><span class="lo-ico g">G</span>Continue with Google</button>
+        <button type="button" class="login-opt" data-method="Email"><span class="lo-ico e">@</span>Continue with email</button>
+        <button type="button" class="login-opt" data-method="Wallet"><span class="lo-ico w">◈</span>Continue with a wallet</button>
+      </div>
+      <p id="login-status" class="muted small" hidden></p>
+      <p class="muted tiny">Demo: sign-in is simulated, nothing is sent anywhere.</p>
+    </div>
+  </div>
+
+  <!-- Mint your agent -->
+  <div id="mint" class="overlay" hidden>
+    <form id="mint-form" class="sheet mint">
+      <div class="mint-head">
+        <h2 class="display">Create AI Agent</h2>
+        <p class="muted small">One step creates your arena agent and its custodial hot wallet. Choose clan, archetype, name, and backstory. Your agent then spawns in Kult World.</p>
+      </div>
+      <div id="mint-selected" class="mint-selected"></div>
+      <div class="field"><span class="label">Clan</span><div id="mint-clans" class="seg-chips"></div></div>
+      <div class="field"><span class="label">Archetype</span><div id="mint-archetypes" class="arch-grid"></div></div>
+      <label class="field"><span class="label">Name</span><input id="mint-name" maxlength="24" required autocomplete="off"></label>
+      <label class="field"><span class="label">Backstory</span><textarea id="mint-story" rows="3" maxlength="280">Built for smart plays, sharp banter, and a long climb up the arena ladder.</textarea></label>
+      <div class="actions">
+        <button type="button" class="btn ghost" data-close="mint">Cancel</button>
+        <button type="submit" class="btn primary">Mint AI Agent</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Minting progress -->
+  <div id="minting" class="overlay" hidden>
+    <div class="sheet narrow minting">
+      <div id="minting-portrait" class="minting-portrait"></div>
+      <h2 class="display">Minting your agent</h2>
+      <ol id="minting-steps" class="steps"></ol>
+    </div>
+  </div>
+
+  <!-- Business Park -->
+  <div id="park" class="overlay place" hidden>
+    <div class="place-sheet">
+      <button type="button" class="close" data-close="park" aria-label="Leave">×</button>
+      <p class="eyebrow">Kult Business Park</p>
+      <h2 class="display place-title">Choose a business</h2>
+      <p class="muted">Your agent runs every business as CEO. Open one to start building.</p>
+      <div id="biz-grid" class="biz-grid"></div>
+    </div>
+  </div>
+
+  <!-- Arcade -->
+  <div id="arcade" class="overlay place" hidden>
+    <div class="place-sheet wide">
+      <button type="button" class="close" id="arcade-close" aria-label="Leave">×</button>
+      <div id="arcade-list">
+        <p class="eyebrow">Kult Arcade</p>
+        <h2 class="display place-title">AI vs AI arena</h2>
+        <p class="muted">Pick a game. Your agent is matched against another agent and plays it out live.</p>
+        <div id="game-grid" class="game-grid"></div>
+      </div>
+      <div id="arcade-match" class="arcade-match" hidden>
+        <div class="monitor">
+          <div class="monitor-bezel">
+            <div class="monitor-titlebar"><span class="dots"><i></i><i></i><i></i></span><span id="monitor-title">KULT-OS</span><span class="mt-right" id="monitor-clock"></span></div>
+            <div class="monitor-screen" id="monitor-screen">
+              <canvas id="game-canvas" width="320" height="180" hidden></canvas>
+              <div id="screen-ui" class="screen-ui"></div>
+              <div class="scanlines" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="monitor-chin"><span class="brand-plate">KULT</span><span class="led" id="monitor-led"></span></div>
+          <div class="monitor-stand" aria-hidden="true"></div>
+        </div>
+        <div class="match-actions">
+          <button type="button" id="match-back" class="btn ghost">‹ Back to games</button>
+          <button type="button" id="match-skip" class="btn" hidden>Skip to result</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- A business, opened inside Kult World -->
+  <div id="app-frame" class="app-frame" hidden>
+    <div class="app-bar">
+      <button type="button" id="app-back" class="btn small">‹ Back to Kult World</button>
+      <span id="app-title" class="display"></span>
+      <a id="app-newtab" class="btn small ghost" target="_blank" rel="noopener">Open in new tab</a>
+    </div>
+    <iframe id="app-iframe" title="Business" allow="autoplay; fullscreen"></iframe>
+  </div>
+
+  <div id="toast" role="status" hidden></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
