@@ -52,3 +52,8 @@ node server.mjs        # http://localhost:4500
 Businesses open in a full-screen frame. Kult Sports allows this by default.
 Kult Create only allows the origins in its `ALLOWED_ORIGINS`, so add Kult
 World's URL there, otherwise use the "Open in new tab" button.
+
+## Deploy (Render)
+
+`render.yaml` is a Blueprint: in Render, **New → Blueprint**, pick this repo.
+No build step and no environment variables. Health check: `/health`.

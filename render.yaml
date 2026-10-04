@@ -1,0 +1,23 @@
+# Render Blueprint for Kult World (static frontend served by a zero-dependency
+# Node server).
+#
+# NOTE: syncing this Blueprint CREATES A BILLABLE web service (starter plan).
+# Change `plan` to `free` for a free service (it sleeps when idle, so the
+# first visit after a pause is slow).
+#
+# Kult Create only renders inside origins in its ALLOWED_ORIGINS: add this
+# service's URL there so the Gaming Studio opens inside Kult World.
+
+services:
+  - type: web
+    name: kult-world
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: echo "no build step"
+    startCommand: node server.mjs
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22.20.0"

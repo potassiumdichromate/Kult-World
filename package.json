@@ -1,0 +1,12 @@
+{
+  "name": "kult-world",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Kult World: the isometric pixel town and KULT landing page.",
+  "scripts": {
+    "start": "node server.mjs",
+    "templates": "node scripts/world-templates.mjs"
+  },
+  "engines": { "node": ">=20" }
+}
