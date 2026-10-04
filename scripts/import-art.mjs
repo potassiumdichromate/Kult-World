@@ -8,7 +8,7 @@
 // - Sheets (props, stamps, icons, ui-buttons) are split by grid cell.
 // - Writes public/art/world/manifest.json with sizes and anchors.
 import { readPng, writePng } from "./png.mjs";
-import { existsSync, mkdirSync, copyFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, copyFileSync, writeFileSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
@@ -215,10 +215,14 @@ for (const k of ["create", "sports", "dex", "production"]) { const img = load(`c
   }
 }
 
-// Game thumbnails: the Kult browser's art, copied as is.
-for (const [from, to] of [["warzoneWarriors.webp", "thumb-warzone.webp"], ["robowar.webp", "thumb-robowars.webp"], ["warzonewarriorswave.webp", "thumb-wave.webp"], ["highwayhustle.webp", "thumb-highway.webp"]]) {
-  const f = src(from); if (!f) { console.warn(`  ! missing ${from}`); continue; }
-  copyFileSync(f, join(OUT, to)); manifest.files[to.replace(/\.webp$/, "")] = { file: `world/${to}` }; console.log(`  ${to}`);
+// Game thumbnails: thumb-<game>.png (resized), else a .webp copied as is
+// (thumb-<game>.webp, or the Kult browser's original file name).
+for (const [id, legacy] of [["warzone", "warzoneWarriors.webp"], ["robowars", "robowar.webp"], ["wave", "warzonewarriorswave.webp"], ["highway", "highwayhustle.webp"]]) {
+  const png = src(`thumb-${id}.png`), isPng = png && readFileSync(png).readUInt32BE(0) === 0x89504e47;
+  if (isPng) { save(`thumb-${id}.png`, toWidth(load(`thumb-${id}.png`), 640)); continue; }
+  const f = [`thumb-${id}.webp`, `thumb-${id}.png.webp`, legacy].map((n) => existsSync(join(SRC, n)) && join(SRC, n)).find(Boolean);
+  if (!f) { console.warn(`  ! missing thumb-${id}`); continue; }
+  copyFileSync(f, join(OUT, `thumb-${id}.webp`)); manifest.files[`thumb-${id}`] = { file: `world/thumb-${id}.webp` }; console.log(`  thumb-${id}.webp`);
 }
 
 manifest.rev = hash.digest("hex").slice(0, 10);
