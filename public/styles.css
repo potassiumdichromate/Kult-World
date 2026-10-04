@@ -341,3 +341,19 @@ img.lock.img { width: 34px; height: 34px; top: 8px; right: 8px; filter: drop-sha
 .monitor.art .monitor-chin { position: absolute; inset: 0; padding: 0; pointer-events: none; }
 .monitor.art .brand-plate, .monitor.art .monitor-stand { display: none; }
 .monitor.art .led { position: absolute; left: 90.7%; top: 80.4%; transform: translate(-50%, -50%); }
+
+/* Token icons (tokens.png): $ARENA, KP, KULT, XP, ELO, quest. */
+.ic::before { content: ""; display: inline-block; width: 1.5em; height: 1.5em; margin-right: 0.4em; vertical-align: -0.45em; background: center / contain no-repeat; }
+.ic.arena::before, .bal.arena span::before { background-image: url("art/world/token-arena.png"); }
+.ic.kp::before, .bal.kp span::before { background-image: url("art/world/token-kp.png"); }
+.ic.kult::before, .bal.kult span::before { background-image: url("art/world/token-kult.png"); }
+.ic.xp::before { background-image: url("art/world/token-xp.png"); }
+.ic.elo-ic::before { background-image: url("art/world/token-elo.png"); }
+.ic.ic-quest::before { background-image: url("art/world/token-quest.png"); }
+.chip i { width: 20px; height: 20px; box-shadow: none; background: transparent center / contain no-repeat; }
+.chip.arena i, .chip.kp i { background-color: transparent; background-size: contain; background-position: center; background-repeat: no-repeat; }
+.chip.arena i { background-image: url("art/world/token-arena.png"); } .chip.kp i { background-image: url("art/world/token-kp.png"); }
+.bal span { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+.bal span::before { content: ""; flex: none; width: 18px; height: 18px; background: center / contain no-repeat; }
+.rank-row .elo.ic::before { width: 1.3em; height: 1.3em; vertical-align: -0.25em; }
+.pp-level .lv.ic::before { width: 1.8em; height: 1.8em; vertical-align: -0.6em; margin-right: 0.3em; }

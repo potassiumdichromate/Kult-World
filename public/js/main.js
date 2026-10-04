@@ -194,7 +194,7 @@ function renderPassport() {
         el("dt", {}, "Citizen"), el("dd", {}, p.passport.username),
         el("dt", {}, "Wallet"), el("dd", {}, p.passport.wallet),
         el("dt", {}, "Since"), el("dd", {}, new Date(p.passport.citizenSince).toLocaleDateString())),
-      el("div", { class: "pp-level" }, el("span", { class: "lv" }, `LEVEL ${p.passport.level}`), el("span", { class: "muted" }, `${fmt(p.passport.xp)} / ${fmt(p.passport.xpToNext)} XP`)),
+      el("div", { class: "pp-level" }, el("span", { class: "lv ic xp" }, `LEVEL ${p.passport.level}`), el("span", { class: "muted" }, `${fmt(p.passport.xp)} / ${fmt(p.passport.xpToNext)} XP`)),
       el("div", { class: "bar" }, el("i", { style: `width:${Math.round((p.passport.xp / p.passport.xpToNext) * 100)}%` })),
       el("div", { class: "stamps", title: "Places and businesses visited" }, STAMPS.map(([id, label, c]) => {
         const on = p.passport.stamps.includes(id), img = wart(`stamp-${id}`);
@@ -212,7 +212,7 @@ function renderPassport() {
       el("div", { class: "rank-row" },
         el("img", { src: rankBadge(r), alt: "" }),
         el("div", {}, el("div", { class: "rn", style: `color:${r.color}` }, r.name.toUpperCase()), el("div", { class: "bar" }, el("i", { style: `--c:${r.color};width:${nr ? Math.round(((a.elo - r.min) / (nr.min - r.min)) * 100) : 100}%` })), el("div", { class: "muted tiny", style: "margin-top:3px" }, nr ? `${fmt(nr.min - a.elo)} ELO to ${nr.name}` : "Top rank")),
-        el("span", { class: "elo" }, fmt(a.elo))),
+        el("span", { class: "elo ic elo-ic", title: "ELO" }, fmt(a.elo))),
       el("div", { class: "wl" },
         el("div", {}, el("b", { style: "color:var(--green)" }, a.wins), el("span", {}, "Wins")),
         el("div", {}, el("b", { style: "color:var(--red)" }, a.losses), el("span", {}, "Losses")),
@@ -221,9 +221,9 @@ function renderPassport() {
       el("div", { class: "traits" }, TRAITS.map((t) => el("div", { class: "trait" }, el("span", {}, t), el("div", { class: "bar" }, el("i", { style: `--c:${arch.color};width:${a.traits[t]}%` })), el("b", {}, a.traits[t]))))),
     section("Balances", null,
       el("div", { class: "bal-grid" },
-        el("div", { class: "bal", style: "--c:var(--pink)" }, el("b", {}, fmt(p.balances.arena)), el("span", {}, "$ARENA")),
-        el("div", { class: "bal", style: "--c:var(--gold)" }, el("b", {}, fmt(p.balances.kp)), el("span", {}, "Kult Points")),
-        el("div", { class: "bal", style: "--c:var(--blue)" }, el("b", {}, fmt(p.balances.kult)), el("span", {}, "KULT")))),
+        el("div", { class: "bal arena", style: "--c:var(--pink)" }, el("b", {}, fmt(p.balances.arena)), el("span", {}, "$ARENA")),
+        el("div", { class: "bal kp", style: "--c:var(--gold)" }, el("b", {}, fmt(p.balances.kp)), el("span", {}, "Kult Points")),
+        el("div", { class: "bal kult", style: "--c:var(--blue)" }, el("b", {}, fmt(p.balances.kult)), el("span", {}, "KULT")))),
     section("Businesses", `${Object.values(p.businesses).filter((b) => b.owned).length} owned`,
       el("div", { class: "biz-list" }, BUSINESSES.map((b) => {
         const own = p.businesses[b.id];
@@ -232,7 +232,7 @@ function renderPassport() {
           el("span", { class: `st ${own?.owned ? "own" : b.status}` }, own?.owned ? "OWNED" : b.status === "open" ? "OPEN" : "SOON"));
       }))),
     section("Quests", null, p.quests.map((q) => el("div", { class: `quest${q.progress >= q.target ? " done" : ""}` },
-      el("div", { class: "qh" }, el("span", {}, q.title), el("span", { class: "qr" }, q.reward)),
+      el("div", { class: "qh" }, el("span", { class: "ic ic-quest" }, q.title), el("span", { class: "qr" }, q.reward)),
       el("div", { class: "bar" }, el("i", { style: `--c:var(--green);width:${Math.round((Math.min(q.progress, q.target) / q.target) * 100)}%` })),
       el("span", { class: "muted tiny" }, `${Math.min(q.progress, q.target)} / ${q.target}`)))),
     section("Recent activity", null, el("ul", { class: "activity" }, p.activity.slice(0, 6).map((x) => el("li", {}, x.text, el("time", {}, ago(x.at)))))));
@@ -330,7 +330,7 @@ function renderGames() {
     else { thumb = el("canvas"); requestAnimationFrame(() => drawThumb(thumb, gm.id, gm.color)); }
     return el("button", { type: "button", class: "game-card", style: `--c:${gm.color}`, onclick: () => startMatch(gm) },
       thumb, el("div", { class: "gb" }, el("span", { class: "gg" }, gm.genre.toUpperCase()), el("span", { class: "gn" }, gm.name), el("p", {}, gm.blurb),
-        el("div", { class: "gf" }, el("span", {}, gm.mode), el("span", {}, "Win ", el("b", {}, `${gm.reward} $ARENA`))), el("div", { class: "gf" }, el("span", {}, gm.players))));
+        el("div", { class: "gf" }, el("span", {}, gm.mode), el("span", {}, "Win ", el("b", { class: "ic arena" }, `${gm.reward} $ARENA`))), el("div", { class: "gf" }, el("span", {}, gm.players))));
   }));
 }
 
@@ -410,7 +410,7 @@ async function startMatch(gm) {
   setScreen(el("div", { class: "result" },
     el("div", { class: `big ${win ? "win" : "lose"}` }, win ? "VICTORY" : "DEFEAT"),
     el("div", { class: "scan-names" }, `${me.name.toUpperCase()} VS ${them.name.toUpperCase()}`),
-    el("div", { class: "rows" }, el("span", { style: `color:${dElo > 0 ? "var(--green)" : "var(--red)"}` }, `${dElo > 0 ? "+" : ""}${dElo} ELO`), el("span", { style: "color:var(--pink)" }, `+${dArena} $ARENA`), el("span", { style: "color:var(--gold)" }, `+${dKp} KP`)),
+    el("div", { class: "rows" }, el("span", { class: "ic elo-ic", style: `color:${dElo > 0 ? "var(--green)" : "var(--red)"}` }, `${dElo > 0 ? "+" : ""}${dElo} ELO`), el("span", { class: "ic arena", style: "color:var(--pink)" }, `+${dArena} $ARENA`), el("span", { class: "ic kp", style: "color:var(--gold)" }, `+${dKp} KP`)),
     after.name !== before.name ? el("div", { class: "scan-t", style: `color:${after.color}` }, `RANK UP: ${after.name.toUpperCase()}`) : null,
     el("div", { class: "btns" }, el("button", { type: "button", class: "btn primary", onclick: () => startMatch(gm) }, "Rematch"), el("button", { type: "button", class: "btn", onclick: backToGames }, "Other games"))));
   if (win) burst(innerWidth / 2, innerHeight / 2, "#f2c14e", 40);

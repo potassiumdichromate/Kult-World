@@ -1,5 +1,5 @@
 {
- "rev": "1354728b5f",
+ "rev": "cfdb28fd02",
  "files": {
   "ground": {
    "file": "world/ground.png",
@@ -246,6 +246,36 @@
    "file": "world/icon-lock-hot.png",
    "w": 64,
    "h": 65
+  },
+  "token-arena": {
+   "file": "world/token-arena.png",
+   "w": 64,
+   "h": 65
+  },
+  "token-kp": {
+   "file": "world/token-kp.png",
+   "w": 64,
+   "h": 62
+  },
+  "token-kult": {
+   "file": "world/token-kult.png",
+   "w": 64,
+   "h": 65
+  },
+  "token-xp": {
+   "file": "world/token-xp.png",
+   "w": 64,
+   "h": 83
+  },
+  "token-elo": {
+   "file": "world/token-elo.png",
+   "w": 64,
+   "h": 60
+  },
+  "token-quest": {
+   "file": "world/token-quest.png",
+   "w": 64,
+   "h": 63
   },
   "btn-primary-normal": {
    "file": "world/btn-primary-normal.png",

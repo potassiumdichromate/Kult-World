@@ -203,6 +203,10 @@ for (const k of ["create", "sports", "dex", "production"]) { const img = load(`c
   }
 }
 {
+  const img = load("tokens.png");
+  if (img) ["arena", "kp", "kult", "xp", "elo", "quest"].forEach((k, i) => save(`token-${k}.png`, toWidth(cells(img, 3, 2)[i], 64)));
+}
+{
   const img = load("ui-buttons.png");
   if (img) {
     const rows = ["primary", "hero", "secondary", "ghost", "gold", "small"], states = ["normal", "hover", "pressed", "disabled"];
