@@ -29,7 +29,7 @@ const ago = (iso) => { const s = Math.max(1, (Date.now() - Date.parse(iso)) / 10
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ------------------------------------------------------------------ state
-const state = { player: loadPlayer(), returning: false, inWorld: false, manifest: null, urlOf: (f) => `art/${f}` };
+const state = { player: loadPlayer(), returning: false, inWorld: false, manifest: null, urlOf: (f) => `art/${f}`, wart: null };
 const world = new World($("world"));
 
 // ------------------------------------------------------------------ art
@@ -40,7 +40,20 @@ async function loadArt() {
     state.urlOf = (f) => `art/${f}${m.rev ? `?v=${m.rev}` : ""}`;
     world.useArt(m, {}, state.urlOf);
   } catch (e) { console.warn("[kult-world] art not loaded", e); }
+  try {
+    const w = await fetch(`art/world/manifest.json?t=${Date.now()}`, { cache: "no-store" }).then((r) => r.json());
+    state.wart = w;
+    world.useWorldArt(w, (f) => `art/${f}?v=${w.rev}`);
+    const mon = w.files.monitor;
+    if (mon?.screen) {
+      const [x0, y0, x1, y1] = mon.screen, m = document.querySelector(".monitor");
+      m.classList.add("art");
+      m.style.cssText = `--ar:${mon.w}/${mon.h};--sl:${(x0 / mon.w) * 100}%;--st:${(y0 / mon.h) * 100}%;--sw:${((x1 - x0) / mon.w) * 100}%;--sh:${((y1 - y0) / mon.h) * 100}%`;
+    }
+  } catch (e) { console.warn("[kult-world] world art not loaded", e); }
 }
+// URL of an imported world asset (null when missing).
+const wart = (key) => { const f = state.wart?.files?.[key]; return f ? `art/${f.file}?v=${state.wart.rev}` : null; };
 const portraitUrl = (arch) => { const m = state.manifest?.ceo?.[String(arch).toLowerCase()]; return m?.portrait ? state.urlOf(m.portrait) : null; };
 const rankBadge = (r) => `art/${r.badge}`;
 
@@ -175,7 +188,7 @@ function renderPassport() {
   $("passport-body").replaceChildren(
     // Passport card
     el("div", { class: "pp-card" },
-      el("div", { class: "pp-head" }, el("span", { class: "t" }, "KULT WORLD PASSPORT"), el("span", { class: "seal" }, "K")),
+      el("div", { class: "pp-head" }, el("span", { class: "t" }, "KULT WORLD PASSPORT"), el("span", { class: "seal", title: rankOf(a.elo).name }, wart("passport-bg") ? el("img", { src: rankBadge(rankOf(a.elo)), alt: "" }) : "K")),
       el("div", { class: "pp-id" }, p.passport.id),
       el("dl", { class: "pp-rows" },
         el("dt", {}, "Citizen"), el("dd", {}, p.passport.username),
@@ -183,7 +196,11 @@ function renderPassport() {
         el("dt", {}, "Since"), el("dd", {}, new Date(p.passport.citizenSince).toLocaleDateString())),
       el("div", { class: "pp-level" }, el("span", { class: "lv" }, `LEVEL ${p.passport.level}`), el("span", { class: "muted" }, `${fmt(p.passport.xp)} / ${fmt(p.passport.xpToNext)} XP`)),
       el("div", { class: "bar" }, el("i", { style: `width:${Math.round((p.passport.xp / p.passport.xpToNext) * 100)}%` })),
-      el("div", { class: "stamps", title: "Places and businesses visited" }, STAMPS.map(([id, label, c]) => el("span", { class: `stamp${p.passport.stamps.includes(id) ? " on" : ""}`, style: `--c:${c}` }, label)))),
+      el("div", { class: "stamps", title: "Places and businesses visited" }, STAMPS.map(([id, label, c]) => {
+        const on = p.passport.stamps.includes(id), img = wart(`stamp-${id}`);
+        return img ? el("span", { class: `stamp img${on ? " on" : ""}`, title: `${label}${on ? "" : " (not visited)"}` }, el("img", { src: img, alt: label }))
+          : el("span", { class: `stamp${on ? " on" : ""}`, style: `--c:${c}` }, label);
+      }))),
     // Agent identity
     section("Agent identity", `INFT #${a.inft}`,
       el("div", { class: "agent-row" },
@@ -256,8 +273,8 @@ function renderBiz() {
     const own = p.businesses[b.id];
     const card = el("button", { type: "button", class: `biz-card ${b.status}`, style: `--c:${b.color}`, "aria-label": `${b.name}, ${b.status === "open" ? "open" : "coming soon"}` },
       own?.owned ? el("span", { class: "owned-badge" }, `OWNED · ${own.name}`) : null,
-      b.status === "soon" ? el("span", { class: "lock", "aria-hidden": "true" }, "🔒") : null,
-      el("div", { class: "biz-art" }, bizArt(b)),
+      b.status === "soon" ? (wart("icon-lock") ? el("img", { class: "lock img", src: wart("icon-lock"), alt: "" }) : el("span", { class: "lock", "aria-hidden": "true" }, "🔒")) : null,
+      el("div", { class: "biz-art" }, wart(`card-${b.id}`) ? el("img", { src: wart(`card-${b.id}`), alt: "", draggable: "false" }) : bizArt(b)),
       el("div", { class: "biz-body" },
         el("span", { class: "brand2" }, b.brand.toUpperCase()),
         el("span", { class: "name" }, b.name),
@@ -307,10 +324,12 @@ $("app-back").addEventListener("click", () => { show("app-frame", false); $("app
 // ------------------------------------------------------------------ arcade
 function renderGames() {
   $("game-grid").replaceChildren(...GAMES.map((gm) => {
-    const c = el("canvas");
-    requestAnimationFrame(() => drawThumb(c, gm.id, gm.color));
+    const src = wart(`thumb-${gm.id}`);
+    let thumb;
+    if (src) thumb = el("div", { class: "thumb" }, el("img", { src, alt: "", draggable: "false" }), gm.id === "wave" ? el("span", { class: "ribbon" }, "WAVE MODE") : null);
+    else { thumb = el("canvas"); requestAnimationFrame(() => drawThumb(thumb, gm.id, gm.color)); }
     return el("button", { type: "button", class: "game-card", style: `--c:${gm.color}`, onclick: () => startMatch(gm) },
-      c, el("div", { class: "gb" }, el("span", { class: "gg" }, gm.genre.toUpperCase()), el("span", { class: "gn" }, gm.name), el("p", {}, gm.blurb),
+      thumb, el("div", { class: "gb" }, el("span", { class: "gg" }, gm.genre.toUpperCase()), el("span", { class: "gn" }, gm.name), el("p", {}, gm.blurb),
         el("div", { class: "gf" }, el("span", {}, gm.mode), el("span", {}, "Win ", el("b", {}, `${gm.reward} $ARENA`))), el("div", { class: "gf" }, el("span", {}, gm.players))));
   }));
 }

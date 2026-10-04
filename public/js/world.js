@@ -1,7 +1,7 @@
-// Kult World: an isometric pixel town. Placeholder art is drawn in code
-// (ground, buildings, props) so the layout can be designed before the final
-// assets exist; agents use the real AI Arena archetype sprites. Every visual
-// below has a matching slot in docs/ASSETS.md.
+// Kult World: an isometric pixel town. The ground, buildings and props use the
+// art in public/art/world (imported by scripts/import-art.mjs); until it loads
+// (or if it is missing) the same things are drawn in code. Agents use the AI
+// Arena archetype sprites.
 
 export const MAP = 24;                  // tiles per side
 const TW = 64, TH = 32;                 // tile size (world px)
@@ -12,14 +12,16 @@ export const iso = (gx, gy, z = 0) => [OX + (gx - gy) * 32, OY + (gx + gy) * 16 
 // ------------------------------------------------------------------ layout
 export const BUILDINGS = [
   {
-    id: "park", name: "Kult Business Park", x0: 3, y0: 10, x1: 9, y1: 16, h: 150,
+    id: "park", name: "Kult Business Park", x0: 2, y0: 10, x1: 9, y1: 16, h: 150,
+    art: "bld-park", signQuad: [[63, 46], [160, 92], [63, 74]],      // billboard face in the 420px sprite: top-left, top-right, bottom-left
     wallL: "#3b3170", wallR: "#2c2556", roof: "#4a3f8a", trim: "#f2c14e", glow: "#f2c14e",
     door: { face: "x", u: 0.5, tile: [9, 13] }, sign: ["KULT", "BUSINESS PARK"], signColors: ["#ff7eb6", "#f2c14e"]
   },
   {
-    id: "arcade", name: "Kult Arcade", x0: 10, y0: 3, x1: 16, y1: 9, h: 130,
+    id: "arcade", name: "Kult Arcade", x0: 9, y0: 4, x1: 16, y1: 9, h: 130,
+    art: "bld-arcade", signQuad: [[48, 17], [198, 90], [48, 55]],
     wallL: "#3a1f5c", wallR: "#2a1646", roof: "#53307f", trim: "#5ec8f2", glow: "#ff4fa3",
-    door: { face: "y", u: 0.5, tile: [13, 9] }, sign: ["KULT", "ARCADE"], signColors: ["#5ec8f2", "#ff4fa3"], marquee: true
+    door: { face: "y", u: 0.45, tile: [12, 9] }, sign: ["KULT", "ARCADE"], signColors: ["#5ec8f2", "#ff4fa3"], marquee: true
   }
 ];
 const LOT = { x0: 17, y0: 2, x1: 22, y1: 7, label: ["NEW DISTRICT", "COMING SOON"] };
@@ -51,7 +53,7 @@ const PROPS = [];
 const prop = (kind, x, y, extra = {}) => { PROPS.push({ kind, x, y, ...extra }); if (x >= 0 && y >= 0 && x < MAP && y < MAP && kind !== "lamp" && kind !== "flower") blocked[Math.floor(x)][Math.floor(y)] = true; };
 for (const [x, y] of [[1.5, 17.5], [2.5, 20.5], [5.5, 22.5], [1.5, 22.5], [8.5, 20.5], [16.5, 20.5], [19.5, 22.5], [22.5, 19.5], [22.5, 16.5], [20.5, 9.5], [22.5, 10.5], [6.5, 18.5], [17.5, 17.5]]) prop("tree", x, y);
 for (const [x, y] of [[1.5, 3.5], [4.5, 1.5], [7.5, 2.5], [1.5, 7.5], [17.5, 1.0], [23.0, 4.5]]) prop("tree", x, y, { back: true });
-for (const [x, y] of [[9.2, 9.2], [16.8, 9.2], [9.2, 16.8], [16.8, 16.8], [11.6, 19.5], [14.4, 19.5], [11.6, 22.5], [14.4, 22.5], [19.5, 11.6], [22.5, 11.6], [8.6, 11.6]]) prop("lamp", x, y);
+for (const [x, y] of [[9.2, 9.2], [16.8, 9.2], [9.2, 16.8], [16.8, 16.8], [11.6, 19.5], [14.4, 19.5], [11.6, 22.5], [14.4, 22.5], [19.5, 11.6], [22.5, 11.6]]) prop("lamp", x, y);
 for (const [x, y] of [[10.5, 10.5], [15.5, 10.5], [15.5, 15.5]]) prop("bench", x, y);
 for (const [x, y] of [[3.5, 17.5], [7.5, 21.5], [20.5, 18.5], [18.5, 21.5], [21.5, 14.5]]) prop("bush", x, y);
 for (const [x, y] of [[10.2, 17.3], [15.8, 17.3], [16.6, 8.4]]) prop("flower", x, y);
@@ -102,11 +104,49 @@ export class World {
     this.marker = null;
     this.ground = null;
     this.art = null;
+    this.wart = {};          // world art: key -> { img, w, h, alpha? }
     this.signCanvas = new Map();
     this.fireflies = Array.from({ length: 40 }, (_, i) => ({ x: Math.random() * MAP, y: Math.random() * MAP, p: i * 0.7 }));
   }
 
   useArt(manifest, images, urlOf) { this.art = { manifest, images, urlOf, loading: new Set() }; }
+
+  // World art (ground, buildings, props). Buildings keep an alpha mask for
+  // pixel-accurate clicks.
+  useWorldArt(manifest, urlOf) {
+    for (const [key, m] of Object.entries(manifest.files || {})) {
+      if (!/^(ground|bld-|prop-)/.test(key)) continue;
+      const img = new Image();
+      img.onload = () => {
+        const entry = { img, w: img.naturalWidth, h: img.naturalHeight };
+        if (key.startsWith("bld-")) {
+          const c = document.createElement("canvas"); c.width = entry.w; c.height = entry.h;
+          const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+          entry.alpha = g.getImageData(0, 0, entry.w, entry.h).data;
+        }
+        this.wart[key] = entry;
+        if (key === "ground") this.ground = null;
+      };
+      img.src = urlOf(m.file);
+    }
+  }
+
+  // Where a building sprite sits: scaled so its width spans the footprint
+  // diamond, bottom vertex on the footprint's front corner.
+  bldRect(b) {
+    const a = this.wart[b.art]; if (!a) return null;
+    const left = iso(b.x0, b.y1)[0], right = iso(b.x1, b.y0)[0], bottom = iso(b.x1, b.y1)[1];
+    const k = ((right - left) * 1.06) / a.w, w = a.w * k, h = a.h * k;
+    return { a, k, x: (left + right) / 2 - w / 2, y: bottom + 10 - h, w, h };
+  }
+
+  // Draw a prop sprite: width in world px, bottom centre at (x, y + drop).
+  sprite2(g, key, x, y, width, drop = 0) {
+    const a = this.wart[key]; if (!a) return false;
+    const h = (a.h * width) / a.w;
+    g.drawImage(a.img, Math.round(x - width / 2), Math.round(y + drop - h), Math.round(width), Math.round(h));
+    return true;
+  }
 
   resize(cw, ch, dpr) {
     this.cw = cw; this.ch = ch; this.dpr = dpr;
@@ -154,6 +194,12 @@ export class World {
   buildingAt(sx, sy) {
     const [wx, wy] = this.toWorld(sx, sy);
     for (const b of [...BUILDINGS].reverse()) {
+      const r = this.bldRect(b);
+      if (r?.a.alpha) {
+        const px = Math.floor((wx - r.x) / r.k), py = Math.floor((wy - r.y) / r.k);
+        if (px >= 0 && py >= 0 && px < r.a.w && py < r.a.h && r.a.alpha[(py * r.a.w + px) * 4 + 3] > 40) return b;
+        continue;
+      }
       const pts = [iso(b.x0, b.y1), iso(b.x1, b.y1), iso(b.x1, b.y0), iso(b.x1, b.y0, b.h + 70), iso(b.x0, b.y0, b.h + 70), iso(b.x0, b.y1, b.h)];
       if (this.inPoly(wx, wy, pts)) return b;
     }
@@ -229,7 +275,7 @@ export class World {
     for (let i = 0; i < 70; i++) { const x = (i * 137.5) % this.canvas.width, y = (i * 61.7) % (this.canvas.height * 0.5); if (Math.sin(this.t * 1.5 + i) > -0.6) g.fillRect(x, y, this.dpr, this.dpr); }
     g.setTransform(k, 0, 0, k, (this.cw / 2 - this.cam.x * this.zoom) * this.dpr, (this.ch / 2 - this.cam.y * this.zoom) * this.dpr);
     g.imageSmoothingEnabled = false;
-    if (!this.ground) this.ground = this.buildGround();
+    if (!this.ground) this.ground = this.wart.ground?.img || this.buildGround();
     g.drawImage(this.ground, 0, 0);
     this.drawFountain(g);
     if (this.marker && this.t - this.marker.t0 < 1.2) this.drawMarker(g);
@@ -282,6 +328,21 @@ export class World {
   }
 
   drawFountain(g) {
+    const [fx, fy] = iso(13, 13);
+    g.imageSmoothingEnabled = true;
+    const art = this.sprite2(g, "prop-fountain", fx, fy, 124, 34);
+    g.imageSmoothingEnabled = false;
+    if (art) {
+      // Crystal glow and rising droplets over the art.
+      const cy = fy - 92 + Math.sin(this.t * 2) * 2;
+      g.globalCompositeOperation = "lighter";
+      const grad = g.createRadialGradient(fx, cy, 2, fx, cy, 40);
+      grad.addColorStop(0, `rgba(255,126,182,${0.28 + 0.1 * Math.sin(this.t * 2.4)})`); grad.addColorStop(1, "rgba(255,126,182,0)");
+      g.fillStyle = grad; g.beginPath(); g.arc(fx, cy, 40, 0, Math.PI * 2); g.fill();
+      for (let i = 0; i < 8; i++) { const k = (this.t * 0.8 + i / 8) % 1; g.fillStyle = `rgba(158,226,255,${1 - k})`; g.fillRect(fx + Math.sin(i * 2.1) * 30 * k, fy - 40 - Math.sin(k * Math.PI) * 28, 2, 2); }
+      g.globalCompositeOperation = "source-over";
+      return;
+    }
     const f = FOUNTAIN, h = 14;
     const top = [iso(f.x0, f.y0, h), iso(f.x1, f.y0, h), iso(f.x1, f.y1, h), iso(f.x0, f.y1, h)];
     this.poly(g, [iso(f.x1, f.y0), iso(f.x1, f.y1), iso(f.x1, f.y1, h), iso(f.x1, f.y0, h)], "#2c2650");
@@ -301,6 +362,9 @@ export class World {
   drawSpawnPad(g) {
     const [cx, cy] = iso(SPAWN[0], SPAWN[1]);
     const pulse = 0.5 + 0.5 * Math.sin(this.t * 2.5);
+    g.imageSmoothingEnabled = true;
+    if (this.sprite2(g, "prop-spawn", cx, cy, 72, 18)) { g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.5 * pulse; this.sprite2(g, "prop-spawn", cx, cy, 72, 18); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
+    g.imageSmoothingEnabled = false;
     g.strokeStyle = `rgba(94,200,242,${0.4 + 0.4 * pulse})`; g.lineWidth = 2;
     g.beginPath(); g.ellipse(cx, cy, 30, 15, 0, 0, Math.PI * 2); g.stroke();
     g.strokeStyle = `rgba(255,126,182,${0.3 + 0.3 * (1 - pulse)})`;
@@ -327,6 +391,23 @@ export class World {
 
   drawBuilding(g, b) {
     const hot = this.hover === b.id, { x0, y0, x1, y1, h } = b;
+    const r = this.bldRect(b);
+    if (r) {
+      g.imageSmoothingEnabled = true;
+      g.drawImage(r.a.img, r.x, r.y, r.w, r.h);
+      if (hot) { g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.14; g.drawImage(r.a.img, r.x, r.y, r.w, r.h); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
+      g.imageSmoothingEnabled = false;
+      // Door glow, brighter on hover.
+      const [dx, dy] = this.facePt(b, b.door.face, b.door.u, 0), rad = hot ? 70 : 44;
+      g.globalCompositeOperation = "lighter";
+      const grad = g.createRadialGradient(dx, dy, 2, dx, dy, rad);
+      grad.addColorStop(0, hot ? "rgba(255,230,160,0.45)" : "rgba(255,210,130,0.22)"); grad.addColorStop(1, "rgba(255,210,130,0)");
+      g.fillStyle = grad; g.beginPath(); g.ellipse(dx, dy, rad, rad / 2, 0, 0, Math.PI * 2); g.fill();
+      g.globalCompositeOperation = "source-over";
+      const sc = r.k * (r.a.w / 420);
+      this.drawSign(g, b, hot, b.signQuad.map(([px, py]) => [r.x + px * sc, r.y + py * sc]));
+      return;
+    }
     // Shadow.
     this.poly(g, [iso(x0, y1), iso(x1, y1), iso(x1 + 0.6, y1 + 0.2), iso(x0 + 0.6, y1 + 0.6)], "rgba(0,0,0,0.25)");
     this.poly(g, [iso(x1, y0), iso(x1, y1), iso(x1, y1, h), iso(x1, y0, h)], b.wallR);
@@ -371,13 +452,15 @@ export class World {
   }
 
   // Neon billboard standing on the roof's front edge.
-  drawSign(g, b, hot) {
+  drawSign(g, b, hot, quad = null) {
     let c = this.signCanvas.get(b.id);
     if (!c) { c = document.createElement("canvas"); c.width = 720; c.height = 220; this.signCanvas.set(b.id, c); }
     const s = c.getContext("2d"), t = this.t;
     s.clearRect(0, 0, c.width, c.height);
-    s.fillStyle = "#0d0820"; s.fillRect(0, 0, c.width, c.height);
-    s.strokeStyle = b.trim; s.lineWidth = 8; s.strokeRect(4, 4, c.width - 8, c.height - 8);
+    if (!quad) {
+      s.fillStyle = "#0d0820"; s.fillRect(0, 0, c.width, c.height);
+      s.strokeStyle = b.trim; s.lineWidth = 8; s.strokeRect(4, 4, c.width - 8, c.height - 8);
+    }
     const flick = (seed) => { const k = Math.sin(t * 13 + seed) + Math.sin(t * 4.1 + seed * 3); return k < -1.8 ? 0.2 : 1; };
     b.sign.forEach((line, i) => {
       const a = flick(i * 2.3 + (b.id === "park" ? 0 : 5)) * (hot ? 1 : 0.9);
@@ -386,6 +469,14 @@ export class World {
       s.fillText(line, c.width / 2, i === 0 ? 70 : 150);
       s.shadowBlur = 0; s.globalAlpha = 1;
     });
+    if (quad) { // the art's own billboard
+      const [tl, tr, bl] = quad;
+      g.save();
+      g.transform((tr[0] - tl[0]) / c.width, (tr[1] - tl[1]) / c.width, (bl[0] - tl[0]) / c.height, (bl[1] - tl[1]) / c.height, tl[0], tl[1]);
+      g.imageSmoothingEnabled = true; g.drawImage(c, 0, 0); g.imageSmoothingEnabled = false;
+      g.restore();
+      return;
+    }
     // Billboard quad on the front-left edge of the roof (face "y"), leaning up.
     const u0 = 0.1, u1 = 0.9, base = b.h + 4, top = b.h + 66;
     const pt = (u, z) => iso(b.x0 + (b.x1 - b.x0) * u, b.y1 - 0.4, z);
@@ -409,12 +500,17 @@ export class World {
     g.beginPath(); g.moveTo(...iso(l.x0, l.y1, 9)); g.lineTo(...iso(l.x1, l.y1, 9)); g.lineTo(...iso(l.x1, l.y0, 9)); g.stroke();
     // Crane.
     const [bx, by] = iso(l.x0 + 1.5, l.y0 + 1.5);
+    g.imageSmoothingEnabled = true;
+    const crane = this.sprite2(g, "prop-crane", bx + 30, by, 150, 10);
+    g.imageSmoothingEnabled = false;
+    if (!crane) {
     g.fillStyle = "#f2c14e"; g.fillRect(bx - 3, by - 150, 6, 150);
     const swing = Math.sin(this.t * 0.4) * 30;
     g.fillRect(bx - 20, by - 150, 120, 5);
     g.strokeStyle = "#cfd3e6"; g.lineWidth = 1; g.beginPath(); g.moveTo(bx + 60 + swing * 0.3, by - 146); g.lineTo(bx + 60 + swing * 0.3, by - 80); g.stroke();
     g.fillStyle = "#5ec8f2"; g.fillRect(bx + 52 + swing * 0.3, by - 82, 16, 10);
     g.fillStyle = Math.floor(this.t * 2) % 2 ? "#ff4f4f" : "#5a1a1a"; g.fillRect(bx - 2, by - 156, 4, 4);
+    }
     // Sign.
     const [sx, sy] = iso(l.x0 + 3, l.y1, 0);
     g.fillStyle = "#0d0820"; g.fillRect(sx - 52, sy - 46, 104, 30);
@@ -429,6 +525,11 @@ export class World {
   // ---------------------------------------------------------------- props
   drawProp(g, p) {
     const [x, y] = iso(p.x, p.y);
+    const size = { tree: [96, 8], lamp: [26, 4], bench: [48, 10], bush: [46, 8], flower: [42, 8] }[p.kind];
+    g.imageSmoothingEnabled = true;
+    const art = size && this.sprite2(g, `prop-${p.kind}`, x, y, ...size);
+    g.imageSmoothingEnabled = false;
+    if (art) return;
     if (p.kind === "tree") {
       g.fillStyle = "rgba(0,0,0,0.25)"; g.beginPath(); g.ellipse(x, y, 20, 9, 0, 0, Math.PI * 2); g.fill();
       g.fillStyle = "#3b2618"; g.fillRect(x - 3, y - 26, 6, 26);
@@ -454,7 +555,8 @@ export class World {
     g.globalCompositeOperation = "lighter";
     for (const p of PROPS) if (p.kind === "lamp") {
       const [x, y] = iso(p.x, p.y);
-      const r = 60 + Math.sin(this.t * 3 + p.x) * 2, grad = g.createRadialGradient(x, y - 48, 2, x, y - 20, r);
+      const hy = this.wart["prop-lamp"] ? 66 : 48;
+      const r = 60 + Math.sin(this.t * 3 + p.x) * 2, grad = g.createRadialGradient(x, y - hy, 2, x, y - 20, r);
       grad.addColorStop(0, "rgba(255,226,150,0.35)"); grad.addColorStop(1, "rgba(255,226,150,0)");
       g.fillStyle = grad; g.beginPath(); g.ellipse(x, y - 20, r, r * 0.7, 0, 0, Math.PI * 2); g.fill();
     }

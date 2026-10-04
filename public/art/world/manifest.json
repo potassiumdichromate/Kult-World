@@ -1,0 +1,383 @@
+{
+ "rev": "1354728b5f",
+ "files": {
+  "ground": {
+   "file": "world/ground.png",
+   "w": 1536,
+   "h": 1024
+  },
+  "bld-park": {
+   "file": "world/bld-park.png",
+   "w": 420,
+   "h": 422,
+   "anchor": [
+    206,
+    420
+   ]
+  },
+  "bld-arcade": {
+   "file": "world/bld-arcade.png",
+   "w": 420,
+   "h": 320,
+   "anchor": [
+    213,
+    318
+   ]
+  },
+  "prop-tree": {
+   "file": "world/prop-tree.png",
+   "w": 90,
+   "h": 104,
+   "anchor": [
+    45,
+    101
+   ]
+  },
+  "prop-lamp": {
+   "file": "world/prop-lamp.png",
+   "w": 27,
+   "h": 78,
+   "anchor": [
+    14,
+    75
+   ]
+  },
+  "prop-bench": {
+   "file": "world/prop-bench.png",
+   "w": 47,
+   "h": 40,
+   "anchor": [
+    24,
+    37
+   ]
+  },
+  "prop-bush": {
+   "file": "world/prop-bush.png",
+   "w": 44,
+   "h": 46,
+   "anchor": [
+    22,
+    43
+   ]
+  },
+  "prop-flower": {
+   "file": "world/prop-flower.png",
+   "w": 38,
+   "h": 30,
+   "anchor": [
+    19,
+    27
+   ]
+  },
+  "prop-fountain": {
+   "file": "world/prop-fountain.png",
+   "w": 105,
+   "h": 118,
+   "anchor": [
+    53,
+    115
+   ]
+  },
+  "prop-spawn": {
+   "file": "world/prop-spawn.png",
+   "w": 56,
+   "h": 34,
+   "anchor": [
+    28,
+    31
+   ]
+  },
+  "prop-crane": {
+   "file": "world/prop-crane.png",
+   "w": 150,
+   "h": 210,
+   "anchor": [
+    75,
+    207
+   ]
+  },
+  "card-create": {
+   "file": "world/card-create.png",
+   "w": 720,
+   "h": 493
+  },
+  "card-sports": {
+   "file": "world/card-sports.png",
+   "w": 720,
+   "h": 511
+  },
+  "card-dex": {
+   "file": "world/card-dex.png",
+   "w": 720,
+   "h": 508
+  },
+  "card-production": {
+   "file": "world/card-production.png",
+   "w": 720,
+   "h": 505
+  },
+  "monitor": {
+   "file": "world/monitor.png",
+   "w": 960,
+   "h": 654,
+   "screen": [
+    61,
+    67,
+    899,
+    481
+   ]
+  },
+  "logo": {
+   "file": "world/logo.png",
+   "w": 900,
+   "h": 318
+  },
+  "passport-bg": {
+   "file": "world/passport-bg.png",
+   "w": 760,
+   "h": 458
+  },
+  "stamp-park": {
+   "file": "world/stamp-park.png",
+   "w": 128,
+   "h": 125
+  },
+  "stamp-arcade": {
+   "file": "world/stamp-arcade.png",
+   "w": 128,
+   "h": 126
+  },
+  "stamp-create": {
+   "file": "world/stamp-create.png",
+   "w": 128,
+   "h": 125
+  },
+  "stamp-sports": {
+   "file": "world/stamp-sports.png",
+   "w": 128,
+   "h": 123
+  },
+  "stamp-dex": {
+   "file": "world/stamp-dex.png",
+   "w": 128,
+   "h": 127
+  },
+  "stamp-production": {
+   "file": "world/stamp-production.png",
+   "w": 128,
+   "h": 126
+  },
+  "icon-close": {
+   "file": "world/icon-close.png",
+   "w": 64,
+   "h": 63
+  },
+  "icon-menu": {
+   "file": "world/icon-menu.png",
+   "w": 64,
+   "h": 64
+  },
+  "icon-back": {
+   "file": "world/icon-back.png",
+   "w": 64,
+   "h": 64
+  },
+  "icon-settings": {
+   "file": "world/icon-settings.png",
+   "w": 64,
+   "h": 64
+  },
+  "icon-google": {
+   "file": "world/icon-google.png",
+   "w": 64,
+   "h": 63
+  },
+  "icon-email": {
+   "file": "world/icon-email.png",
+   "w": 64,
+   "h": 64
+  },
+  "icon-wallet": {
+   "file": "world/icon-wallet.png",
+   "w": 64,
+   "h": 64
+  },
+  "icon-play": {
+   "file": "world/icon-play.png",
+   "w": 64,
+   "h": 64
+  },
+  "icon-skip": {
+   "file": "world/icon-skip.png",
+   "w": 64,
+   "h": 61
+  },
+  "icon-lock": {
+   "file": "world/icon-lock.png",
+   "w": 64,
+   "h": 62
+  },
+  "icon-newtab": {
+   "file": "world/icon-newtab.png",
+   "w": 64,
+   "h": 63
+  },
+  "icon-info": {
+   "file": "world/icon-info.png",
+   "w": 64,
+   "h": 63
+  },
+  "icon-close-hot": {
+   "file": "world/icon-close-hot.png",
+   "w": 64,
+   "h": 65
+  },
+  "icon-menu-hot": {
+   "file": "world/icon-menu-hot.png",
+   "w": 64,
+   "h": 56
+  },
+  "icon-play-hot": {
+   "file": "world/icon-play-hot.png",
+   "w": 64,
+   "h": 56
+  },
+  "icon-lock-hot": {
+   "file": "world/icon-lock-hot.png",
+   "w": 64,
+   "h": 65
+  },
+  "btn-primary-normal": {
+   "file": "world/btn-primary-normal.png",
+   "w": 136,
+   "h": 51
+  },
+  "btn-primary-hover": {
+   "file": "world/btn-primary-hover.png",
+   "w": 159,
+   "h": 74
+  },
+  "btn-primary-pressed": {
+   "file": "world/btn-primary-pressed.png",
+   "w": 136,
+   "h": 51
+  },
+  "btn-primary-disabled": {
+   "file": "world/btn-primary-disabled.png",
+   "w": 136,
+   "h": 51
+  },
+  "btn-hero-normal": {
+   "file": "world/btn-hero-normal.png",
+   "w": 146,
+   "h": 68
+  },
+  "btn-hero-hover": {
+   "file": "world/btn-hero-hover.png",
+   "w": 167,
+   "h": 92
+  },
+  "btn-hero-pressed": {
+   "file": "world/btn-hero-pressed.png",
+   "w": 146,
+   "h": 69
+  },
+  "btn-hero-disabled": {
+   "file": "world/btn-hero-disabled.png",
+   "w": 142,
+   "h": 68
+  },
+  "btn-secondary-normal": {
+   "file": "world/btn-secondary-normal.png",
+   "w": 135,
+   "h": 50
+  },
+  "btn-secondary-hover": {
+   "file": "world/btn-secondary-hover.png",
+   "w": 158,
+   "h": 72
+  },
+  "btn-secondary-pressed": {
+   "file": "world/btn-secondary-pressed.png",
+   "w": 136,
+   "h": 51
+  },
+  "btn-secondary-disabled": {
+   "file": "world/btn-secondary-disabled.png",
+   "w": 135,
+   "h": 50
+  },
+  "btn-ghost-normal": {
+   "file": "world/btn-ghost-normal.png",
+   "w": 137,
+   "h": 53
+  },
+  "btn-ghost-hover": {
+   "file": "world/btn-ghost-hover.png",
+   "w": 159,
+   "h": 74
+  },
+  "btn-ghost-pressed": {
+   "file": "world/btn-ghost-pressed.png",
+   "w": 137,
+   "h": 53
+  },
+  "btn-ghost-disabled": {
+   "file": "world/btn-ghost-disabled.png",
+   "w": 136,
+   "h": 53
+  },
+  "btn-gold-normal": {
+   "file": "world/btn-gold-normal.png",
+   "w": 136,
+   "h": 51
+  },
+  "btn-gold-hover": {
+   "file": "world/btn-gold-hover.png",
+   "w": 159,
+   "h": 73
+  },
+  "btn-gold-pressed": {
+   "file": "world/btn-gold-pressed.png",
+   "w": 134,
+   "h": 50
+  },
+  "btn-gold-disabled": {
+   "file": "world/btn-gold-disabled.png",
+   "w": 136,
+   "h": 50
+  },
+  "btn-small-normal": {
+   "file": "world/btn-small-normal.png",
+   "w": 95,
+   "h": 41
+  },
+  "btn-small-hover": {
+   "file": "world/btn-small-hover.png",
+   "w": 112,
+   "h": 62
+  },
+  "btn-small-pressed": {
+   "file": "world/btn-small-pressed.png",
+   "w": 95,
+   "h": 41
+  },
+  "btn-small-disabled": {
+   "file": "world/btn-small-disabled.png",
+   "w": 92,
+   "h": 40
+  },
+  "thumb-warzone": {
+   "file": "world/thumb-warzone.webp"
+  },
+  "thumb-robowars": {
+   "file": "world/thumb-robowars.webp"
+  },
+  "thumb-wave": {
+   "file": "world/thumb-wave.webp"
+  },
+  "thumb-highway": {
+   "file": "world/thumb-highway.webp"
+  }
+ }
+}

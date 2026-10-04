@@ -272,3 +272,72 @@ input:focus, textarea:focus { border-color: var(--blue); }
 @media (max-width: 520px) { .biz-grid, .game-grid { grid-template-columns: 1fr; } .chips .chip.kp { display: none; } }
 @media (prefers-reduced-motion: reduce) { .biz-card.activate, .radar::before, .vs-mid, .count, .burst { animation-duration: 0.01s; } }
 * { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+
+/* ================================================================ art skin
+   Pixel art from public/art/world (scripts/import-art.mjs). Buttons are
+   9-slice images; text stays live. */
+.btn { border-style: solid; border-width: 9px 12px; border-image: url("art/world/btn-secondary-normal.png") 16 20 fill / 9px 12px stretch; background: none; box-shadow: none; padding: 4px 8px; min-height: 40px; color: var(--text); text-shadow: 2px 2px 0 #000; transition: filter 0.12s; }
+.btn:hover { filter: brightness(1.12) drop-shadow(0 0 6px rgba(94, 200, 242, 0.55)); }
+.btn:active { transform: translateY(2px); box-shadow: none; border-image-source: url("art/world/btn-secondary-pressed.png"); }
+.btn:disabled { border-image-source: url("art/world/btn-secondary-disabled.png"); filter: none; cursor: default; }
+.btn.primary { border-image-source: url("art/world/btn-primary-normal.png"); background: none; color: #2a0b1c; text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.35); }
+.btn.primary:hover { filter: brightness(1.08) drop-shadow(0 0 8px rgba(255, 126, 182, 0.7)); }
+.btn.primary:active { border-image-source: url("art/world/btn-primary-pressed.png"); }
+.btn.primary.big { border-image: url("art/world/btn-hero-normal.png") 20 24 fill / 14px 18px stretch; border-width: 14px 18px; padding: 8px 18px; font-size: 13px; color: #fff; text-shadow: 2px 2px 0 #2a0b1c; }
+.btn.primary.big:active { border-image-source: url("art/world/btn-hero-pressed.png"); }
+.btn.gold { border-image-source: url("art/world/btn-gold-normal.png"); color: #2a1800; text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.35); }
+.btn.gold:hover { filter: brightness(1.08) drop-shadow(0 0 8px rgba(242, 193, 78, 0.75)); }
+.btn.gold:active { border-image-source: url("art/world/btn-gold-pressed.png"); }
+.btn.ghost { border-image-source: url("art/world/btn-ghost-normal.png"); background: none; }
+.btn.ghost:hover { filter: brightness(1.15) drop-shadow(0 0 6px rgba(236, 232, 255, 0.5)); }
+.btn.ghost:active { border-image-source: url("art/world/btn-ghost-pressed.png"); }
+.btn.small, .btn.small.ghost { border-image: url("art/world/btn-small-normal.png") 12 14 fill / 7px 9px stretch; border-width: 7px 9px; padding: 3px 6px; min-height: 32px; font-size: 8px; }
+.btn.small:hover { filter: brightness(1.15) drop-shadow(0 0 6px rgba(255, 126, 182, 0.6)); }
+.btn.small:active { border-image-source: url("art/world/btn-small-pressed.png"); }
+
+/* Icon buttons */
+.icon-btn { width: 38px; height: 38px; padding: 0; border: 0; cursor: pointer; background: center / contain no-repeat; image-rendering: auto; }
+.icon-btn:active { transform: translateY(2px); }
+.menu-ico { background-image: url("art/world/icon-menu.png"); }
+.menu-ico:hover { background-image: url("art/world/icon-menu-hot.png"); }
+.close { width: 34px; height: 34px; font-size: 0; color: transparent; background: url("art/world/icon-close.png") center / contain no-repeat; }
+.close:hover { background-image: url("art/world/icon-close-hot.png"); }
+.lo-ico { width: 34px; height: 34px; font-size: 0; border: 0; background: center / contain no-repeat; }
+.lo-ico.g { background-image: url("art/world/icon-google.png"); } .lo-ico.e { background-image: url("art/world/icon-email.png"); } .lo-ico.w { background-image: url("art/world/icon-wallet.png"); }
+img.lock.img { width: 34px; height: 34px; top: 8px; right: 8px; filter: drop-shadow(2px 2px 0 #000); }
+
+/* Logo */
+.title.logo { margin: 6px auto 10px; line-height: 0; }
+.title.logo img { width: min(560px, 86vw); height: auto; filter: drop-shadow(0 0 22px rgba(255, 126, 182, 0.35)) drop-shadow(4px 4px 0 #000); }
+.brand-logo { height: 34px; width: auto; display: block; }
+
+/* Passport card on the booklet art: rank badge sits in the gold seal. */
+.pp-card { background: url("art/world/passport-bg.png") center / 100% 100% no-repeat; border: 0; box-shadow: 3px 3px 0 #000; padding: 22px 18px 16px 28px; }
+.pp-card .pp-rows { margin-right: 60px; }
+.pp-card::after { display: none; }
+.pp-head .seal { position: absolute; right: 7%; top: 9%; width: 52px; height: 52px; background: none; box-shadow: none; }
+.pp-head .seal img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6)); }
+.pp-head { padding-right: 58px; }
+.stamp.img { border: 0; padding: 0; border-radius: 0; }
+.stamp.img img { width: 100%; height: 100%; object-fit: contain; filter: grayscale(1) brightness(0.55); opacity: 0.35; }
+.stamp.img.on { box-shadow: none; transform: rotate(-10deg); }
+.stamp.img.on img { filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6)); opacity: 1; }
+
+/* Business cards and game thumbnails */
+.biz-art img { width: 100%; height: 100%; object-fit: contain; padding: 6px 4px 0; transition: transform 0.25s; }
+.biz-card:hover .biz-art img { transform: scale(1.05); }
+.game-card .thumb { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-bottom: 2px solid #000; }
+.game-card .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s; }
+.game-card:hover .thumb img { transform: scale(1.06); }
+.game-card .ribbon { position: absolute; left: 8px; bottom: 8px; font: 7px var(--display); padding: 5px 7px; background: var(--c); color: #120b28; box-shadow: 2px 2px 0 #000; }
+
+/* Arcade computer: the art frame, screen and title placed over it. */
+.monitor.art { position: relative; display: block; aspect-ratio: var(--ar); background: url("art/world/monitor.png") center / 100% 100% no-repeat; filter: drop-shadow(0 10px 0 rgba(0, 0, 0, 0.5)); }
+.monitor.art .monitor-bezel { position: absolute; inset: 0; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+.monitor.art .monitor-screen { position: absolute; left: var(--sl); top: var(--st); width: var(--sw); height: var(--sh); aspect-ratio: auto; border: 0; border-radius: 0; background: #000; }
+.monitor.art .monitor-screen canvas { object-fit: contain; }
+.monitor.art .monitor-titlebar { position: absolute; left: 19%; right: 6%; top: calc(var(--st) / 2); transform: translateY(-50%); padding: 0; }
+.monitor.art .monitor-titlebar .dots { display: none; }
+.monitor.art .monitor-chin { position: absolute; inset: 0; padding: 0; pointer-events: none; }
+.monitor.art .brand-plate, .monitor.art .monitor-stand { display: none; }
+.monitor.art .led { position: absolute; left: 90.7%; top: 80.4%; transform: translate(-50%, -50%); }

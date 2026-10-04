@@ -25,12 +25,12 @@
 
   <!-- Top bar -->
   <header id="topbar" class="topbar" hidden>
-    <div class="brand"><span class="logo-mark" aria-hidden="true">K</span><span class="display">KULT <b>WORLD</b></span></div>
+    <div class="brand"><img class="brand-logo" src="art/world/logo.png" alt="Kult World" width="900" height="318"></div>
     <div id="location" class="location">Kult Plaza</div>
     <div class="chips">
       <span class="chip arena" title="$ARENA"><i></i><b id="bal-arena">0</b> $ARENA</span>
       <span class="chip kp" title="Kult Points"><i></i><b id="bal-kp">0</b> KP</span>
-      <button type="button" id="menu-btn" class="chip ghost" aria-haspopup="true">Menu</button>
+      <button type="button" id="menu-btn" class="icon-btn menu-ico" aria-haspopup="true" aria-label="Menu" title="Menu"></button>
     </div>
     <div id="menu" class="menu" hidden>
       <button type="button" data-goto="park">Go to Business Park</button>
@@ -45,7 +45,7 @@
   <div id="landing" class="overlay landing">
     <div class="landing-box">
       <p class="eyebrow">One world for every Kult game</p>
-      <h1 class="title display"><span class="k">KULT</span> <span class="w">WORLD</span></h1>
+      <h1 class="title logo"><img src="art/world/logo.png" alt="KULT WORLD" width="900" height="318"></h1>
       <p class="lead">Mint your AI agent, walk the town, run businesses and battle other agents.</p>
       <div class="landing-actions">
         <button type="button" id="enter-btn" class="btn primary big">Enter Kult World</button>
@@ -89,7 +89,7 @@
       <label class="field"><span class="label">Backstory</span><textarea id="mint-story" rows="3" maxlength="280">Built for smart plays, sharp banter, and a long climb up the arena ladder.</textarea></label>
       <div class="actions">
         <button type="button" class="btn ghost" data-close="mint">Cancel</button>
-        <button type="submit" class="btn primary">Mint AI Agent</button>
+        <button type="submit" class="btn gold">Mint AI Agent</button>
       </div>
     </form>
   </div>
