@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Kult World</title>
-  <meta name="description" content="Kult World: mint your AI agent, explore a neon floating city, run businesses in the Kult Business Park and battle in the Kult Arcade.">
+  <meta name="description" content="Kult World: mint your AI agent, explore a neon floating city, run businesses, close deals, hire agents and battle in the Kult Game Hub.">
   <meta name="theme-color" content="#0b0717">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script type="importmap">
     { "imports": {
@@ -18,25 +18,27 @@
   </script>
 </head>
 <body>
-  <canvas id="world" aria-label="Kult World: a 3D floating city with the Kult Business Park and the Kult Arcade"></canvas>
+  <canvas id="world" aria-label="Kult World: a 3D floating city"></canvas>
   <div class="vignette" aria-hidden="true"></div>
   <div id="world-tip" class="world-tip glass" hidden></div>
 
-  <!-- Boot loader -->
-  <div id="boot" class="boot"><div class="boot-ring"></div><span>Building Kult World…</span></div>
+  <div id="boot" class="boot"><div class="boot-ring"></div><span data-i18n="boot">Building Kult World…</span></div>
+
+  <!-- Language switch (always visible) -->
+  <button type="button" id="lang-btn" class="lang-btn glass" title="English / 中文"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" /></svg><span data-i18n="lang.toggle">中文</span></button>
 
   <!-- Passport drawer: hidden, opened by the arrow tab -->
   <aside id="passport" class="passport" hidden aria-label="Kult World Passport">
     <div id="passport-body" class="passport-body glass"></div>
-    <button type="button" id="passport-toggle" class="passport-toggle glass" aria-expanded="false" aria-controls="passport-body" title="Passport (P)">
+    <button type="button" id="passport-toggle" class="passport-toggle glass" aria-expanded="false" aria-controls="passport-body" data-i18n-attr="title:passport">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
-      <span>PASSPORT</span>
+      <span data-i18n="passport">Passport</span>
     </button>
   </aside>
 
   <!-- HUD -->
   <header id="topbar" class="hud-top" hidden>
-    <button type="button" id="hud-player" class="hud-player glass" title="Open passport (P)">
+    <button type="button" id="hud-player" class="hud-player glass">
       <span class="hp-portrait"><img id="hp-img" alt=""><b id="hp-level">1</b></span>
       <span class="hp-main">
         <span class="hp-name" id="hp-name">Agent</span>
@@ -48,53 +50,70 @@
     <div class="hud-right">
       <span class="pill glass arena" title="$ARENA"><i></i><b id="bal-arena">0</b></span>
       <span class="pill glass kp" title="Kult Points"><i></i><b id="bal-kp">0</b></span>
-      <button type="button" id="menu-btn" class="icon-btn glass" aria-haspopup="true" aria-label="Menu" title="Menu">
+      <button type="button" id="menu-btn" class="icon-btn glass" aria-haspopup="true" data-i18n-attr="aria-label:menu;title:menu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
       </button>
       <div id="menu" class="menu glass" hidden>
-        <button type="button" data-goto="park">Go to Business Park</button>
-        <button type="button" data-goto="arcade">Go to Arcade</button>
-        <button type="button" id="reset-demo">Reset demo (new player)</button>
+        <button type="button" data-goto="park" data-i18n="bld.park">Kult Business Park</button>
+        <button type="button" data-goto="hub" data-i18n="bld.hub">Kult Game Hub</button>
+        <button type="button" data-goto="deal" data-i18n="bld.deal">Kult Deal Room</button>
+        <button type="button" data-goto="market" data-i18n="bld.market">Kult Agentic Marketplace</button>
+        <button type="button" id="reset-demo" data-i18n="menu.reset">Reset demo (new player)</button>
       </div>
     </div>
   </header>
+  <div id="quest-tracker" class="quest-tracker glass" hidden></div>
+  <div id="feed" class="feed" hidden aria-live="polite"></div>
 
   <nav id="dock" class="dock glass" hidden aria-label="Quick actions">
     <button type="button" data-goto="park" style="--c:#ffc94d">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l6-4v17M10 21V10h10v11M3 21h18M13 13h1M17 13h1M13 17h1M17 17h1M6 10h1M6 14h1" /></svg>
-      <span class="dl">Business Park</span><kbd>1</kbd></button>
-    <button type="button" data-goto="arcade" style="--c:#ff4fa3">
+      <span class="dl" data-i18n="dock.park">Business Park</span><kbd>1</kbd></button>
+    <button type="button" data-goto="hub" style="--c:#ff4fa3">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9" width="18" height="9" rx="4" /><path d="M8 12v3M6.5 13.5h3M15 12.5h.01M17.5 14.5h.01M12 9V5" /><circle cx="12" cy="4" r="1.5" /></svg>
-      <span class="dl">Arcade</span><kbd>2</kbd></button>
-    <button type="button" data-act="passport" style="--c:#4fd8ff">
+      <span class="dl" data-i18n="dock.hub">Game Hub</span><kbd>2</kbd></button>
+    <button type="button" data-goto="deal" style="--c:#ffc94d">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l4-4 4 3 3-2 7 5M7 7v6l4 4 2-1 2 2 3-3M3 11v4l4 4" /></svg>
+      <span class="dl" data-i18n="dock.deal">Deal Room</span><kbd>3</kbd></button>
+    <button type="button" data-goto="market" style="--c:#4fd8ff">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9l2-5h12l2 5M4 9v11h16V9M4 9h16M9 20v-6h6v6M8 9a2 2 0 0 1-4 0M12 9a2 2 0 0 1-4 0M16 9a2 2 0 0 1-4 0M20 9a2 2 0 0 1-4 0" /></svg>
+      <span class="dl" data-i18n="dock.market">Marketplace</span><kbd>4</kbd></button>
+    <button type="button" data-act="passport" style="--c:#a98bff">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" /><circle cx="12" cy="10" r="3" /><path d="M8.5 17h7" /></svg>
-      <span class="dl">Passport</span><kbd>P</kbd></button>
-    <button type="button" data-act="recenter" style="--c:#a98bff">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg>
-      <span class="dl">Recenter</span><kbd>C</kbd></button>
+      <span class="dl" data-i18n="passport">Passport</span><kbd>P</kbd></button>
   </nav>
 
   <div id="minimap-wrap" class="minimap glass" hidden>
-    <div class="mm-head"><span>KULT CITY</span><span id="mm-district">Kult Plaza</span></div>
-    <canvas id="minimap" width="176" height="176" title="Click to walk there"></canvas>
+    <div class="mm-head"><span data-i18n="minimap.title">KULT CITY</span><button type="button" class="mm-center" data-act="recenter" data-i18n-attr="title:recenter"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg></button></div>
+    <canvas id="minimap" width="176" height="176" data-i18n-attr="title:minimap.tip"></canvas>
+    <div class="mm-foot" id="mm-district">Kult Plaza</div>
   </div>
 
-  <div id="hint" class="hint glass" hidden>Click the ground to walk · Click a building to enter · Scroll to zoom</div>
+  <div id="hint" class="hint glass" hidden data-i18n="hint">Click the ground to walk · Click a building to enter · Scroll to zoom</div>
+
+  <!-- Agent profile card (click another agent) -->
+  <div id="agent-card" class="agent-card glass" hidden></div>
 
   <!-- Landing -->
   <div id="landing" class="overlay landing">
     <div class="landing-box">
-      <p class="eyebrow">One world for every Kult game</p>
+      <p class="eyebrow" data-i18n="landing.eyebrow">One world for every Kult game</p>
       <h1 class="logo"><span class="k">KULT</span><span class="w">WORLD</span></h1>
-      <p class="lead">Mint your AI agent, explore a neon floating city, run businesses and battle other agents.</p>
+      <p class="lead" data-i18n="landing.lead">Mint your AI agent, explore a neon floating city, run businesses, close deals and battle other agents.</p>
+      <div class="landing-stats">
+        <div class="glass"><b id="st-online">12,480</b><span data-i18n="stat.online">Agents online</span></div>
+        <div class="glass"><b id="st-deals">3,912</b><span data-i18n="stat.deals">Deals closed today</span></div>
+        <div class="glass"><b id="st-battles">48,205</b><span data-i18n="stat.battles">Battles today</span></div>
+      </div>
       <div class="landing-actions">
-        <button type="button" id="enter-btn" class="btn primary big">Enter Kult World</button>
-        <button type="button" id="returning-btn" class="linkish">Demo: sign in as a returning player</button>
+        <button type="button" id="enter-btn" class="btn primary big" data-i18n="landing.enter">Enter Kult World</button>
+        <button type="button" id="returning-btn" class="linkish" data-i18n="landing.returning">Demo: sign in as a returning player</button>
       </div>
       <ul class="landing-feats">
-        <li class="glass" style="--c:#ffc94d"><b>Kult Business Park</b><span>Gaming Studio · Sports Market · Dex · Production</span></li>
-        <li class="glass" style="--c:#ff4fa3"><b>Kult Arcade</b><span>AI vs AI: Warzone, Robowars, Wave, Highway Hustle</span></li>
-        <li class="glass" style="--c:#4fd8ff"><b>Passport</b><span>Your agent, rank, balances and businesses</span></li>
+        <li class="glass" style="--c:#ffc94d"><b data-i18n="bld.park">Kult Business Park</b><span data-i18n="feat.park">Gaming Studio · Sports Agency · Film · Dex</span></li>
+        <li class="glass" style="--c:#ff4fa3"><b data-i18n="bld.hub">Kult Game Hub</b><span data-i18n="feat.hub">AI vs AI: Warzone, Robowars, Wave, Highway Hustle</span></li>
+        <li class="glass" style="--c:#ffd27a"><b data-i18n="bld.deal">Kult Deal Room</b><span data-i18n="feat.deal">Your agent negotiates trades and partnerships</span></li>
+        <li class="glass" style="--c:#4fd8ff"><b data-i18n="bld.market">Kult Agentic Marketplace</b><span data-i18n="feat.market">Hire specialist agents or sell your agent's skills</span></li>
       </ul>
     </div>
   </div>
@@ -103,15 +122,15 @@
   <div id="login" class="overlay" hidden>
     <div class="sheet glass narrow">
       <button type="button" class="close" data-close="login" aria-label="Close">×</button>
-      <h2>Sign in to Kult World</h2>
-      <p class="muted small">Use your KULT account from AI Arena and Creator Studio.</p>
+      <h2 data-i18n="login.title">Sign in to Kult World</h2>
+      <p class="muted small" data-i18n="login.sub">Use your KULT account from AI Arena and Creator Studio.</p>
       <div class="login-opts">
-        <button type="button" class="login-opt" data-method="Google"><span class="lo-ico"><svg viewBox="0 0 24 24"><path fill="#fff" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#9fe8ff" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#ffc94d" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#ff7eb6" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5L6.4 10C7.2 7.7 9.4 5.9 12 5.9z"/></svg></span>Continue with Google</button>
-        <button type="button" class="login-opt" data-method="Email"><span class="lo-ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="#9fe8ff" stroke-width="2"/><path d="M4 7l8 6 8-6" fill="none" stroke="#9fe8ff" stroke-width="2"/></svg></span>Continue with email</button>
-        <button type="button" class="login-opt" data-method="Wallet"><span class="lo-ico"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3" fill="none" stroke="#ff7eb6" stroke-width="2"/><path d="M16 12h5v4h-5a2 2 0 0 1 0-4z" fill="#ff7eb6"/><path d="M5 6l10-3 1 3" fill="none" stroke="#ff7eb6" stroke-width="2"/></svg></span>Continue with a wallet</button>
+        <button type="button" class="login-opt" data-method="Google"><span class="lo-ico"><svg viewBox="0 0 24 24"><path fill="#fff" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z"/><path fill="#9fe8ff" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#ffc94d" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#ff7eb6" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 0 0 3.1 7.5L6.4 10C7.2 7.7 9.4 5.9 12 5.9z"/></svg></span><span data-i18n="login.google">Continue with Google</span></button>
+        <button type="button" class="login-opt" data-method="Email"><span class="lo-ico"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="#9fe8ff" stroke-width="2"/><path d="M4 7l8 6 8-6" fill="none" stroke="#9fe8ff" stroke-width="2"/></svg></span><span data-i18n="login.email">Continue with email</span></button>
+        <button type="button" class="login-opt" data-method="Wallet"><span class="lo-ico"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3" fill="none" stroke="#ff7eb6" stroke-width="2"/><path d="M16 12h5v4h-5a2 2 0 0 1 0-4z" fill="#ff7eb6"/><path d="M5 6l10-3 1 3" fill="none" stroke="#ff7eb6" stroke-width="2"/></svg></span><span data-i18n="login.wallet">Continue with a wallet</span></button>
       </div>
       <p id="login-status" class="muted small" hidden></p>
-      <p class="muted tiny">Demo: sign-in is simulated, nothing is sent anywhere.</p>
+      <p class="muted tiny" data-i18n="login.demo">Demo: sign-in is simulated, nothing is sent anywhere.</p>
     </div>
   </div>
 
@@ -119,53 +138,52 @@
   <div id="mint" class="overlay" hidden>
     <form id="mint-form" class="sheet glass mint">
       <div class="mint-head">
-        <p class="eyebrow">Your agent</p>
-        <h2>Create AI Agent</h2>
-        <p class="muted small">One step creates your arena agent and its custodial hot wallet. Choose clan, archetype, name, and backstory. Your agent then spawns in Kult World.</p>
+        <p class="eyebrow" data-i18n="mint.eyebrow">Your agent</p>
+        <h2 data-i18n="mint.title">Create AI Agent</h2>
+        <p class="muted small" data-i18n="mint.desc">One step creates your arena agent and its custodial hot wallet.</p>
       </div>
       <div id="mint-selected" class="mint-selected"></div>
-      <div class="field"><span class="label">Clan</span><div id="mint-clans" class="seg-chips"></div></div>
-      <div class="field"><span class="label">Archetype</span><div id="mint-archetypes" class="arch-grid"></div></div>
-      <label class="field"><span class="label">Name</span><input id="mint-name" maxlength="24" required autocomplete="off"></label>
-      <label class="field"><span class="label">Backstory</span><textarea id="mint-story" rows="3" maxlength="280">Built for smart plays, sharp banter, and a long climb up the arena ladder.</textarea></label>
+      <div class="field"><span class="label" data-i18n="mint.clan">Clan</span><div id="mint-clans" class="seg-chips"></div></div>
+      <div class="field"><span class="label" data-i18n="mint.archetype">Archetype</span><div id="mint-archetypes" class="arch-grid"></div></div>
+      <label class="field"><span class="label" data-i18n="mint.name">Name</span><input id="mint-name" maxlength="24" required autocomplete="off"></label>
+      <label class="field"><span class="label" data-i18n="mint.story">Backstory</span><textarea id="mint-story" rows="3" maxlength="280"></textarea></label>
       <div class="actions">
-        <button type="button" class="btn ghost" data-close="mint">Cancel</button>
-        <button type="submit" class="btn gold">Mint AI Agent</button>
+        <button type="button" class="btn ghost" data-close="mint" data-i18n="mint.cancel">Cancel</button>
+        <button type="submit" class="btn gold" data-i18n="mint.submit">Mint AI Agent</button>
       </div>
     </form>
   </div>
 
-  <!-- Minting progress -->
   <div id="minting" class="overlay" hidden>
     <div class="sheet glass narrow minting">
       <div id="minting-portrait" class="minting-portrait"></div>
-      <h2>Minting your agent</h2>
+      <h2 data-i18n="minting.title">Minting your agent</h2>
       <ol id="minting-steps" class="steps"></ol>
     </div>
   </div>
 
   <!-- Business Park -->
   <div id="park" class="overlay place" hidden>
-    <div class="place-sheet glass">
-      <button type="button" class="close" data-close="park" aria-label="Leave">×</button>
-      <p class="eyebrow">Kult Business Park</p>
-      <h2 class="place-title">Choose a business</h2>
-      <p class="muted">Your agent runs every business as CEO. Open one to start building.</p>
+    <div class="place-sheet glass" style="--accent:#ffc94d">
+      <button type="button" class="close" data-close="park" aria-label="Close">×</button>
+      <p class="eyebrow" data-i18n="park.eyebrow">Kult Business Park</p>
+      <h2 class="place-title" data-i18n="park.title">Choose a business</h2>
+      <p class="muted" data-i18n="park.desc">Your agent runs every business as CEO. Open one to start building.</p>
       <div id="biz-grid" class="biz-grid"></div>
     </div>
   </div>
 
-  <!-- Arcade -->
-  <div id="arcade" class="overlay place" hidden>
-    <div class="place-sheet glass wide">
-      <button type="button" class="close" id="arcade-close" aria-label="Leave">×</button>
-      <div id="arcade-list">
-        <p class="eyebrow">Kult Arcade</p>
-        <h2 class="place-title">AI vs AI arena</h2>
-        <p class="muted">Pick a game. Your agent is matched against another agent and plays it out live.</p>
+  <!-- Game Hub -->
+  <div id="hub" class="overlay place" hidden>
+    <div class="place-sheet glass wide" style="--accent:#ff4fa3">
+      <button type="button" class="close" id="hub-close" aria-label="Close">×</button>
+      <div id="hub-list">
+        <p class="eyebrow" data-i18n="hub.eyebrow">Kult Game Hub</p>
+        <h2 class="place-title" data-i18n="hub.title">AI vs AI arena</h2>
+        <p class="muted" data-i18n="hub.desc">Pick a game. Your agent is matched against another agent and plays it out live.</p>
         <div id="game-grid" class="game-grid"></div>
       </div>
-      <div id="arcade-match" class="arcade-match" hidden>
+      <div id="hub-match" class="arcade-match" hidden>
         <div class="monitor">
           <div class="monitor-bezel">
             <div class="monitor-titlebar"><span class="dots"><i></i><i></i><i></i></span><span id="monitor-title">KULT-OS</span><span class="mt-right" id="monitor-clock"></span><span class="led" id="monitor-led"></span></div>
@@ -177,19 +195,47 @@
           </div>
         </div>
         <div class="match-actions">
-          <button type="button" id="match-back" class="btn ghost">‹ Back to games</button>
-          <button type="button" id="match-skip" class="btn" hidden>Skip to result</button>
+          <button type="button" id="match-back" class="btn ghost" data-i18n="hub.back">‹ Back to games</button>
+          <button type="button" id="match-skip" class="btn" hidden data-i18n="hub.skip">Skip to result</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Deal Room -->
+  <div id="deal" class="overlay place" hidden>
+    <div class="place-sheet glass wide" style="--accent:#ffc94d">
+      <button type="button" class="close" data-close="deal" aria-label="Close">×</button>
+      <div id="deal-list">
+        <p class="eyebrow" data-i18n="deal.eyebrow">Kult Deal Room</p>
+        <h2 class="place-title" data-i18n="deal.title">Live deals</h2>
+        <p class="muted" data-i18n="deal.desc">Your agent negotiates on your behalf.</p>
+        <div id="deal-grid" class="deal-grid"></div>
+      </div>
+      <div id="deal-room" class="deal-room" hidden></div>
+    </div>
+  </div>
+
+  <!-- Agentic Marketplace -->
+  <div id="market" class="overlay place" hidden>
+    <div class="place-sheet glass wide" style="--accent:#4fd8ff">
+      <button type="button" class="close" data-close="market" aria-label="Close">×</button>
+      <p class="eyebrow" data-i18n="market.eyebrow">Kult Agentic Marketplace</p>
+      <div class="market-head">
+        <div><h2 class="place-title" data-i18n="market.title">Hire an agent</h2><p class="muted" data-i18n="market.desc">Specialist agents sell their skills for $ARENA.</p></div>
+        <button type="button" id="market-list-btn" class="btn ghost small" data-i18n="market.yours">List your agent</button>
+      </div>
+      <div id="market-cats" class="seg-chips"></div>
+      <div id="market-grid" class="market-grid"></div>
     </div>
   </div>
 
   <!-- A business, opened inside Kult World -->
   <div id="app-frame" class="app-frame" hidden>
     <div class="app-bar glass">
-      <button type="button" id="app-back" class="btn small">‹ Back to Kult World</button>
+      <button type="button" id="app-back" class="btn small" data-i18n="app.back">‹ Back to Kult World</button>
       <span id="app-title"></span>
-      <a id="app-newtab" class="btn small ghost" target="_blank" rel="noopener">Open in new tab</a>
+      <a id="app-newtab" class="btn small ghost" target="_blank" rel="noopener" data-i18n="app.newtab">Open in new tab</a>
     </div>
     <iframe id="app-iframe" title="Business" allow="autoplay; fullscreen"></iframe>
   </div>

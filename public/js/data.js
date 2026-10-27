@@ -52,7 +52,7 @@ export const BUSINESSES = [
     stat: "1,284 studios", url: "https://kult-create.onrender.com/office/?demo=1"
   },
   {
-    id: "sports", name: "Sports Market", brand: "Kult Sports", status: "open", color: "#3ddc84",
+    id: "sports", name: "Sports Agency", brand: "Kult Sports", status: "open", color: "#3ddc84",
     blurb: "Run a football analysis agency. Analysts read every match; real results climb the leaderboard.",
     stat: "862 agencies", url: "https://kult-sports.onrender.com/?demo=1"
   },
@@ -61,8 +61,8 @@ export const BUSINESSES = [
     blurb: "Let your agent trade on-chain markets with the strategies you design.", stat: "Coming soon"
   },
   {
-    id: "production", name: "Entertainment Production", brand: "Kult Production", status: "soon", color: "#f2c14e",
-    blurb: "Produce shows, trailers and music videos with an AI crew.", stat: "Coming soon"
+    id: "production", name: "Film Production", brand: "Kult Production", status: "soon", color: "#f2c14e",
+    blurb: "Produce films, trailers and music videos with an AI crew.", stat: "Coming soon"
   }
 ];
 
@@ -71,6 +71,33 @@ export const GAMES = [
   { id: "robowars", name: "Robowars", genre: "Mech brawler", blurb: "Giant robots trade lasers and punches.", color: "#5ec8f2", mode: "1v1 duel", reward: 40, players: "1,382 playing" },
   { id: "wave", name: "Warzone Warriors Wave", genre: "Wave survival", blurb: "Hold out against endless waves. Top score wins.", color: "#c792ea", mode: "1v1 score attack", reward: 50, players: "906 playing" },
   { id: "highway", name: "Highway Hustle", genre: "Racing", blurb: "Weave through traffic at full speed. Furthest wins.", color: "#f2c14e", mode: "1v1 race", reward: 35, players: "1,775 playing" }
+];
+
+// ------------------------------------------------------------------ Deal Room
+// Live deals your agent can negotiate. Text is bilingual: { en, zh }.
+export const DEALS = [
+  { id: "d1", kind: "otc", title: { en: "Buy 500 KULT below market", zh: "以低于市价购入 500 KULT" }, who: "Vex", archetype: "assassin", ask: 420, trust: 88, mins: 12 },
+  { id: "d2", kind: "sponsor", title: { en: "Sponsor Pixel FC's derby match", zh: "赞助 Pixel FC 的德比赛" }, who: "Talon", archetype: "berserker", ask: 300, trust: 74, mins: 25 },
+  { id: "d3", kind: "partner", title: { en: "Co-publish a racing game with Orbit Studios", zh: "与 Orbit Studios 联合发行一款赛车游戏" }, who: "Zephyr", archetype: "tactician", ask: 650, trust: 92, mins: 40 },
+  { id: "d4", kind: "license", title: { en: "License the 'Neon Space' IP for a film", zh: "授权 Neon Space IP 改编电影" }, who: "Rook", archetype: "hybrid", ask: 520, trust: 67, mins: 8 },
+  { id: "d5", kind: "otc", title: { en: "Sell 2,000 $ARENA for KULT", zh: "出售 2,000 $ARENA 换取 KULT" }, who: "Saga", archetype: "support", ask: 260, trust: 95, mins: 18 }
+];
+export const DEAL_LINES = {
+  open: { en: "Opening at {price} $ARENA. That's fair for both sides.", zh: "开价 {price} $ARENA，对双方都公平。" },
+  counter: { en: "Can't go that low. {price} and we have a deal.", zh: "太低了。{price}，我们就成交。" },
+  push: { en: "Meet me at {price}? I can close right now.", zh: "{price} 怎么样？我现在就能成交。" },
+  accept: { en: "Deal at {price}. Pleasure doing business.", zh: "{price} 成交，合作愉快。" },
+  walk: { en: "We're too far apart. Maybe next time.", zh: "差距太大了，下次再说吧。" }
+};
+
+// ------------------------------------------------------------------ Agentic Marketplace
+export const SERVICES = [
+  { id: "s1", cat: "analytics", service: { en: "Match prediction report", zh: "比赛预测报告" }, who: "Oracle-7", archetype: "tactician", rating: 4.9, jobs: 1284, price: 60, secs: 4, result: { en: "Report delivered: 3 value picks for this weekend.", zh: "报告已交付：本周末 3 个价值推荐。" } },
+  { id: "s2", cat: "creative", service: { en: "Game trailer edit", zh: "游戏预告片剪辑" }, who: "Muse", archetype: "hybrid", rating: 4.8, jobs: 642, price: 120, secs: 5, result: { en: "Trailer delivered: 45s cut with music.", zh: "预告片已交付：45 秒剪辑并配乐。" } },
+  { id: "s3", cat: "trading", service: { en: "Grid trading bot setup", zh: "网格交易机器人配置" }, who: "Quant", archetype: "assassin", rating: 4.7, jobs: 931, price: 90, secs: 4, result: { en: "Bot configured: 12 grids on KULT/$ARENA.", zh: "机器人已配置：KULT/$ARENA 12 格。" } },
+  { id: "s4", cat: "dev", service: { en: "Playtest & bug report", zh: "试玩与缺陷报告" }, who: "Glitch", archetype: "defender", rating: 4.9, jobs: 2210, price: 45, secs: 3, result: { en: "QA done: 7 bugs found, 2 critical.", zh: "测试完成：发现 7 个缺陷，2 个严重。" } },
+  { id: "s5", cat: "creative", service: { en: "Character concept art", zh: "角色概念设计" }, who: "Palette", archetype: "support", rating: 4.6, jobs: 488, price: 80, secs: 5, result: { en: "Art delivered: 4 character sheets.", zh: "美术已交付：4 张角色设定。" } },
+  { id: "s6", cat: "analytics", service: { en: "Scout a rival agent", zh: "侦察对手智能体" }, who: "Scout", archetype: "berserker", rating: 4.5, jobs: 377, price: 35, secs: 3, result: { en: "Scouting done: rival leans aggressive early.", zh: "侦察完成：对手开局偏激进。" } }
 ];
 
 const NAMES = ["Kraken", "Vex", "Orion", "Nyx", "Bolt", "Saga", "Rook", "Echo", "Mako", "Rune", "Pip", "Zephyr", "Halo", "Glitch", "Nova", "Blaze", "Talon", "Quill"];
@@ -109,7 +136,9 @@ export function mintAgent({ name, archetype: arch, clan, backstory, username }) 
     quests: [
       { id: "visit-park", title: "Visit the Kult Business Park", target: 1, progress: 0, reward: "50 KP" },
       { id: "arcade-win", title: "Win 3 battles in the Kult Arcade", target: 3, progress: 0, reward: "100 $ARENA" },
-      { id: "open-business", title: "Open your first business", target: 1, progress: 0, reward: "250 KP" }
+      { id: "open-business", title: "Open your first business", target: 1, progress: 0, reward: "250 KP" },
+      { id: "close-deal", title: "Close a deal in the Deal Room", target: 1, progress: 0, reward: "150 KP" },
+      { id: "hire-agent", title: "Hire an agent in the Marketplace", target: 1, progress: 0, reward: "100 KP" }
     ],
     activity: [{ at: new Date().toISOString(), text: `${name} was minted and spawned in Kult World.` }]
   };
@@ -129,7 +158,9 @@ export function veteranPlayer() {
   p.quests = [
     { id: "visit-park", title: "Visit the Kult Business Park", target: 1, progress: 1, reward: "50 KP" },
     { id: "arcade-win", title: "Win 3 battles in the Kult Arcade", target: 3, progress: 2, reward: "100 $ARENA" },
-    { id: "open-business", title: "Open your first business", target: 1, progress: 1, reward: "250 KP" }
+    { id: "open-business", title: "Open your first business", target: 1, progress: 1, reward: "250 KP" },
+    { id: "close-deal", title: "Close a deal in the Deal Room", target: 1, progress: 0, reward: "150 KP" },
+    { id: "hire-agent", title: "Hire an agent in the Marketplace", target: 1, progress: 0, reward: "100 KP" }
   ];
   p.activity = [
     { at: new Date(Date.now() - 3600e3).toISOString(), text: "Won Robowars vs Kraken (+150 ELO)" },

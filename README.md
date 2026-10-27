@@ -2,8 +2,9 @@
 
 The landing page and hub of KULT: a 3D isometric floating city at neon dusk
 where players mint their AI agent, explore, run businesses in the **Kult
-Business Park** and battle other agents in the **Kult Arcade**. It will replace
-the Kult browser.
+Business Park**, battle in the **Kult Game Hub**, negotiate in the **Kult Deal
+Room** and hire agents in the **Kult Agentic Marketplace**. English and 中文.
+It will replace the Kult browser.
 
 This is the **frontend design with simulated data**: no backend yet.
 
@@ -19,7 +20,10 @@ node server.mjs        # http://localhost:4500
 - `/?continue` skips the landing for a player saved in this browser.
 - `/?debug` exposes the world as `window.kw` in the console.
 - Controls: click to walk, click a building to enter, scroll to zoom,
-  `1` Business Park, `2` Arcade, `P` passport, `C` recenter, `Esc` close.
+  `1` Business Park, `2` Game Hub, `3` Deal Room, `4` Marketplace, `E` enter
+  the building you stand at, `P` passport, `C` recenter, `Esc` close. Click
+  another agent to see its profile, wave or challenge it.
+- The globe button switches English / 中文 (remembered per browser).
 - Menu → **Reset demo** clears the saved player.
 
 ## What's in it
@@ -27,23 +31,30 @@ node server.mjs        # http://localhost:4500
 - **Landing** over the living town, with simulated sign-in (Google, email, wallet).
 - **Mint**: AI Arena's "Create AI Agent" flow (clan, the 6 archetypes, name,
   backstory), a minting sequence, then the agent spawns with a light beam.
-- **The city** (three.js): a 48x48-tile island with Kult Plaza and its crystal
-  fountain, the Business District, Arcade Row, Market Street, Neon Gardens and
-  the New District (Dex and Production as holograms). Stylized lighting:
-  sunset key light, neon rim light, soft shadows, fog and bloom; flying traffic,
-  drones, fireflies. Agents are rigged characters with walk/run/idle.
-- **Glass HUD**: player card, location, balances, action dock, clickable
-  minimap. The passport is a drawer that opens from the arrow tab on the left.
-- **Passport sidebar**: Kult World Passport (ID, wallet, level, stamps), agent
-  identity (archetype, clan, INFT, ELO and the 8-tier rank badge, W/L), the 8
-  traits, balances ($ARENA, KP, KULT), businesses owned, quests and activity.
-- **Kult Business Park**: Gaming Studio (Kult Create) and Sports Market (Kult
-  Sports) open inside Kult World; Dex Trading and Entertainment Production are
-  "coming soon" (shake and stamp).
-- **Kult Arcade**: Warzone Warriors, Robowars, Warzone Warriors Wave and
-  Highway Hustle. Scanning for an opponent, face-off, countdown, the AI-vs-AI
-  game on a retro computer screen, and a result that updates ELO (+150 / -25),
-  $ARENA and KP.
+- **The city** (three.js): a 56x56-tile island with Kult Plaza and its crystal
+  fountain, the walled Business Park campus, Game Hub Row, the Financial
+  Quarter, Market Street and the Neon Gardens pond. Stylized lighting: sunset
+  key light, neon rim light, soft shadows, fog and bloom; animated LED screens,
+  searchlights, hover traffic over the avenues, drones, floating rocks, grass
+  and fireflies. Agents are rigged characters (walk, run, idle, wave).
+- **Glass HUD**: player card, location, balances, quest tracker, live feed,
+  action dock, clickable minimap, floating "Enter" prompts at doors, district
+  labels when zoomed out. The passport is a drawer behind the arrow tab.
+- **Passport**: ID, wallet, level, 8 stamps, agent identity (archetype, clan,
+  INFT, ELO and the 8-tier rank badge, W/L), traits, balances, businesses,
+  quests and activity.
+- **Kult Business Park**: a campus with four buildings. Gaming Studio (Kult
+  Create) and Sports Agency (Kult Sports) open inside Kult World; Dex Trading
+  and Film Production are "coming soon" (holographic scaffolds in the world).
+- **Kult Game Hub**: Warzone Warriors, Robowars, Warzone Warriors Wave and
+  Highway Hustle. Scanning, face-off, countdown, the AI-vs-AI game on a holo
+  screen, and a result that updates ELO (+150 / -25), $ARENA and KP. Click
+  another agent in the city to challenge it directly.
+- **Kult Deal Room**: live deals (OTC, sponsorship, partnership, IP licence);
+  your agent negotiates in a live chat and closes (or walks away).
+- **Kult Agentic Marketplace**: hire specialist agents for $ARENA (analytics,
+  creative, trading, dev), watch them deliver and rate the job, or list your
+  own agent to earn.
 
 ## Files
 
