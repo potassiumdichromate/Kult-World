@@ -5,6 +5,7 @@
 // docs/MODELS.md); the world loads it instead and scales it to the slot.
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 
 // 1 tile = T world units (metres).
 export const T = 2;
@@ -488,7 +489,8 @@ const BUILDERS = {
 };
 
 let provided = {};
-const gltf = new GLTFLoader();
+// Models are compressed with gltf-transform (meshopt geometry, WebP textures).
+const gltf = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
 const cache = new Map();
 export async function loadProvided() {
   try { provided = await fetch(`models/manifest.json?t=${Date.now()}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})); }
@@ -500,11 +502,13 @@ export function loadGLB(url) {
   return cache.get(url);
 }
 // Scale a loaded model so its footprint fits the slot, feet on y=0, centred.
+// Tall, thin slots with wide parts (a crane jib, a lamp arm) fit by height.
+const FIT_HEIGHT = new Set(["crane", "lamp", "campus-gate", "monument"]);
 function fit(obj, slot) {
   const s = SLOTS[slot];
   obj.updateMatrixWorld(true);
   const b = new THREE.Box3().setFromObject(obj), size = b.getSize(new THREE.Vector3());
-  const k = Math.min((s.size[0] * T) / Math.max(size.x, 1e-3), (s.size[1] * T) / Math.max(size.z, 1e-3), (s.height / Math.max(size.y, 1e-3)) * 1.4);
+  const k = FIT_HEIGHT.has(slot) ? s.height / Math.max(size.y, 1e-3) : Math.min((s.size[0] * T) / Math.max(size.x, 1e-3), (s.size[1] * T) / Math.max(size.z, 1e-3), (s.height / Math.max(size.y, 1e-3)) * 1.4);
   obj.scale.multiplyScalar(k);
   obj.updateMatrixWorld(true);
   const b2 = new THREE.Box3().setFromObject(obj), c = b2.getCenter(new THREE.Vector3());
@@ -512,6 +516,91 @@ function fit(obj, slot) {
   obj.traverse((o) => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
   const g = new THREE.Group(); g.add(obj); return g;
 }
+
+// Generated models (Meshy) have no emission map. Build one from the base
+// colour: bright, saturated texels (the neon, water, crystals) glow so bloom
+// picks them up, and everything else gets a slight lift so dark paint still
+// reads at dusk. With gold on, gold-hued texels give off pure gold light so the
+// violet dusk lighting does not turn them peach; with bright on, near-white
+// texels (lamp heads) glow too.
+const masks = new Map();
+function neonMask(map, gold = false, bright = false) {
+  const key = `${map.uuid}:${gold}:${bright}`;
+  if (masks.has(key)) return masks.get(key);
+  let tex = null;
+  const img = map.image;
+  if (img?.width) {
+    const w = Math.min(1024, img.width), h = Math.round((img.height / img.width) * w);
+    const c = document.createElement("canvas"); c.width = w; c.height = h;
+    const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0, w, h);
+    const d = g.getImageData(0, 0, w, h), p = d.data;
+    for (let i = 0; i < p.length; i += 4) {
+      const mx = Math.max(p[i], p[i + 1], p[i + 2]), mn = Math.min(p[i], p[i + 1], p[i + 2]), sat = mx ? (mx - mn) / mx : 0;
+      const n = Math.min(1, Math.max(0, (sat - 0.5) / 0.25)) * Math.min(1, Math.max(0, (mx - 165) / 60));
+      let gk = 0;
+      if (gold && mx > 110 && sat > 0.4) {
+        const r = p[i], gr = p[i + 1], b = p[i + 2], d = mx - mn;
+        let hue = mx === r ? 60 * (((gr - b) / d) % 6) : mx === gr ? 60 * ((b - r) / d + 2) : 60 * ((r - gr) / d + 4);
+        if (hue < 0) hue += 360;
+        if (hue >= 25 && hue <= 62) gk = (mx / 255) * 0.75;
+      }
+      if (bright && mx > 215 && sat < 0.35) gk = -1;
+      const k = gk > 0 ? 0.06 : gk < 0 ? 1 : n + 0.08;
+      if (gk < 0) gk = 0;
+      p[i] = p[i] * k + 255 * gk; p[i + 1] = p[i + 1] * k + 180 * gk; p[i + 2] = p[i + 2] * k + 50 * gk;
+    }
+    {
+      g.putImageData(d, 0, 0);
+      tex = new THREE.CanvasTexture(c);
+      Object.assign(tex, { flipY: map.flipY, colorSpace: THREE.SRGBColorSpace, channel: map.channel, wrapS: map.wrapS, wrapT: map.wrapT });
+    }
+  }
+  masks.set(key, tex);
+  return tex;
+}
+const GOLD = new Set(["bld-deal-room", "monument", "campus-gate"]), BRIGHT = new Set(["lamp"]);
+function addGlow(obj, slot) {
+  const gold = GOLD.has(slot), bright = BRIGHT.has(slot);
+  obj.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of [].concat(o.material)) {
+      if (!m.map || m.emissiveMap) continue;
+      const mask = neonMask(m.map, gold, bright);
+      if (!mask) continue;
+      m.emissiveMap = mask; m.emissive.set("#ffffff"); m.emissiveIntensity = gold ? 1 : 1.6;
+      if (gold) { m.color.multiplyScalar(0.7); m.metalness = 0.3; m.roughness = 0.45; }
+      m.needsUpdate = true;
+    }
+  });
+}
+// A translated name sign floating over the front of a model (models carry no
+// text, so the sign follows the player's language).
+function nameSign(g, lines, colors, lift = 0) {
+  const b = new THREE.Box3().setFromObject(g), w = Math.max(6, (b.max.x - b.min.x) * 0.85);
+  const s = sign(lines, w, w * 0.25, { colors }); s.position.set(0, b.max.y + w * 0.16 + lift, b.max.z * 0.6); g.add(s);
+}
+// Trees sway like their placeholders did.
+const swayAnim = (g, k) => { const ph = Math.random() * 6; return (t) => { g.rotation.z = Math.sin(t * 0.9 + ph) * 0.025 * k; g.rotation.x = Math.cos(t * 0.7 + ph) * 0.02 * k; }; };
+// Lights, signs and effects a slot keeps when its placeholder is swapped for a
+// model. Each gets (model, slot options) and may return an animation.
+const EXTRAS = {
+  tree: (g) => swayAnim(g, 1), pine: (g) => swayAnim(g, 0.8), blossom: (g) => swayAnim(g, 1),
+  lamp: (g, color = "#ffd27a") => { const b = new THREE.Box3().setFromObject(g), p = lightPool(color, 2.4, 0.55); p.position.set((b.min.x + b.max.x) / 2, 0.03, (b.min.z + b.max.z) / 2); g.add(p); },
+  "spawn-pad": (g) => { const p = spawnPad(), disc = p.children[1]; disc.position.y = new THREE.Box3().setFromObject(g).max.y + 0.03; g.add(disc); return p.userData.anim; },
+  monument: (g) => { const ring = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.06, 6, 40), M.glow("#ffc94d", 3)); ring.rotation.x = Math.PI / 2; ring.position.y = new THREE.Box3().setFromObject(g).max.y * 0.55; g.add(ring); return (t) => { ring.rotation.z = t * 0.6; ring.scale.setScalar(1 + Math.sin(t * 2) * 0.05); }; },
+  "campus-gate": (g) => nameSign(g, ["KULT", ["sign.park", "BUSINESS PARK"]], ["#ffc94d", "#4fd8ff"], 0.5),
+  fountain: (g) => { const l = new THREE.PointLight("#ff4fa3", 30, 16, 1.6); l.position.y = 4.6; g.add(l); },
+  "bld-gaming-studio": (g) => nameSign(g, [["sign.create", "GAMING STUDIO"], "KULT CREATE"], ["#ff7eb6", "#ffffff"]),
+  "bld-sports": (g) => nameSign(g, [["sign.sports", "SPORTS AGENCY"], "KULT SPORTS"], ["#7ef0a6", "#ffffff"]),
+  "bld-dex": (g) => nameSign(g, [["sign.dex", "DEX TRADING"], "KULT DEX"], ["#4fd8ff", "#ffffff"]),
+  "bld-film": (g) => nameSign(g, [["sign.production", "FILM PRODUCTION"], "KULT PRODUCTION"], ["#ffc94d", "#ffffff"]),
+  "bld-game-hub": (g) => nameSign(g, ["KULT", ["sign.hub", "GAME HUB"]], ["#4fd8ff", "#ff4fa3"]),
+  "bld-deal-room": (g) => nameSign(g, ["KULT", ["sign.deal", "DEAL ROOM"]], ["#ffc94d", "#ffffff"]),
+  "bld-marketplace": (g) => nameSign(g, ["KULT", ["sign.market", "AGENTIC MARKETPLACE"]], ["#4fd8ff", "#ff7eb6"], 3)
+};
+
+// Props whose builder takes a size factor (opts) keep it when swapped for a model.
+const SCALED = new Set(["tree", "pine", "blossom", "bush"]);
 
 // Build a slot: the provided GLB if there is one, otherwise the placeholder.
 // `opts` is passed to the placeholder builder ({ W, D } for buildings).
@@ -524,9 +613,13 @@ export function build(slot, opts) {
   if (provided[slot]) {
     loadGLB(`models/${provided[slot]}`).then((gl) => {
       const m = fit(gl.scene.clone(true), slot);
+      addGlow(m, slot);
+      if (SCALED.has(slot) && typeof opts === "number") m.scale.setScalar(opts);
+      if (holder.userData.noShadow) m.traverse((o) => { o.castShadow = false; });
+      const extra = EXTRAS[slot]?.(m, opts);
       holder.remove(placeholder); holder.add(m);
-      holder.userData.anim = null;
-      if (gl.animations?.length) { const mixer = new THREE.AnimationMixer(m); gl.animations.forEach((a) => mixer.clipAction(a).play()); holder.userData.anim = (t, dt) => mixer.update(dt); }
+      holder.userData.anim = typeof extra === "function" ? extra : null;
+      if (gl.animations?.length) { const mixer = new THREE.AnimationMixer(m), prev = holder.userData.anim; gl.animations.forEach((a) => mixer.clipAction(a).play()); holder.userData.anim = (t, dt) => { mixer.update(dt); prev?.(t, dt); }; }
     }).catch((e) => console.warn(`[models] ${slot}: ${e?.message || e}; keeping placeholder`));
   }
   return holder;

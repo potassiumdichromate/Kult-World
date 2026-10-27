@@ -181,7 +181,7 @@ export class World {
       const g = p.kind === "lamp" ? build("lamp", p.glow) : p.kind === "billboard" ? build("billboard", p.ad) : p.kind === "car" ? build("car", p.color) : build(p.kind, p.s || 1);
       g.position.copy(toWorld(p.x, p.y)); g.rotation.y = p.rot || 0;
       // Only trees and the crane cast shadows; small props would cost hundreds of draw calls.
-      if (!["tree", "pine", "blossom", "crane"].includes(p.kind)) g.traverse((o) => { o.castShadow = false; });
+      if (!["tree", "pine", "blossom", "crane"].includes(p.kind)) { g.userData.noShadow = true; g.traverse((o) => { o.castShadow = false; }); }
       s.add(g); this.register(g);
     }
     // Fireflies / neon dust.
@@ -211,17 +211,21 @@ export class World {
   register(g) { this.anims.push((t, dt) => g.userData.anim?.(t, dt)); }
 
   // A "coming soon" business: holographic scaffold, scan line and a banner.
+  // Over a real model it is only a faint outline, so the building shows.
   comingSoon(b, c, W, D, h) {
+    const real = !!providedModel(b.slot), base = real ? 0.3 : 0.55;
     const geo = new THREE.BoxGeometry(W + 0.6, h, D + 0.6);
     const lines = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: b.color, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }));
     lines.position.copy(c).setY(h / 2); this.scene.add(lines);
-    const shell = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: b.color, transparent: true, opacity: 0.025, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
-    shell.position.copy(lines.position); this.scene.add(shell);
-    const scan = new THREE.Mesh(new THREE.PlaneGeometry(W + 1, D + 1), new THREE.MeshBasicMaterial({ color: b.color, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    if (!real) {
+      const shell = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: b.color, transparent: true, opacity: 0.025, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      shell.position.copy(lines.position); this.scene.add(shell);
+    }
+    const scan = new THREE.Mesh(new THREE.PlaneGeometry(W + 1, D + 1), new THREE.MeshBasicMaterial({ color: b.color, transparent: true, opacity: real ? 0.06 : 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
     scan.rotation.x = -Math.PI / 2; scan.position.copy(c); this.scene.add(scan);
     const banner = sign([["sign.soon", "COMING SOON"]], 9, 1.6, { colors: ["#ffc94d"] });
     banner.position.copy(c).add(new THREE.Vector3(0, h + 1.6, D / 2)); this.scene.add(banner);
-    this.anims.push((t) => { scan.position.y = (t * 4) % h; lines.material.opacity = 0.55 + Math.sin(t * 7) * 0.15 + (Math.random() < 0.02 ? -0.4 : 0); banner.position.y = h + 1.6 + Math.sin(t * 1.5) * 0.25; });
+    this.anims.push((t) => { scan.position.y = (t * 4) % h; lines.material.opacity = base + Math.sin(t * 7) * 0.15 + (Math.random() < 0.02 ? -0.4 : 0); banner.position.y = h + 1.6 + Math.sin(t * 1.5) * 0.25; });
   }
 
   // Flying traffic: high orbit lanes plus hover cars streaming over the avenues.

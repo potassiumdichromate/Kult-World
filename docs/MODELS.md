@@ -29,7 +29,7 @@ A floating city island at twilight, seen from a fixed isometric camera.
 | Pivot | Bottom centre of the footprint, sitting on y = 0 |
 | Facing | The **front / entrance faces +Z** (toward the camera, south) |
 | Textures | Up to 2048² for buildings, 1024² for props and characters. Embedded in the `.glb` |
-| Compression | None for now (no Draco). Tell me if you want Draco or Meshopt and I'll enable it |
+| Compression | Deliver uncompressed. Before going in the game every model is run through `npx @gltf-transform/cli optimize <in> <out> --compress meshopt --texture-compress webp --texture-size 1024 --simplify false` (meshopt geometry, 1024² WebP textures; about 0.5 MB per building). Originals stay in `art-src/meshy/raw/` |
 | Animation | Any animation clips inside a `.glb` play on loop (spinning crystals, chasing bulbs, swaying trees). Characters: see below |
 
 **Delivery:** put files in `Desktop/Assets/Kult-World/3d/` named exactly as

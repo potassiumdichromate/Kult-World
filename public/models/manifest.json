@@ -1,1 +1,21 @@
-{}
+{
+  "fountain": "fountain.glb",
+  "bld-gaming-studio": "bld-gaming-studio.glb",
+  "bld-sports": "bld-sports.glb",
+  "bld-dex": "bld-dex.glb",
+  "bld-film": "bld-film.glb",
+  "bld-game-hub": "bld-game-hub.glb",
+  "bld-deal-room": "bld-deal-room.glb",
+  "bld-marketplace": "bld-marketplace.glb",
+  "campus-gate": "campus-gate.glb",
+  "monument": "monument.glb",
+  "spawn-pad": "spawn-pad.glb",
+  "tree": "tree.glb",
+  "pine": "pine.glb",
+  "blossom": "blossom.glb",
+  "bush": "bush.glb",
+  "flowers": "flowers.glb",
+  "lamp": "lamp.glb",
+  "bench": "bench.glb",
+  "crane": "crane.glb"
+}
