@@ -2,7 +2,8 @@
 // Passport sidebar, the Kult Business Park and the Kult Arcade. All data is
 // simulated (js/data.js); see docs/ for the asset plan and the backend notes.
 
-import { World, BUILDINGS, MAP, walkable } from "./world.js";
+import { World, BUILDINGS, MAP } from "./world3d.js";
+import { randomStreetTile } from "./layout.js";
 import { createGame, drawThumb, SW, SH } from "./minigames.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, RANKS, rankOf, nextRank, BUSINESSES, GAMES,
@@ -31,6 +32,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 // ------------------------------------------------------------------ state
 const state = { player: loadPlayer(), returning: false, inWorld: false, manifest: null, urlOf: (f) => `art/${f}`, wart: null };
 const world = new World($("world"));
+if (new URLSearchParams(location.search).has("debug")) window.kw = { world, state };
 
 // ------------------------------------------------------------------ art
 async function loadArt() {
@@ -38,18 +40,10 @@ async function loadArt() {
     const m = await fetch(`art/manifest.json?t=${Date.now()}`, { cache: "no-store" }).then((r) => r.json());
     state.manifest = m;
     state.urlOf = (f) => `art/${f}${m.rev ? `?v=${m.rev}` : ""}`;
-    world.useArt(m, {}, state.urlOf);
   } catch (e) { console.warn("[kult-world] art not loaded", e); }
   try {
     const w = await fetch(`art/world/manifest.json?t=${Date.now()}`, { cache: "no-store" }).then((r) => r.json());
     state.wart = w;
-    world.useWorldArt(w, (f) => `art/${f}?v=${w.rev}`);
-    const mon = w.files.monitor;
-    if (mon?.screen) {
-      const [x0, y0, x1, y1] = mon.screen, m = document.querySelector(".monitor");
-      m.classList.add("art");
-      m.style.cssText = `--ar:${mon.w}/${mon.h};--sl:${(x0 / mon.w) * 100}%;--st:${(y0 / mon.h) * 100}%;--sw:${((x1 - x0) / mon.w) * 100}%;--sh:${((y1 - y0) / mon.h) * 100}%`;
-    }
   } catch (e) { console.warn("[kult-world] world art not loaded", e); }
 }
 // URL of an imported world asset (null when missing).
@@ -61,20 +55,22 @@ const rankBadge = (r) => `art/${r.badge}`;
 function resize() { world.resize(innerWidth, innerHeight, Math.min(2, devicePixelRatio || 1)); }
 addEventListener("resize", resize);
 resize();
-let last = performance.now();
+let last = performance.now(), mmAt = 0, frames = 0;
 function tick(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   world.update(dt); world.draw();
-  if (state.inWorld) updateLocation();
+  if (++frames === 3) $("boot").classList.add("done");
+  if (state.inWorld) {
+    updateLocation();
+    if (now - mmAt > 100) { mmAt = now; world.minimap($("minimap")); }
+  }
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
-
-// Other agents walking the town (also the landing backdrop).
-for (const w of wanderers(8)) {
-  let x, y; do { x = 8 + Math.floor(Math.random() * 15) + 0.5; y = 8 + Math.floor(Math.random() * 15) + 0.5; } while (!walkable(Math.floor(x), Math.floor(y)));
-  world.addAgent(w.id, { ...w, x, y });
-}
+world.init().then(() => {
+  // Other agents walking the city (also the landing backdrop).
+  for (const w of wanderers(14)) { const [x, y] = randomStreetTile(); world.addAgent(w.id, { ...w, x: x + 0.5, y: y + 0.5 }); }
+});
 
 // ------------------------------------------------------------------ pointer
 const canvas = $("world");
@@ -84,7 +80,7 @@ canvas.addEventListener("pointermove", (e) => {
   world.hover = b?.id || null;
   canvas.style.cursor = b ? "pointer" : "default";
   const tip = $("world-tip");
-  if (b) { tip.textContent = `${b.name} · click to enter`; tip.style.left = `${e.clientX}px`; tip.style.top = `${e.clientY}px`; tip.hidden = false; }
+  if (b) { tip.replaceChildren(b.name, el("small", {}, `${b.blurb} · click to enter`)); tip.style.left = `${e.clientX}px`; tip.style.top = `${e.clientY}px`; tip.hidden = false; }
   else tip.hidden = true;
 });
 canvas.addEventListener("pointerleave", () => { world.hover = null; $("world-tip").hidden = true; });
@@ -94,17 +90,26 @@ canvas.addEventListener("click", (e) => {
   if (b) return goTo(b.id);
   world.walkToScreen(e.clientX, e.clientY);
 });
+canvas.addEventListener("wheel", (e) => { e.preventDefault(); world.zoomBy(e.deltaY > 0 ? 0.9 : 1.1); }, { passive: false });
+$("minimap").addEventListener("click", (e) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  world.walkToTile(((e.clientX - r.left) / r.width) * MAP, ((e.clientY - r.top) / r.height) * MAP);
+});
 
 function goTo(id) {
   const b = BUILDINGS.find((x) => x.id === id);
-  $("location").textContent = `Walking to ${b.name}…`;
+  $("location-text").textContent = `Walking to ${b.name}…`;
   world.walkToBuilding(id, () => openPlace(id));
 }
+let lastPlace = "";
 function updateLocation() {
   const p = world.player;
-  if (!p || p.walking) return;
-  const near = BUILDINGS.find((b) => Math.hypot(p.x - b.door.tile[0] - 0.5, p.y - b.door.tile[1] - 0.5) < 2.2);
-  $("location").textContent = near ? near.name : "Kult Plaza";
+  if (!p) return;
+  const near = BUILDINGS.find((b) => Math.hypot(p.x - b.door.tile[0] - 0.5, p.y - b.door.tile[1] - 0.5) < 2.5);
+  const place = near ? near.name : world.districtAt(p.x, p.y);
+  $("mm-district").textContent = world.districtAt(p.x, p.y);
+  if (p.walking && $("location-text").textContent.startsWith("Walking")) return;
+  if (place !== lastPlace) { lastPlace = place; $("location-text").textContent = place; }
 }
 
 // ------------------------------------------------------------------ landing & sign-in
@@ -169,13 +174,13 @@ $("mint-form").addEventListener("submit", async (e) => {
 // ------------------------------------------------------------------ the world
 function enterWorld(fresh) {
   for (const id of ["landing", "login", "mint", "minting"]) show(id, false);
-  for (const id of ["passport", "topbar", "hint"]) show(id, true);
+  for (const id of ["passport", "topbar", "hint", "dock", "minimap-wrap"]) show(id, true);
   state.inWorld = true;
   const a = state.player.agent;
   world.spawnPlayer({ name: a.name, archetype: a.archetype, clan: a.clan });
   renderPassport();
   setTimeout(() => toast(fresh ? `${a.name} spawned in Kult World! Visit the Business Park or the Arcade.` : `Welcome back, ${a.name}.`, "good"), 900);
-  setTimeout(() => show("hint", false), 12000);
+  setTimeout(() => show("hint", false), 14000);
 }
 
 // ------------------------------------------------------------------ passport sidebar
@@ -183,7 +188,12 @@ const STAMPS = [["park", "PARK", "#f2c14e"], ["arcade", "ARCADE", "#ff4fa3"], ["
 function renderPassport() {
   const p = state.player, a = p.agent, arch = archetype(a.archetype), clan = CLANS.find((c) => c.id === a.clan);
   const r = rankOf(a.elo), nr = nextRank(a.elo), games = a.wins + a.losses;
-  $("bal-arena").textContent = fmt(p.balances.arena); $("bal-kp").textContent = fmt(p.balances.kp);
+  setBalance("bal-arena", p.balances.arena); setBalance("bal-kp", p.balances.kp);
+  $("hp-name").textContent = a.name; $("hp-level").textContent = p.passport.level;
+  $("hp-rank").textContent = r.name; $("hp-elo").textContent = `${fmt(a.elo)} ELO`; $("hp-badge").src = rankBadge(r);
+  $("hp-xp").style.width = `${Math.round((p.passport.xp / p.passport.xpToNext) * 100)}%`;
+  if (portraitUrl(a.archetype)) $("hp-img").src = portraitUrl(a.archetype);
+  $("hud-player").style.setProperty("--ac", arch.color);
   const section = (title, small, ...kids) => el("section", { class: "pp-section" }, el("h3", {}, title, small ? el("small", {}, small) : null), ...kids);
   $("passport-body").replaceChildren(
     // Passport card
@@ -198,7 +208,7 @@ function renderPassport() {
       el("div", { class: "bar" }, el("i", { style: `width:${Math.round((p.passport.xp / p.passport.xpToNext) * 100)}%` })),
       el("div", { class: "stamps", title: "Places and businesses visited" }, STAMPS.map(([id, label, c]) => {
         const on = p.passport.stamps.includes(id), img = wart(`stamp-${id}`);
-        return img ? el("span", { class: `stamp img${on ? " on" : ""}`, title: `${label}${on ? "" : " (not visited)"}` }, el("img", { src: img, alt: label }))
+        return img ? el("span", { class: `stamp img${on ? " on" : ""}`, style: `--c:${c}`, title: `${label}${on ? "" : " (not visited)"}` }, el("img", { src: img, alt: label }))
           : el("span", { class: `stamp${on ? " on" : ""}`, style: `--c:${c}` }, label);
       }))),
     // Agent identity
@@ -237,13 +247,29 @@ function renderPassport() {
       el("span", { class: "muted tiny" }, `${Math.min(q.progress, q.target)} / ${q.target}`)))),
     section("Recent activity", null, el("ul", { class: "activity" }, p.activity.slice(0, 6).map((x) => el("li", {}, x.text, el("time", {}, ago(x.at)))))));
 }
+function setBalance(id, v) {
+  const n = $(id), old = n.dataset.v;
+  n.textContent = fmt(v); n.dataset.v = v;
+  if (old !== undefined && Number(old) !== v) { const pill = n.closest(".pill"); pill.classList.remove("bump"); void pill.offsetWidth; pill.classList.add("bump"); }
+}
 function addActivity(text) { state.player.activity.unshift({ at: new Date().toISOString(), text }); state.player.activity = state.player.activity.slice(0, 20); }
 function stamp(id) { const s = state.player.passport.stamps; if (!s.includes(id)) { s.push(id); gainXp(60); } }
 function quest(id, by = 1) { const q = state.player.quests.find((x) => x.id === id); if (q && q.progress < q.target) { q.progress += by; if (q.progress >= q.target) toast(`Quest complete: ${q.title} (+${q.reward})`, "good"); } }
 function gainXp(n) { const pp = state.player.passport; pp.xp += n; while (pp.xp >= pp.xpToNext) { pp.xp -= pp.xpToNext; pp.level += 1; pp.xpToNext = Math.round(pp.xpToNext * 1.35); toast(`Passport level ${pp.level}!`, "good"); } }
 function commit() { savePlayer(state.player); renderPassport(); }
 
-$("passport-toggle").addEventListener("click", () => { const o = $("passport").classList.toggle("open"); $("passport-toggle").setAttribute("aria-expanded", String(o)); });
+function togglePassport(force) { const o = $("passport").classList.toggle("open", force); $("passport-toggle").setAttribute("aria-expanded", String(o)); }
+$("passport-toggle").addEventListener("click", () => togglePassport());
+$("hud-player").addEventListener("click", () => togglePassport());
+for (const b of document.querySelectorAll("[data-act]")) b.addEventListener("click", () => { if (b.dataset.act === "passport") togglePassport(); else world.recenter(); });
+addEventListener("keydown", (e) => {
+  if (!state.inWorld || e.target.closest("input, textarea")) return;
+  const open = [...document.querySelectorAll(".overlay, .app-frame")].some((o) => !o.hidden);
+  if (e.key === "Escape") { if (open) { for (const id of ["park", "login"]) show(id, false); if (!$("arcade").hidden) { match = null; show("arcade", false); } } else togglePassport(false); return; }
+  if (open) return;
+  if (e.key === "1") goTo("park"); else if (e.key === "2") goTo("arcade");
+  else if (e.key.toLowerCase() === "p") togglePassport(); else if (e.key.toLowerCase() === "c") world.recenter();
+});
 $("menu-btn").addEventListener("click", () => show("menu", $("menu").hidden));
 for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("click", () => { show("menu", false); goTo(b.dataset.goto); });
 $("reset-demo").addEventListener("click", () => { resetPlayer(); location.reload(); });
@@ -273,7 +299,7 @@ function renderBiz() {
     const own = p.businesses[b.id];
     const card = el("button", { type: "button", class: `biz-card ${b.status}`, style: `--c:${b.color}`, "aria-label": `${b.name}, ${b.status === "open" ? "open" : "coming soon"}` },
       own?.owned ? el("span", { class: "owned-badge" }, `OWNED · ${own.name}`) : null,
-      b.status === "soon" ? (wart("icon-lock") ? el("img", { class: "lock img", src: wart("icon-lock"), alt: "" }) : el("span", { class: "lock", "aria-hidden": "true" }, "🔒")) : null,
+      b.status === "soon" ? el("span", { class: "lock", "aria-hidden": "true" }, "🔒") : null,
       el("div", { class: "biz-art" }, wart(`card-${b.id}`) ? el("img", { src: wart(`card-${b.id}`), alt: "", draggable: "false" }) : bizArt(b)),
       el("div", { class: "biz-body" },
         el("span", { class: "brand2" }, b.brand.toUpperCase()),
@@ -424,4 +450,4 @@ await loadArt();
 if (new URLSearchParams(location.search).has("reset")) { resetPlayer(); state.player = null; }
 // The landing sits over the living town; signed-in demo players skip it.
 if (state.player && new URLSearchParams(location.search).has("continue")) enterWorld(false);
-void MAP; void RANKS; void SW; void SH;
+void RANKS; void SW; void SH;
