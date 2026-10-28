@@ -332,6 +332,7 @@ export class World {
     a.current = name;
   }
   emote(a, name) { this.play(a, name, true); }
+  agentClips(a) { return (a.ownGLB || this.agentGLB)?.animations || []; }
   get player() { return this.agents.get("me"); }
 
   spawnPlayer(agent) {

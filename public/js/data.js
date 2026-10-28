@@ -116,10 +116,24 @@ export function wanderers(n = 8) {
 const KEY = "kultworld.demo.player.v1";
 const seed = (s) => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
+const traitsFor = (name, arch) => { const h = seed(name + arch); return Object.fromEntries(TRAITS.map((t, i) => [t, Math.max(8, Math.min(96, 45 + ((h >>> i) % 21) - 10 + (TRAIT_BIAS[arch]?.[t] || 0)))])); };
+
+// The public profile of another player's agent (the card shown on click),
+// derived from its name so it stays the same between visits.
+export function agentProfile({ id = "", name, archetype: arch, clan, elo = 1000 }) {
+  const h = seed(id + name + arch), games = 12 + Math.round(elo / 40) + (h % 60), rate = Math.min(0.82, Math.max(0.28, 0.32 + elo / 9000 + ((h >>> 4) % 15) / 100));
+  const wins = Math.round(games * rate);
+  return {
+    name, archetype: arch, clan, elo, wins, losses: games - wins, traits: traitsFor(name, arch),
+    inft: 4000 + (h % 6000), level: 2 + Math.floor(elo / 400) + ((h >>> 6) % 4),
+    evolution: elo >= 3000 ? "ASCENDED" : elo >= 1500 ? "AWAKENED" : "GENESIS",
+    streak: (h >>> 9) % 7, favourite: GAMES[(h >>> 3) % GAMES.length], deals: 3 + ((h >>> 11) % 40)
+  };
+}
+
 // A freshly minted agent and the player's passport.
 export function mintAgent({ name, archetype: arch, clan, backstory, username }) {
-  const h = seed(name + arch);
-  const traits = Object.fromEntries(TRAITS.map((t, i) => [t, Math.max(8, Math.min(96, 45 + ((h >> i) % 21) - 10 + (TRAIT_BIAS[arch]?.[t] || 0)))]));
+  const h = seed(name + arch), traits = traitsFor(name, arch);
   return {
     passport: {
       id: `KW-${String(100000 + (h % 900000))}`, username: username || "kultplayer", wallet: `0x${(h * 2654435761 >>> 0).toString(16).padStart(8, "0")}…${(h % 65536).toString(16).padStart(4, "0")}`,

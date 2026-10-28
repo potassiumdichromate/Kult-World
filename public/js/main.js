@@ -9,9 +9,10 @@ import { setSignTranslator } from "./models.js";
 import { createGame, drawThumb } from "./minigames.js";
 import { t, setLang, getLang, applyI18n, onLang } from "./i18n.js";
 import { sound } from "./audio.js";
+import { AgentViewer } from "./agentview.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, DEALS, DEAL_LINES, SERVICES,
-  randomOpponent, randomName, wanderers, mintAgent, veteranPlayer, loadPlayer, savePlayer, resetPlayer
+  randomOpponent, randomName, wanderers, agentProfile, mintAgent, veteranPlayer, loadPlayer, savePlayer, resetPlayer
 } from "./data.js";
 
 const $ = (id) => document.getElementById(id);
@@ -80,7 +81,7 @@ onLang(() => {
   if (!$("hub").hidden && !$("hub-list").hidden) renderGames();
   if (!$("deal").hidden && !$("deal-list").hidden) renderDeals();
   if (!$("market").hidden) renderMarket();
-  show("agent-card", false);
+  closeAgentCard();
 });
 
 // ------------------------------------------------------------------ sound
@@ -137,11 +138,11 @@ canvas.addEventListener("pointermove", (e) => {
 canvas.addEventListener("pointerleave", () => { world.hover = null; $("world-tip").hidden = true; });
 canvas.addEventListener("click", (e) => {
   if (!state.inWorld) return;
-  show("agent-card", false);
+  closeAgentCard();
   const b = world.buildingAt(e.clientX, e.clientY);
   if (b) return goTo(b.id);
   const a = world.agentAt(e.clientX, e.clientY);
-  if (a) return showAgentCard(a, e.clientX, e.clientY);
+  if (a) return showAgentCard(a);
   world.walkToScreen(e.clientX, e.clientY);
 });
 canvas.addEventListener("wheel", (e) => { e.preventDefault(); world.zoomBy(e.deltaY > 0 ? 0.9 : 1.1); }, { passive: false });
@@ -355,7 +356,7 @@ for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("cl
 $("reset-demo").addEventListener("click", () => { resetPlayer(); location.href = location.pathname; });
 addEventListener("keydown", (e) => {
   if (!state.inWorld || e.target.closest("input, textarea")) return;
-  if (e.key === "Escape") { if (anyOpen()) closeOverlays(); else { togglePassport(false); show("agent-card", false); } return; }
+  if (e.key === "Escape") { if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
   if (anyOpen()) return;
   const k = e.key.toLowerCase();
   const go = { 1: "park", 2: "hub", 3: "deal", 4: "market" }[k];
@@ -366,7 +367,7 @@ function closeOverlays() { sound.play("close"); match = null; negotiation = null
 
 // ------------------------------------------------------------------ places
 function openPlace(b, then) {
-  show("agent-card", false);
+  closeAgentCard();
   sound.play("open"); flash(b.color);
   if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); quest("visit-park"); }
   if (b.kind === "hub") { renderGames(); show("hub-list"); show("hub-match", false); show("hub"); stamp("hub"); if (then?.challenge) startMatch(GAMES[Math.floor(Math.random() * 2)], then.challenge); }
@@ -613,21 +614,49 @@ $("market-list-btn").addEventListener("click", () => {
 });
 
 // ------------------------------------------------------------------ other agents
-function showAgentCard(a, x, y) {
-  const card = $("agent-card"), arch = archetype(a.archetype), r = rankOf(a.elo), clan = CLANS.find((c) => c.id === a.clan);
+// Another agent's card: its model turning on a pedestal beside its profile.
+let viewer = null;
+function closeAgentCard() { if ($("agent-card").hidden) return; show("agent-card", false); viewer?.hide(); }
+function showAgentCard(a) {
+  const card = $("agent-card"), arch = archetype(a.archetype), clan = CLANS.find((c) => c.id === a.clan);
+  const p = agentProfile(a), r = rankOf(p.elo), nr = nextRank(p.elo), games = p.wins + p.losses;
   a.paused = true; a.path = []; world.emote(a, "Wave");
   setTimeout(() => { a.paused = false; }, 4000);
+  sound.play("open");
   card.style.setProperty("--c", arch.color);
+  const stage = el("div", { class: "ac-stage" },
+    el("span", { class: "ac-plate" }, `INFT #${p.inft}`), el("span", { class: "ac-lv" }, t("ac.level", { n: p.level })),
+    el("span", { class: "ac-hint" }, t("ac.drag")));
   card.replaceChildren(
-    el("button", { type: "button", class: "close", "aria-label": t("close"), onclick: () => show("agent-card", false) }, "×"),
-    el("div", { class: "ac-top" }, portrait(a.archetype), el("div", {}, el("b", {}, a.name), el("div", { class: "tags" }, el("span", { class: "tag", style: `color:${arch.color}` }, arch.name.toUpperCase()), el("span", { class: "tag", style: `color:${clan?.color}` }, clan?.name.toUpperCase())))),
-    el("div", { class: "ac-rank" }, el("img", { src: rankBadge(r), alt: "" }), el("span", { style: `color:${r.color}` }, r.name), el("b", {}, t("agent.elo", { n: fmt(a.elo) }))),
-    el("p", { class: "muted small" }, arch.tagline),
-    el("div", { class: "ac-btns" },
-      el("button", { type: "button", class: "btn primary small", onclick: () => { show("agent-card", false); goTo("hub", { challenge: a }); } }, t("agent.challenge")),
-      el("button", { type: "button", class: "btn ghost small", onclick: () => { world.emote(world.player, "Wave"); toast(t("toast.wave", { name: a.name })); show("agent-card", false); } }, t("agent.wave"))));
-  card.style.left = `${Math.min(innerWidth - 300, Math.max(12, x + 16))}px`; card.style.top = `${Math.min(innerHeight - 260, Math.max(80, y - 60))}px`;
+    el("button", { type: "button", class: "close", "aria-label": t("close"), onclick: closeAgentCard }, "×"),
+    stage,
+    el("div", { class: "ac-info" },
+      el("div", { class: "ac-status" }, el("i"), t("ac.online", { place: t(`district.${world.districtAt(a.x, a.y)}`) })),
+      el("h2", { class: "ac-name" }, a.name),
+      el("div", { class: "tags" },
+        el("span", { class: "tag", style: `color:${arch.color}` }, arch.name.toUpperCase()),
+        el("span", { class: "tag", style: `color:${clan?.color}` }, clan?.name.toUpperCase()),
+        el("span", { class: "tag", style: "color:var(--muted)" }, p.evolution)),
+      el("p", { class: "ac-line muted" }, arch.tagline),
+      el("div", { class: "rank-row" },
+        el("img", { src: rankBadge(r), alt: "" }),
+        el("div", {}, el("div", { class: "rn", style: `color:${r.color}` }, r.name.toUpperCase()), el("div", { class: "bar" }, el("i", { style: `--c:${r.color};width:${nr ? Math.round(((p.elo - r.min) / (nr.min - r.min)) * 100) : 100}%` }))),
+        el("span", { class: "elo" }, fmt(p.elo), el("small", {}, "ELO"))),
+      el("div", { class: "wl four" },
+        el("div", {}, el("b", { style: "color:var(--green)" }, p.wins), el("span", {}, t("pp.wins"))),
+        el("div", {}, el("b", { style: "color:var(--red)" }, p.losses), el("span", {}, t("pp.losses"))),
+        el("div", {}, el("b", {}, `${Math.round((p.wins / games) * 100)}%`), el("span", {}, t("pp.winrate"))),
+        el("div", {}, el("b", { style: "color:var(--gold)" }, p.streak), el("span", {}, t("ac.streak")))),
+      el("h3", { class: "ac-h" }, t("pp.traits"), el("small", {}, `${t("ac.style")}: ${arch.role.join(" · ")}`)),
+      el("div", { class: "traits two" }, TRAITS.map((tr) => el("div", { class: "trait" }, el("span", {}, t(`trait.${tr}`)), el("div", { class: "bar" }, el("i", { style: `--c:${arch.color};width:${p.traits[tr]}%` })), el("b", {}, p.traits[tr])))),
+      el("dl", { class: "ac-facts" },
+        el("div", {}, el("dt", {}, t("ac.fav")), el("dd", { style: `color:${p.favourite.color}` }, p.favourite.name)),
+        el("div", {}, el("dt", {}, t("ac.deals")), el("dd", {}, fmt(p.deals)))),
+      el("div", { class: "ac-btns" },
+        el("button", { type: "button", class: "btn primary small", onclick: () => { closeAgentCard(); goTo("hub", { challenge: a }); } }, t("agent.challenge")),
+        el("button", { type: "button", class: "btn ghost small", onclick: () => { world.emote(world.player, "Wave"); toast(t("toast.wave", { name: a.name })); closeAgentCard(); } }, t("agent.wave")))));
   show("agent-card");
+  (viewer ||= new AgentViewer()).show(stage, a.body, world.agentClips(a), arch.color);
 }
 
 // ------------------------------------------------------------------ live feed

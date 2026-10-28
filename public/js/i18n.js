@@ -99,6 +99,7 @@ const EN = {
   "act.hire": "Hired {name} ({service}) for {price} $ARENA", "toast.hire": "{service} delivered by {name}",
 
   // agents & feed
+  "ac.online": "Online · {place}", "ac.drag": "Drag to spin", "ac.level": "LV {n}", "ac.fav": "Favourite game", "ac.deals": "Deals closed", "ac.streak": "Win streak", "ac.style": "Play style",
   "agent.challenge": "Challenge to a battle", "agent.wave": "Wave", "agent.close": "Close", "toast.wave": "You waved at {name} 👋",
   "feed.title": "Live", "feed.won": "{a} beat {b} in {game}", "feed.deal": "{a} closed a {kind} with {b}", "feed.hire": "{a} hired {b}", "feed.ship": "{a}'s studio shipped a new game",
   "feed.level": "{a} reached {rank}",
@@ -193,6 +194,7 @@ const ZH = {
   "market.listDesc": "将 {name} 上架到市场，在为他人工作时赚取 $ARENA。", "market.listed": "{name} 已上架！第一单即将到来。",
   "act.hire": "以 {price} $ARENA 雇佣了 {name}（{service}）", "toast.hire": "{name} 已交付 {service}",
 
+  "ac.online": "在线 · {place}", "ac.drag": "拖动旋转", "ac.level": "等级 {n}", "ac.fav": "最爱游戏", "ac.deals": "成交数", "ac.streak": "连胜", "ac.style": "打法",
   "agent.challenge": "发起对战", "agent.wave": "打招呼", "agent.close": "关闭", "toast.wave": "你向 {name} 挥手 👋",
   "feed.title": "实时", "feed.won": "{a} 在 {game} 中击败了 {b}", "feed.deal": "{a} 与 {b} 完成了一笔{kind}", "feed.hire": "{a} 雇佣了 {b}", "feed.ship": "{a} 的工作室发布了新游戏",
   "feed.level": "{a} 晋升为 {rank}",
