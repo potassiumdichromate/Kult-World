@@ -9,7 +9,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
-import { MAP, tiles, BUILDINGS, CAMPUS, WALL, MONUMENT, FOUNTAIN, SPAWN, PROPS, DISTRICTS, POND, CENTER, walkable, findPath, randomStreetTile } from "./layout.js";
+import { MAP, tiles, BUILDINGS, CAMPUS, WALL, MONUMENT, FOUNTAIN, SPAWN, PROPS, DISTRICTS, POND, CENTER, walkable, findPath, randomStreetTile, islandSD } from "./layout.js";
 import { T, build, glowTexture, lightPool, loadProvided, loadGLB, providedModel, capsuleAgent, AGENT_PLACEHOLDER_URL, SLOTS, M, sign, instanceProps, swayTime } from "./models.js";
 import { buildTerrain, heightAt } from "./terrain.js";
 import { FX } from "./fx.js";
@@ -89,17 +89,15 @@ export class World {
     const s = this.scene, size = MAP * T;
     const terrain = buildTerrain(s);
     this.anims.push(...terrain.anims);
+    this.waterfallTop = terrain.waterfallTop;
     const o = new THREE.Object3D(), oct = new THREE.OctahedronGeometry(1, 0);
     const hanging = ["#4fd8ff", "#ff4fa3"].map((c) => new THREE.InstancedMesh(oct, M.glow(c, 1.6), 15));
     for (let i = 0; i < 30; i++) {
-      const a = (i / 30) * Math.PI * 2, rr = size * (0.3 + Math.random() * 0.25), sz = 1 + Math.random() * 1.8;
-      o.position.set(Math.cos(a) * rr, -6 - Math.random() * 20, Math.sin(a) * rr); o.rotation.set(0, 0, Math.PI); o.scale.set(sz, sz * 2.2, sz); o.updateMatrix();
+      const sz = 0.8 + Math.random() * 1.6, p = terrain.undersidePoints(1)[0];
+      o.position.set(p.x, p.y - sz * 1.4, p.z); o.rotation.set(0, 0, Math.PI); o.scale.set(sz, sz * 2.2, sz); o.updateMatrix();
       hanging[i % 2].setMatrixAt(i >> 1, o.matrix);
     }
     s.add(...hanging);
-    // Neon rim along the island edge.
-    const rimMat = M.glow("#4fd8ff", 2.2);
-    for (const [w, d, x, z] of [[size, 0.25, 0, size / 2], [0.25, size, size / 2, 0], [size, 0.25, 0, -size / 2], [0.25, size, -size / 2, 0]]) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.25, d), rimMat); m.position.set(x, 0.2, z); s.add(m); }
     // Floating rocks orbiting the island, each with a crystal on top.
     const rockGeo = jitter(new THREE.IcosahedronGeometry(1, 0), 0.5, true);
     const rocks = new THREE.InstancedMesh(rockGeo, new THREE.MeshStandardMaterial({ color: "#3a2a5c", flatShading: true, roughness: 1 }), 12);
@@ -125,29 +123,29 @@ export class World {
     farIslands(s, [[-170, -130, 1], [190, -160, 1.3], [-210, 100, 0.9], [140, 210, 0.8], [-40, -250, 1.1], [260, 30, 1]]);
     // Pond: water, lily pads with glowing lotus, ripples.
     const water = new THREE.Mesh(new THREE.CircleGeometry(POND.r * T * 0.95, 48), new THREE.MeshStandardMaterial({ color: "#123d7a", emissive: "#1f7fd6", emissiveIntensity: 0.55, roughness: 0.06, metalness: 0.5 }));
-    water.rotation.x = -Math.PI / 2; water.position.copy(toWorld(POND.x, POND.y)).setY(0.27); s.add(water);
+    water.rotation.x = -Math.PI / 2; water.position.copy(toWorld(POND.x, POND.y)).setY(0.15); s.add(water);
     const pc = toWorld(POND.x, POND.y);
     const rimStone = new THREE.Mesh(new THREE.TorusGeometry(POND.r * T * 0.95, 0.32, 8, 64), terrain.materials.curb);
-    rimStone.rotation.x = -Math.PI / 2; rimStone.position.copy(pc).setY(0.27); rimStone.scale.z = 0.6; rimStone.receiveShadow = true; s.add(rimStone);
+    rimStone.rotation.x = -Math.PI / 2; rimStone.position.copy(pc).setY(0.15); rimStone.scale.z = 0.6; rimStone.receiveShadow = true; s.add(rimStone);
     const pads = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.55, 0.55, 0.05, 10, 1, false, 0.4, Math.PI * 1.8), M.leaf("#2f9a6a"), 9);
     const lotus = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.22, 0), M.glow("#ff7eb6", 2.4), 5);
     for (let i = 0; i < 9; i++) {
       const a = i * 2.3, rr = 1.5 + (i % 4) * 1.4;
-      o.position.set(pc.x + Math.cos(a) * rr, 0.3, pc.z + Math.sin(a) * rr); o.rotation.set(0, a, 0); o.scale.setScalar(1); o.updateMatrix(); pads.setMatrixAt(i, o.matrix);
-      if (i % 2 === 0) { o.position.y = 0.52; o.updateMatrix(); lotus.setMatrixAt(i / 2, o.matrix); }
+      o.position.set(pc.x + Math.cos(a) * rr, 0.18, pc.z + Math.sin(a) * rr); o.rotation.set(0, a, 0); o.scale.setScalar(1); o.updateMatrix(); pads.setMatrixAt(i, o.matrix);
+      if (i % 2 === 0) { o.position.y = 0.4; o.updateMatrix(); lotus.setMatrixAt(i / 2, o.matrix); }
     }
     s.add(pads, lotus);
     const ripples = Array.from({ length: 4 }, (_, i) => { const m = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.42, 32), new THREE.MeshBasicMaterial({ color: "#9fe8ff", transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.userData.ph = i * 0.9; s.add(m); return m; });
     this.anims.push((t) => {
       water.material.emissiveIntensity = 0.5 + Math.sin(t * 1.3) * 0.1;
-      ripples.forEach((m) => { const k = ((t + m.userData.ph) % 3.6) / 3.6; if (k < 0.02) { const a = Math.random() * 6.28, rr = Math.random() * POND.r * 1.4; m.position.set(pc.x + Math.cos(a) * rr, 0.29, pc.z + Math.sin(a) * rr); } m.scale.setScalar(1 + k * 6); m.material.opacity = (1 - k) * 0.6; });
+      ripples.forEach((m) => { const k = ((t + m.userData.ph) % 3.6) / 3.6; if (k < 0.02) { const a = Math.random() * 6.28, rr = Math.random() * POND.r * 1.4; m.position.set(pc.x + Math.cos(a) * rr, 0.17, pc.z + Math.sin(a) * rr); } m.scale.setScalar(1 + k * 6); m.material.opacity = (1 - k) * 0.6; });
     });
     // Grass tufts (instanced).
     const tuft = new THREE.InstancedMesh(new THREE.ConeGeometry(0.09, 0.4, 3), new THREE.MeshStandardMaterial({ color: "#ffffff", roughness: 1 }), 2600);
     const col = new THREE.Color(); let n = 0;
     for (let i = 0; i < 9000 && n < 2600; i++) {
       const x = 1 + Math.random() * (MAP - 2), y = 1 + Math.random() * (MAP - 2), k = tiles[Math.floor(x)][Math.floor(y)];
-      if (k !== "g" && k !== "c") continue;
+      if ((k !== "g" && k !== "c") || islandSD(x, y) < 0.9) continue;
       o.position.copy(toWorld(x, y)).setY(heightAt(x, y) + 0.18); o.rotation.set((Math.random() - 0.5) * 0.4, Math.random() * 6, (Math.random() - 0.5) * 0.4); o.scale.setScalar(0.7 + Math.random() * 0.7); o.updateMatrix();
       tuft.setMatrixAt(n, o.matrix); tuft.setColorAt(n, col.set(["#2f8a62", "#3aa070", "#256e50", "#47b07a"][n % 4])); n++;
     }
@@ -221,6 +219,7 @@ export class World {
     this.fx.setBlossoms(s, PROPS.filter((p) => p.kind === "blossom").map((p) => onGround(p.x, p.y)));
     this.fx.setFountain(s, onGround(FOUNTAIN.x, FOUNTAIN.y));
     this.fountainPos = onGround(FOUNTAIN.x, FOUNTAIN.y);
+    if (this.waterfallTop) this.fx.setMist(s, this.waterfallTop);
 
     // District labels (shown when zoomed out) and the door prompt.
     this.districtLabels = DISTRICTS.map((d) => {
@@ -515,7 +514,7 @@ export class World {
       const c = document.createElement("canvas"); c.width = c.height = W;
       const m = c.getContext("2d");
       const col = { g: "#235e4a", c: "#2b6e52", r: "#3a3360", p: "#6a5fa6", w: "#2a6cc0", e: "#1a1230" };
-      for (let x = 0; x < MAP; x++) for (let y = 0; y < MAP; y++) { m.fillStyle = col[tiles[x][y]]; m.fillRect(x * k, y * k, k + 0.5, k + 0.5); }
+      for (let x = 0; x < MAP; x++) for (let y = 0; y < MAP; y++) { if (tiles[x][y] === "v") continue; m.fillStyle = col[tiles[x][y]]; m.fillRect(x * k, y * k, k + 0.5, k + 0.5); }
       m.strokeStyle = "#ffc94d"; m.lineWidth = 1.5; m.strokeRect(CAMPUS.x0 * k + 1, CAMPUS.y0 * k + 1, (CAMPUS.x1 - CAMPUS.x0) * k - 2, (CAMPUS.y1 - CAMPUS.y0) * k - 2);
       for (const b of BUILDINGS) { if (b.kind === "park") continue; m.fillStyle = b.color; m.globalAlpha = b.status === "soon" ? 0.45 : 1; m.fillRect(b.x0 * k, b.y0 * k, (b.x1 - b.x0) * k, (b.y1 - b.y0) * k); m.globalAlpha = 1; }
       m.fillStyle = "#ff7eb6"; m.beginPath(); m.arc(FOUNTAIN.x * k, FOUNTAIN.y * k, 2.5, 0, 7); m.fill();

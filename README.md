@@ -37,9 +37,12 @@ node server.mjs        # http://localhost:4500
   key light, neon rim light, soft shadows, fog and bloom; animated LED screens,
   searchlights, drones, floating rocks, grass
   and fireflies. Agents are rigged characters (walk, run, idle, wave).
-- **Ground**: stepped 3D terrain from the tile map (roads lowest, kerbed paving,
-  raised lawns) with tiling procedural textures and normal maps, glowing road
-  edges with travelling light pulses, lane lines, crossings and the plaza inlay.
+- **Floating island**: an organic coastline computed around the districts
+  (layout.ISLAND), a smooth ground heightfield snapped to the coast and a deep
+  faceted rock underside. One ground shader blends asphalt, pavers, grass and
+  lawn from a mask of the exact shapes (round plaza and pond). Avenues run to
+  the coast and continue as glowing bridges to four floating islets with
+  beacons; the pond feeds a stream that falls off the edge as a waterfall.
 - **Sound and FX**: synthesized WebAudio ambience (pad, wind, a fountain that
   swells nearby), footsteps and UI / reward / match cues, with a mute button;
   fireflies, blossom petals, fountain sparkles, footstep dust, a door flash.

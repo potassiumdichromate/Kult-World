@@ -6,10 +6,12 @@
 
 export const MAP = 56;
 
-// Tile kinds: g grass, r road, p paving, w water, c campus lawn, e edge (no-go rim).
+// Tile kinds: g grass, r road, p paving, w water, c campus lawn, v void (off the island).
 export const tiles = Array.from({ length: MAP }, () => Array(MAP).fill("g"));
-const paint = (x0, y0, x1, y1, k) => { for (let x = Math.max(0, x0); x < Math.min(MAP, x1); x++) for (let y = Math.max(0, y0); y < Math.min(MAP, y1); y++) tiles[x][y] = k; };
-const disc = (cx, cy, r, k) => { for (let x = 0; x < MAP; x++) for (let y = 0; y < MAP; y++) if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= r) tiles[x][y] = k; };
+// Every painted shape, in order, so the terrain can draw exact (round) versions.
+export const SHAPES = [];
+const paint = (x0, y0, x1, y1, k) => { SHAPES.push({ k, rect: [x0, y0, x1, y1] }); for (let x = Math.max(0, x0); x < Math.min(MAP, x1); x++) for (let y = Math.max(0, y0); y < Math.min(MAP, y1); y++) tiles[x][y] = k; };
+const disc = (cx, cy, r, k) => { SHAPES.push({ k, circle: [cx, cy, r] }); for (let x = 0; x < MAP; x++) for (let y = 0; y < MAP; y++) if (Math.hypot(x + 0.5 - cx, y + 0.5 - cy) <= r) tiles[x][y] = k; };
 
 export const CENTER = [28.5, 28.5];
 // The Business Park is a walled campus in the north-west with four buildings.
@@ -26,8 +28,9 @@ export const DISTRICTS = [
 
 // ------------------------------------------------------------------ ground
 paint(CAMPUS.x0, CAMPUS.y0, CAMPUS.x1, CAMPUS.y1, "c");
-paint(2, 27, 54, 30, "r");                 // east-west avenue
-paint(27, 2, 30, 54, "r");                 // north-south avenue
+export const AVENUES = { ew: { x0: 3, x1: 54, y0: 27, y1: 30 }, ns: { x0: 27, x1: 30, y0: 3, y1: 54 } };
+paint(3, 27, 54, 30, "r");                 // east-west avenue
+paint(27, 3, 30, 54, "r");                 // north-south avenue
 disc(CENTER[0], CENTER[1], 7.6, "p");      // Kult Plaza
 // Campus paths: a cross through the courtyard, a promenade, and the gates.
 paint(12, 4, 15, 24, "p"); paint(4, 12, 24, 15, "p"); paint(4, 22, 24, 24, "p");
@@ -39,7 +42,6 @@ paint(3, 44, 27, 47, "p"); paint(3, 30, 27, 32, "p");
 export const POND = { x: 43, y: 42, r: 4.2 };
 disc(POND.x, POND.y, POND.r, "w");
 paint(41, 30, 44, 37, "p");                // garden path to the pond
-for (let i = 0; i < MAP; i++) { tiles[i][0] = tiles[i][MAP - 1] = tiles[0][i] = tiles[MAP - 1][i] = "e"; }
 
 // ------------------------------------------------------------------ buildings
 // kind: biz (a business inside the park), park (the campus gate), hub, deal, market.
@@ -58,6 +60,75 @@ export const ENTERABLE = BUILDINGS;
 export const FOUNTAIN = { x: CENTER[0], y: CENTER[1], r: 2.2 };
 export const SPAWN = [28.5, 34.2];
 
+// ------------------------------------------------------------------ the island's shape
+// Land hugs everything that is built (roads, paving, lawns, buildings) plus a
+// rounded core, with a noisy margin, so the coast is organic and has bays
+// between districts. ISLAND.sd is the signed distance to the coast in tiles
+// (positive on land), sampled ISLAND.res times per tile.
+const RES = 4, PAD = 7, N = (MAP + 2 * PAD) * RES;
+const hash = (i, j, k) => { let h = (i * 374761393 + j * 668265263 + k * 1442695041) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
+export function vnoise(x, y, period, seed) {
+  const fx = x / period, fy = y / period, xi = Math.floor(fx), yi = Math.floor(fy), u = fx - xi, v = fy - yi, su = u * u * (3 - 2 * u), sv = v * v * (3 - 2 * v);
+  const a = hash(xi, yi, seed), b = hash(xi + 1, yi, seed), c = hash(xi, yi + 1, seed), d = hash(xi + 1, yi + 1, seed);
+  return a + (b - a) * su + (c - a) * sv + (a - b - c + d) * su * sv;
+}
+function chamfer(src) {
+  const D = new Float32Array(N * N), A = 1, B = Math.SQRT2;
+  for (let k = 0; k < N * N; k++) D[k] = src[k] ? 0 : 1e9;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const k = y * N + x; let d = D[k];
+    if (x > 0) d = Math.min(d, D[k - 1] + A);
+    if (y > 0) { d = Math.min(d, D[k - N] + A); if (x > 0) d = Math.min(d, D[k - N - 1] + B); if (x < N - 1) d = Math.min(d, D[k - N + 1] + B); }
+    D[k] = d;
+  }
+  for (let y = N - 1; y >= 0; y--) for (let x = N - 1; x >= 0; x--) {
+    const k = y * N + x; let d = D[k];
+    if (x < N - 1) d = Math.min(d, D[k + 1] + A);
+    if (y < N - 1) { d = Math.min(d, D[k + N] + A); if (x < N - 1) d = Math.min(d, D[k + N + 1] + B); if (x > 0) d = Math.min(d, D[k + N - 1] + B); }
+    D[k] = d;
+  }
+  return D;
+}
+export const ISLAND = (() => {
+  const content = new Uint8Array(N * N);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const px = (i + 0.5) / RES - PAD, py = (j + 0.5) / RES - PAD, tx = Math.floor(px), ty = Math.floor(py);
+    if (tx < 0 || ty < 0 || tx >= MAP || ty >= MAP) continue;
+    const inB = BUILDINGS.some((b) => tx >= b.x0 - 1 && tx < b.x1 + 1 && ty >= b.y0 - 1 && ty < b.y1 + 1);
+    const core = Math.hypot(px - CENTER[0], py - CENTER[1]) <= 15;
+    content[j * N + i] = tiles[tx][ty] !== "g" || inB || core ? 1 : 0;
+  }
+  const dOut = chamfer(content), land = new Uint8Array(N * N);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const px = (i + 0.5) / RES - PAD, py = (j + 0.5) / RES - PAD;
+    const margin = 0.5 + vnoise(px, py, 8, 3) ** 1.5 * 5 + vnoise(px, py, 2.6, 7) * 1.1;
+    const border = Math.min(px, py, MAP - px, MAP - py) + PAD - 0.6;
+    land[j * N + i] = Math.min(margin - dOut[j * N + i] / RES, border) > 0 ? 1 : 0;
+  }
+  const notLand = land.map((v) => 1 - v), inD = chamfer(notLand), outD = chamfer(land);
+  let sd = new Float32Array(N * N);
+  for (let k = 0; k < N * N; k++) sd[k] = (land[k] ? inD[k] - 0.5 : -(outD[k] - 0.5)) / RES;
+  // Two box-blur passes smooth the chamfer steps.
+  for (let pass = 0; pass < 2; pass++) {
+    const o = new Float32Array(N * N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      let t = 0, n = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj; if (a >= 0 && b >= 0 && a < N && b < N) { t += sd[b * N + a]; n++; } }
+      o[j * N + i] = t / n;
+    }
+    sd = o;
+  }
+  return { res: RES, pad: PAD, n: N, sd };
+})();
+// Signed distance to the coast (tiles, + on land) at any tile-space point.
+export function islandSD(x, y) {
+  const fx = Math.min(N - 1.001, Math.max(0, (x + PAD) * RES - 0.5)), fy = Math.min(N - 1.001, Math.max(0, (y + PAD) * RES - 0.5)), i = Math.floor(fx), j = Math.floor(fy), u = fx - i, v = fy - j, S = ISLAND.sd;
+  const a = S[j * N + i], b = S[j * N + i + 1], c = S[(j + 1) * N + i], d = S[(j + 1) * N + i + 1];
+  if (x < -PAD || y < -PAD || x > MAP + PAD || y > MAP + PAD) return -5;
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+for (let x = 0; x < MAP; x++) for (let y = 0; y < MAP; y++) if (islandSD(x + 0.5, y + 0.5) < 0.45) tiles[x][y] = "v";
+
 // ------------------------------------------------------------------ walkability
 export const blocked = Array.from({ length: MAP }, () => Array(MAP).fill(false));
 const block = (x0, y0, x1, y1) => { for (let x = Math.max(0, x0); x < Math.min(MAP, x1); x++) for (let y = Math.max(0, y0); y < Math.min(MAP, y1); y++) blocked[x][y] = true; };
@@ -74,7 +145,7 @@ for (let x = CAMPUS.x0; x < CAMPUS.x1; x++) for (let y = CAMPUS.y0; y < CAMPUS.y
 export const MONUMENT = { x: 13.5, y: 13.5 };
 blocked[13][13] = true;
 for (let x = 0; x < MAP; x++) for (let y = 0; y < MAP; y++) {
-  if (tiles[x][y] === "w" || tiles[x][y] === "e") blocked[x][y] = true;
+  if (tiles[x][y] === "w" || tiles[x][y] === "v") blocked[x][y] = true;
   if (Math.hypot(x + 0.5 - FOUNTAIN.x, y + 0.5 - FOUNTAIN.y) < FOUNTAIN.r + 0.4) blocked[x][y] = true;
 }
 
@@ -84,7 +155,7 @@ const rnd = (() => { let s = 11; return () => ((s = (s * 16807) % 2147483647) / 
 const free = (x, y, r = 0, kinds = ["g"]) => {
   for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
     const tx = Math.floor(x) + dx, ty = Math.floor(y) + dy;
-    if (tx < 1 || ty < 1 || tx >= MAP - 1 || ty >= MAP - 1 || blocked[tx][ty] || !kinds.includes(tiles[tx][ty])) return false;
+    if (tx < 1 || ty < 1 || tx >= MAP - 1 || ty >= MAP - 1 || blocked[tx][ty] || !kinds.includes(tiles[tx][ty]) || islandSD(tx + 0.5, ty + 0.5) < 1.2) return false;
   }
   return true;
 };
@@ -123,7 +194,7 @@ for (let i = 0; i < 26; i++) { const x = 31 + rnd() * 22, y = 31 + rnd() * 22; i
 for (let i = 0; i < 12; i++) { const x = 3 + rnd() * 22, y = 33 + rnd() * 20; if (free(x, y)) put("flowers", x, y, { rot: rnd() * 6.28 }, false); }
 // Billboards.
 put("billboard", 45.5, 21.5, { ad: 0 }); put("billboard", 7, 28.4, { ad: 1 }); put("billboard", 23.5, 33, { ad: 2 }); put("billboard", 51.5, 27, { ad: 3 });
-put("crane", 3.6, 33.4);
+put("crane", 24.6, 37.4);
 
 export const walkable = (x, y) => x >= 0 && y >= 0 && x < MAP && y < MAP && !blocked[x][y];
 

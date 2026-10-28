@@ -57,6 +57,12 @@ export class FX {
     this.sparkSeeds = Array.from({ length: L.n }, (_, i) => { L.color(i, c[i % 5 === 0 ? 1 : 0]); return { a: Math.random() * 6.28, r: 1 + Math.random() * 3, ph: Math.random(), dur: 1.4 + Math.random() * 1.6 }; });
     this.fountainPos = pos;
   }
+  // Spray where the waterfall leaves the island.
+  setMist(scene, pos) {
+    const L = this.mist = new Layer(scene, 40, true), c = new THREE.Color("#d8f6ff");
+    this.mistSeeds = Array.from({ length: L.n }, (_, i) => { L.color(i, c); return { ph: Math.random(), dur: 1.2 + Math.random() * 1.4, a: Math.random() * 6.28, sp: 0.6 + Math.random() * 1.2 }; });
+    this.mistPos = pos;
+  }
   update(t, dt, px, player) {
     if (!this.enabled) return;
     const ff = this.ff;
@@ -84,6 +90,15 @@ export class FX {
       });
       L.flush(px);
     }
+    if (this.mist) {
+      const L = this.mist, m = this.mistPos;
+      this.mistSeeds.forEach((s, i) => {
+        const k = ((t / s.dur + s.ph) % 1);
+        L.pos[i * 3] = m.x + Math.cos(s.a) * s.sp * k * 1.6; L.pos[i * 3 + 1] = m.y + Math.sin(k * Math.PI) * 0.8 - k * 2.5; L.pos[i * 3 + 2] = m.z + Math.sin(s.a) * s.sp * k * 1.6;
+        L.size[i] = 0.35 + k * 0.6; L.alpha[i] = Math.sin(k * Math.PI) * 0.35;
+      });
+      L.flush(px);
+    }
     // Footstep dust behind the player.
     const D = this.dust;
     if (player?.walking && t > this.dustAt) {
@@ -101,6 +116,6 @@ export class FX {
   }
   setEnabled(on) {
     this.enabled = on;
-    for (const L of [this.ff, this.petals, this.sparks, this.dust]) if (L) L.points.visible = on;
+    for (const L of [this.ff, this.petals, this.sparks, this.dust, this.mist]) if (L) L.points.visible = on;
   }
 }
