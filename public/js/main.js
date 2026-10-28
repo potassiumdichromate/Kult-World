@@ -8,6 +8,7 @@ import { randomStreetTile } from "./layout.js";
 import { setSignTranslator } from "./models.js";
 import { createGame, drawThumb } from "./minigames.js";
 import { t, setLang, getLang, applyI18n, onLang } from "./i18n.js";
+import { sound } from "./audio.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, DEALS, DEAL_LINES, SERVICES,
   randomOpponent, randomName, wanderers, mintAgent, veteranPlayer, loadPlayer, savePlayer, resetPlayer
@@ -27,7 +28,7 @@ function el(tag, attrs = {}, ...kids) {
 }
 const show = (id, on = true) => { $(id).hidden = !on; };
 let toastT = null;
-function toast(msg, kind = "") { const n = $("toast"); n.textContent = msg; n.className = `glass ${kind}`; n.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { n.hidden = true; }, 3400); }
+function toast(msg, kind = "") { sound.play(kind === "good" ? "pop" : kind === "bad" ? "error" : "pop"); const n = $("toast"); n.textContent = msg; n.className = `glass ${kind}`; n.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { n.hidden = true; }, 3400); }
 const fmt = (n) => Number(n || 0).toLocaleString();
 const pick = (o) => (o && typeof o === "object" ? o[getLang()] ?? o.en : o);
 const ago = (iso) => { const s = Math.max(1, (Date.now() - Date.parse(iso)) / 1000); return s < 3600 ? t("ago.m", { n: Math.max(1, Math.round(s / 60)) }) : s < 86400 ? t("ago.h", { n: Math.round(s / 3600) }) : t("ago.d", { n: Math.round(s / 86400) }); };
@@ -37,7 +38,8 @@ const placeName = (b) => t(`bld.${b.id}`);
 // ------------------------------------------------------------------ state
 const state = { player: migrate(loadPlayer()), returning: false, inWorld: false, manifest: null, urlOf: (f) => `art/${f}`, wart: null };
 const world = new World($("world"));
-if (new URLSearchParams(location.search).has("debug")) window.kw = { world, state };
+if (new URLSearchParams(location.search).has("debug")) window.kw = { world, state, sound };
+{ const q = { low: 0, medium: 1, high: 2 }[new URLSearchParams(location.search).get("quality")]; if (q !== undefined) { world.setQuality(q); world.qualityLocked = true; } }
 
 // Older saved players get the new quests and businesses.
 function migrate(p) {
@@ -81,6 +83,23 @@ onLang(() => {
   show("agent-card", false);
 });
 
+// ------------------------------------------------------------------ sound
+for (const ev of ["pointerdown", "keydown"]) addEventListener(ev, () => sound.unlock(), { passive: true });
+document.addEventListener("click", (e) => { if (e.target.closest("button, .door-prompt")) sound.play("click"); }, true);
+const SPEAKER = '<path d="M4 9v6h4l5 4V5L8 9H4z" />', WAVES = '<path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" />', CROSS = '<path d="M16 9l5 6M21 9l-5 6" />';
+function renderSound() {
+  const b = $("sound-btn"), m = sound.muted;
+  b.querySelector("svg").innerHTML = SPEAKER + (m ? CROSS : WAVES);
+  b.classList.toggle("muted", m); b.setAttribute("aria-pressed", String(!m)); b.title = t(m ? "sound.on" : "sound.off");
+}
+$("sound-btn").addEventListener("click", () => { sound.unlock(); sound.toggle(); });
+sound.onChange(renderSound); renderSound();
+// A coloured flash as you step through a door.
+function flash(color) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const f = el("div", { class: "flash", style: `--c:${color}` }); document.body.append(f); setTimeout(() => f.remove(), 700);
+}
+
 // ------------------------------------------------------------------ loop
 function resize() { world.resize(innerWidth, innerHeight, Math.min(1.5, devicePixelRatio || 1)); }
 addEventListener("resize", resize);
@@ -89,6 +108,11 @@ let last = performance.now(), slowAt = 0, frames = 0;
 function tick(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   world.update(dt); world.draw();
+  if (state.inWorld) {
+    world.autoQuality(dt);
+    const p = world.player;
+    sound.update(world.t, { walking: p?.walking, fountainDist: p && world.fountainPos ? p.group.position.distanceTo(world.fountainPos) : 99 });
+  }
   if (++frames === 3) $("boot").classList.add("done");
   if (state.inWorld && now - slowAt > 100) { slowAt = now; updateLocation(); updatePrompt(); world.minimap($("minimap")); }
   requestAnimationFrame(tick);
@@ -180,7 +204,7 @@ for (const b of document.querySelectorAll(".login-opt")) b.addEventListener("cli
   if (state.player) return enterWorld(false);
   openMint();
 });
-for (const b of document.querySelectorAll("[data-close]")) b.addEventListener("click", () => { show(b.dataset.close, false); if (b.dataset.close === "deal") negotiation = null; });
+for (const b of document.querySelectorAll("[data-close]")) b.addEventListener("click", () => { sound.play("close"); show(b.dataset.close, false); if (b.dataset.close === "deal") negotiation = null; });
 
 // ------------------------------------------------------------------ mint
 const mintSel = { clan: "ZEROG", archetype: "support" };
@@ -208,7 +232,7 @@ $("mint-form").addEventListener("submit", async (e) => {
   const list = $("minting-steps");
   list.replaceChildren(...["mint.s1", "mint.s2", "mint.s3", "mint.s4", "mint.s5"].map((k) => el("li", {}, el("span", { class: "s" }), t(k))));
   show("minting");
-  for (const li of list.children) { li.className = "run"; await wait(650 + Math.random() * 350); li.className = "ok"; }
+  for (const li of list.children) { li.className = "run"; sound.play("beep"); await wait(650 + Math.random() * 350); li.className = "ok"; }
   await wait(300);
   show("minting", false);
   state.player = migrate(mintAgent({ name, archetype: mintSel.archetype, clan: mintSel.clan, backstory: $("mint-story").value.trim(), username: "kultplayer" }));
@@ -224,6 +248,7 @@ function enterWorld(fresh) {
   state.inWorld = true;
   const a = state.player.agent;
   world.spawnPlayer({ name: a.name, archetype: a.archetype, clan: a.clan, elo: a.elo });
+  sound.play("spawn");
   renderPassport(); renderQuests();
   setTimeout(() => toast(t(fresh ? "toast.spawned" : "toast.welcome", { name: a.name }), "good"), 900);
   setTimeout(() => show("hint", false), 14000);
@@ -314,11 +339,11 @@ function quest(id, by = 1) {
   if (q.progress >= q.target) {
     const [n, cur] = q.reward.split(" "), b = state.player.balances;
     if (cur === "KP") b.kp += Number(n); else b.arena += Number(n);
-    toast(t("toast.quest", { title: t(`quest.${q.id}`), reward: q.reward }), "good");
+    toast(t("toast.quest", { title: t(`quest.${q.id}`), reward: q.reward }), "good"); sound.play("quest");
     burst(innerWidth - 170, 150, "#ffc94d", 24);
   }
 }
-function gainXp(n) { const pp = state.player.passport; pp.xp += n; while (pp.xp >= pp.xpToNext) { pp.xp -= pp.xpToNext; pp.level += 1; pp.xpToNext = Math.round(pp.xpToNext * 1.35); toast(t("toast.level", { n: pp.level }), "good"); } }
+function gainXp(n) { const pp = state.player.passport; pp.xp += n; while (pp.xp >= pp.xpToNext) { pp.xp -= pp.xpToNext; pp.level += 1; pp.xpToNext = Math.round(pp.xpToNext * 1.35); toast(t("toast.level", { n: pp.level }), "good"); sound.play("level"); } }
 function commit() { savePlayer(state.player); renderPassport(); renderQuests(); }
 
 function togglePassport(force) { const o = $("passport").classList.toggle("open", force); $("passport-toggle").setAttribute("aria-expanded", String(o)); }
@@ -337,11 +362,12 @@ addEventListener("keydown", (e) => {
   if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter();
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
-function closeOverlays() { match = null; negotiation = null; for (const id of ["park", "hub", "deal", "market", "login"]) show(id, false); }
+function closeOverlays() { sound.play("close"); match = null; negotiation = null; for (const id of ["park", "hub", "deal", "market", "login"]) show(id, false); }
 
 // ------------------------------------------------------------------ places
 function openPlace(b, then) {
   show("agent-card", false);
+  sound.play("open"); flash(b.color);
   if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); quest("visit-park"); }
   if (b.kind === "hub") { renderGames(); show("hub-list"); show("hub-match", false); show("hub"); stamp("hub"); if (then?.challenge) startMatch(GAMES[Math.floor(Math.random() * 2)], then.challenge); }
   if (b.kind === "deal") { renderDeals(); show("deal-list"); show("deal-room", false); show("deal"); stamp("deal"); }
@@ -370,6 +396,7 @@ function renderBiz(focus = null) {
   }));
 }
 function burst(x, y, color, n = 28) {
+  sound.play("coin");
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2 + Math.random() * 0.3, d = 80 + Math.random() * 120;
     const s = el("span", { class: "burst", style: `left:${x}px;top:${y}px;color:${i % 3 ? color : "#fff"};background:currentColor;--dx:${Math.cos(a) * d}px;--dy:${Math.sin(a) * d}px` });
@@ -378,6 +405,7 @@ function burst(x, y, color, n = 28) {
 }
 function activate(card, b) {
   if (card.classList.contains("activate")) return;
+  sound.play("whoosh");
   card.classList.add("activate");
   const r = card.getBoundingClientRect();
   burst(r.left + r.width / 2, r.top + r.height / 2, b.color, 36);
@@ -385,6 +413,7 @@ function activate(card, b) {
   setTimeout(() => { card.classList.remove("activate"); show("park", false); openApp(b); }, 1000);
 }
 function locked(card) {
+  sound.play("error");
   card.classList.remove("shake"); void card.offsetWidth; card.classList.add("shake");
   const s = el("span", { class: "stampfx" }, t("biz.comingStamp")); card.append(s); setTimeout(() => s.remove(), 1650);
 }
@@ -440,7 +469,7 @@ async function startMatch(gm, forced = null) {
   setScreen(el("div", {}, el("div", { class: "scan-t", style: "margin-bottom:3vmin;color:var(--gold)" }, t("match.found")), el("div", { class: "vs" }, side(me, "l"), el("div", { class: "vs-mid" }, "VS"), side(them, "r"))));
   await wait(2600);
   if (!alive()) return;
-  for (const n of ["3", "2", "1", t("match.fight")]) { setScreen(el("div", { class: "count" }, n)); await wait(n.length > 1 ? 650 : 750); if (!alive()) return; }
+  for (const n of ["3", "2", "1", t("match.fight")]) { setScreen(el("div", { class: "count" }, n)); sound.play(n.length > 1 ? "go" : "beep"); await wait(n.length > 1 ? 650 : 750); if (!alive()) return; }
   setScreen(); $("game-canvas").hidden = false; show("match-skip");
   const g = $("game-canvas").getContext("2d"); g.imageSmoothingEnabled = false;
   const game = createGame(gm.id, { me, them });
@@ -470,6 +499,7 @@ async function startMatch(gm, forced = null) {
   addActivity(t("act.match", { result: t(win ? "act.won" : "act.lost"), game: gm.name, name: them.name, elo: `${dElo > 0 ? "+" : ""}${dElo}` }));
   commit();
   const after = rankOf(p.agent.elo);
+  sound.play(win ? "win" : "lose");
   $("game-canvas").hidden = true; $("monitor-led").className = "led";
   setScreen(el("div", { class: "result" },
     el("div", { class: `big ${win ? "win" : "lose"}` }, t(win ? "match.victory" : "match.defeat")),
@@ -481,7 +511,7 @@ async function startMatch(gm, forced = null) {
 }
 function backToGames() { match = null; show("hub-match", false); show("hub-list"); renderGames(); $("monitor-led").className = "led"; }
 $("match-back").addEventListener("click", backToGames);
-$("hub-close").addEventListener("click", () => { match = null; show("hub", false); });
+$("hub-close").addEventListener("click", () => { sound.play("close"); match = null; show("hub", false); });
 
 // ------------------------------------------------------------------ deal room
 let negotiation = null;
@@ -511,6 +541,7 @@ async function negotiate(d) {
     log.append(typing); log.scrollTop = log.scrollHeight;
     await wait(delay); typing.remove();
     if (!alive()) return false;
+    sound.play("type");
     log.append(el("div", { class: `msg ${who}` }, el("small", {}, who === "me" ? me.name : d.who), pick(DEAL_LINES[key]).split("{price}").join(fmt(price))));
     log.scrollTop = log.scrollHeight;
     priceTag.textContent = `${fmt(price)} $ARENA`; meter.style.width = `${Math.min(100, Math.round((price / d.ask) * 100))}%`;
@@ -539,7 +570,8 @@ async function negotiate(d) {
     log.append(el("div", { class: "deal-result win" }, el("div", { class: "big" }, t("deal.closed")), el("div", {}, `${t("deal.terms")}: ${fmt(final)} $ARENA`), el("div", { class: "muted" }, t("deal.saved", { n: fmt(saved) })), el("div", { class: "rows" }, el("span", { class: "ic arena" }, `+${cash} $ARENA`), el("span", { class: "ic kp" }, "+60 KP"))));
     toast(t("toast.deal", { name: d.who }), "good");
     const r = room.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, "#ffc94d", 40);
-  } else log.append(el("div", { class: "deal-result lose" }, el("div", { class: "big" }, t("deal.walked"))));
+    sound.play("deal");
+  } else { sound.play("lose"); log.append(el("div", { class: "deal-result lose" }, el("div", { class: "big" }, t("deal.walked")))); }
   log.scrollTop = log.scrollHeight;
 }
 

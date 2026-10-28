@@ -35,8 +35,17 @@ node server.mjs        # http://localhost:4500
   fountain, the walled Business Park campus, Game Hub Row, the Financial
   Quarter, Market Street and the Neon Gardens pond. Stylized lighting: sunset
   key light, neon rim light, soft shadows, fog and bloom; animated LED screens,
-  searchlights, hover traffic over the avenues, drones, floating rocks, grass
+  searchlights, drones, floating rocks, grass
   and fireflies. Agents are rigged characters (walk, run, idle, wave).
+- **Ground**: stepped 3D terrain from the tile map (roads lowest, kerbed paving,
+  raised lawns) with tiling procedural textures and normal maps, glowing road
+  edges with travelling light pulses, lane lines, crossings and the plaza inlay.
+- **Sound and FX**: synthesized WebAudio ambience (pad, wind, a fountain that
+  swells nearby), footsteps and UI / reward / match cues, with a mute button;
+  fireflies, blossom petals, fountain sparkles, footstep dust, a door flash.
+- **Performance**: repeated props are instanced (trees sway in the shader),
+  wandering agents use blob shadows, and quality steps down on slow devices
+  (`?quality=low|medium|high` forces a level).
 - **Glass HUD**: player card, location, balances, quest tracker, live feed,
   action dock, clickable minimap, floating "Enter" prompts at doors, district
   labels when zoomed out. The passport is a drawer behind the arrow tab.

@@ -121,9 +121,8 @@ scatter(25, 2, 27, 26, 3, ["bush"]);
 for (const [x, y, rot] of [[38.6, 37.6, 0.8], [47.4, 37.6, -0.8], [38.6, 46.6, 2.4], [47.6, 46.6, -2.4]]) if (free(x, y)) put("bench", x, y, { rot });
 for (let i = 0; i < 26; i++) { const x = 31 + rnd() * 22, y = 31 + rnd() * 22; if (free(x, y)) put("flowers", x, y, { rot: rnd() * 6.28 }, false); }
 for (let i = 0; i < 12; i++) { const x = 3 + rnd() * 22, y = 33 + rnd() * 20; if (free(x, y)) put("flowers", x, y, { rot: rnd() * 6.28 }, false); }
-// Billboards and parked hover-cars.
+// Billboards.
 put("billboard", 45.5, 21.5, { ad: 0 }); put("billboard", 7, 28.4, { ad: 1 }); put("billboard", 23.5, 33, { ad: 2 }); put("billboard", 51.5, 27, { ad: 3 });
-for (const [x, y, c] of [[33.6, 26.3, "#ff4fa3"], [38.6, 26.3, "#4fd8ff"], [18.6, 30.7, "#ffc94d"], [44, 30.7, "#7ee081"], [10.2, 30.7, "#a98bff"]]) put("car", x, y, { color: c }, false);
 put("crane", 3.6, 33.4);
 
 export const walkable = (x, y) => x >= 0 && y >= 0 && x < MAP && y < MAP && !blocked[x][y];

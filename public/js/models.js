@@ -625,3 +625,38 @@ export function build(slot, opts) {
   return holder;
 }
 export const providedModel = (slot) => provided[slot] || null;
+
+// ------------------------------------------------------------------ instanced props
+// Many copies of one provided model as instanced meshes (one draw per mesh, not
+// per copy). items: [{ pos: Vector3, rot, s }]. With sway set, the copies sway
+// in the vertex shader, each with its own phase.
+export const swayTime = { value: 0 };
+function swayMaterial(src, geo, amount) {
+  const m = src.clone();
+  geo.computeBoundingBox();
+  const lo = geo.boundingBox.min.y, h = Math.max(1e-3, geo.boundingBox.max.y - lo);
+  m.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, { uTime: swayTime, uLo: { value: lo }, uH: { value: h }, uAmp: { value: h * amount } });
+    sh.vertexShader = "uniform float uTime, uLo, uH, uAmp;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+      float swh = clamp((transformed.y - uLo) / uH, 0.0, 1.0); swh *= swh;
+      float swp = instanceMatrix[3].x * 0.37 + instanceMatrix[3].z * 0.23;
+      transformed.x += sin(uTime * 0.9 + swp) * uAmp * swh;
+      transformed.z += cos(uTime * 0.7 + swp) * uAmp * 0.8 * swh;`);
+  };
+  m.customProgramCacheKey = () => `sway${amount}`;
+  return m;
+}
+export async function instanceProps(slot, items, { sway = 0, shadow = false } = {}) {
+  const gl = await loadGLB(`models/${provided[slot]}`);
+  const m = fit(gl.scene.clone(true), slot);
+  addGlow(m, slot); m.updateMatrixWorld(true);
+  const group = new THREE.Group(), o = new THREE.Object3D(), mx = new THREE.Matrix4();
+  m.traverse((mesh) => {
+    if (!mesh.isMesh) return;
+    const im = new THREE.InstancedMesh(mesh.geometry, sway ? swayMaterial(mesh.material, mesh.geometry, sway) : mesh.material, items.length);
+    items.forEach((it, i) => { o.position.copy(it.pos); o.rotation.set(0, it.rot || 0, 0); o.scale.setScalar(it.s || 1); o.updateMatrix(); im.setMatrixAt(i, mx.multiplyMatrices(o.matrix, mesh.matrixWorld)); });
+    im.castShadow = shadow; im.receiveShadow = true; im.computeBoundingSphere();
+    group.add(im);
+  });
+  return group;
+}

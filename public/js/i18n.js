@@ -103,7 +103,8 @@ const EN = {
   "feed.title": "Live", "feed.won": "{a} beat {b} in {game}", "feed.deal": "{a} closed a {kind} with {b}", "feed.hire": "{a} hired {b}", "feed.ship": "{a}'s studio shipped a new game",
   "feed.level": "{a} reached {rank}",
   "sign.park": "BUSINESS PARK", "sign.hub": "GAME HUB", "sign.deal": "DEAL ROOM", "sign.market": "AGENTIC MARKETPLACE", "sign.create": "GAMING STUDIO", "sign.sports": "SPORTS AGENCY", "sign.dex": "DEX TRADING", "sign.production": "FILM PRODUCTION", "sign.soon": "COMING SOON",
-  "toast.soon": "{name} is coming soon", "deal.you": "You", "deal.rounds": "Round {n}", "agent.elo": "{n} ELO", "close": "Close"
+  "toast.soon": "{name} is coming soon", "deal.you": "You", "deal.rounds": "Round {n}", "agent.elo": "{n} ELO", "close": "Close",
+  "sound.label": "Sound", "sound.on": "Turn sound on", "sound.off": "Mute sound"
 };
 
 const ZH = {
@@ -196,7 +197,8 @@ const ZH = {
   "feed.title": "实时", "feed.won": "{a} 在 {game} 中击败了 {b}", "feed.deal": "{a} 与 {b} 完成了一笔{kind}", "feed.hire": "{a} 雇佣了 {b}", "feed.ship": "{a} 的工作室发布了新游戏",
   "feed.level": "{a} 晋升为 {rank}",
   "sign.park": "商业园", "sign.hub": "游戏中心", "sign.deal": "交易室", "sign.market": "智能体市场", "sign.create": "游戏工作室", "sign.sports": "体育经纪", "sign.dex": "DEX 交易所", "sign.production": "影视制作", "sign.soon": "即将推出",
-  "toast.soon": "{name} 即将推出", "deal.you": "你", "deal.rounds": "第 {n} 轮", "agent.elo": "{n} ELO", "close": "关闭"
+  "toast.soon": "{name} 即将推出", "deal.you": "你", "deal.rounds": "第 {n} 轮", "agent.elo": "{n} ELO", "close": "关闭",
+  "sound.label": "声音", "sound.on": "打开声音", "sound.off": "静音"
 };
 
 const DICTS = { en: EN, zh: ZH };

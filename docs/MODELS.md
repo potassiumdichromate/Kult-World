@@ -80,7 +80,7 @@ file becomes the real building on launch day.
 | 23 | `lamp.glb` | Futuristic street lamp, a single arm with an emissive light capsule | 0.5 × 0.5 | 4.4 m | <1k |
 | 24 | `bench.glb` | Park bench | 1.4 × 0.6 | 0.9 m | <1k |
 | 25 | `billboard.glb` | Holographic billboard on two posts. Leave the screen as a **separate mesh named `Screen`** so I can play ads on it | 4 × 0.6 | 7 m | 2k |
-| 26 | `car.glb` | Hover car (parked, and the traffic flying over the avenues), with emissive under-glow, headlights and tail lights | 1.8 × 0.9 | 0.9 m | 2–4k |
+| 26 | `car.glb` | **Not needed any more:** the city no longer has car traffic | — | — | — |
 | 27 | `crane.glb` | Construction tower crane (Market Street expansion) | 2 × 2 | 20 m | 2–4k |
 
 ## Optional

@@ -25,7 +25,10 @@
   <div id="boot" class="boot"><div class="boot-ring"></div><span data-i18n="boot">Building Kult World…</span></div>
 
   <!-- Language switch (always visible) -->
-  <button type="button" id="lang-btn" class="lang-btn glass" title="English / 中文"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" /></svg><span data-i18n="lang.toggle">中文</span></button>
+  <div class="corner-tools">
+    <button type="button" id="sound-btn" class="icon-btn glass sound-btn" aria-pressed="true" data-i18n-attr="aria-label:sound.label"><svg viewBox="0 0 24 24" aria-hidden="true"></svg></button>
+    <button type="button" id="lang-btn" class="lang-btn glass" title="English / 中文"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" /></svg><span data-i18n="lang.toggle">中文</span></button>
+  </div>
 
   <!-- Passport drawer: hidden, opened by the arrow tab -->
   <aside id="passport" class="passport" hidden aria-label="Kult World Passport">

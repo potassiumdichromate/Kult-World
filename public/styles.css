@@ -380,10 +380,17 @@ html[lang="zh-CN"] .eyebrow, html[lang="zh-CN"] .label, html[lang="zh-CN"] .loca
 html[lang="zh-CN"] .btn { letter-spacing: 0.04em; }
 
 /* Language switch */
-.lang-btn { position: fixed; top: 14px; right: 14px; z-index: 30; display: inline-flex; align-items: center; gap: 7px; height: 42px; padding: 0 14px; border-radius: 14px; cursor: pointer; font: 700 13px var(--display); color: var(--text); }
+.corner-tools { position: fixed; top: 14px; right: 14px; z-index: 30; display: flex; gap: 8px; }
+.lang-btn { display: inline-flex; align-items: center; gap: 7px; height: 42px; padding: 0 14px; border-radius: 14px; cursor: pointer; font: 700 13px var(--display); color: var(--text); }
 .lang-btn svg { width: 18px; height: 18px; fill: none; stroke: var(--blue); stroke-width: 2; }
 .lang-btn:hover { border-color: var(--blue); }
-body:has(#topbar:not([hidden])) .hud-right { margin-right: 92px; }
+body:has(#topbar:not([hidden])) .hud-right { margin-right: 104px; }
+body:has(#topbar:not([hidden])) .lang-btn { padding: 0 11px; }
+body:has(#topbar:not([hidden])) .lang-btn span { display: none; }
+.sound-btn svg { fill: none; stroke: var(--blue); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sound-btn.muted svg { stroke: var(--muted); }
+.flash { position: fixed; inset: 0; z-index: 25; pointer-events: none; background: radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--c) 55%, transparent), transparent 65%); animation: flash 0.65s ease-out forwards; }
+@keyframes flash { from { opacity: 1; } to { opacity: 0; } }
 
 /* Landing stats */
 .landing-stats { display: flex; justify-content: center; gap: 10px; margin: 0 0 26px; flex-wrap: wrap; }
@@ -509,8 +516,9 @@ body:has(.passport.open) .feed { opacity: 0; }
   .quest-tracker { display: none; }
   .feed { left: 12px; bottom: 96px; width: calc(100% - 140px); }
   .feed-item:nth-child(n + 3) { display: none; }
-  .lang-btn { top: 12px; right: 12px; height: 38px; padding: 0 10px; }
-  body:has(#topbar:not([hidden])) .lang-btn { top: auto; bottom: 108px; right: 12px; }
+  .corner-tools { top: 12px; right: 12px; }
+  .lang-btn, .sound-btn { height: 38px; padding: 0 10px; }
+  body:has(#topbar:not([hidden])) .corner-tools { top: auto; bottom: 108px; right: 12px; }
   body:has(#topbar:not([hidden])) .hud-right { margin-right: 0; }
   .landing-feats { grid-template-columns: 1fr 1fr; }
   .landing-stats div { min-width: 0; flex: 1; padding: 8px 10px; } .landing-stats b { font-size: 18px; }
