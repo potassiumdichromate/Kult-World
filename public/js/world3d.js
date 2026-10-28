@@ -10,7 +10,7 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { MAP, tiles, BUILDINGS, CAMPUS, WALL, MONUMENT, FOUNTAIN, SPAWN, PROPS, DISTRICTS, POND, CENTER, SHAPES, walkable, findPath, randomStreetTile, islandSD } from "./layout.js";
-import { T, build, glowTexture, lightPool, loadProvided, loadGLB, providedModel, capsuleAgent, AGENT_PLACEHOLDER_URL, SLOTS, M, sign, instanceProps, swayTime } from "./models.js";
+import { T, build, glowTexture, lightPool, loadProvided, loadGLB, providedModel, capsuleAgent, AGENT_PLACEHOLDER_URL, SLOTS, M, sign, instanceProps, swayTime, addGlow } from "./models.js";
 import { buildTerrain, heightAt } from "./terrain.js";
 import { FX } from "./fx.js";
 import { archetype } from "./data.js";
@@ -79,8 +79,9 @@ export class World {
   async init() {
     await loadProvided();
     this.populate();
+    const allOwn = ["berserker", "tactician", "defender", "assassin", "support", "hybrid"].every((k) => providedModel(`agent-${k}`));
     const url = providedModel("agent") ? `models/${providedModel("agent")}` : AGENT_PLACEHOLDER_URL;
-    loadGLB(url).then((g) => { this.agentGLB = g; for (const a of this.agents.values()) this.dressAgent(a); })
+    if (!allOwn) loadGLB(url).then((g) => { this.agentGLB = g; for (const a of this.agents.values()) this.dressAgent(a); })
       .catch((e) => console.warn("[world] agent model not loaded, using capsule bots", e?.message || e));
   }
   // Translated labels (districts, door prompts). tr(key) -> string.
@@ -296,7 +297,9 @@ export class World {
   // for that archetype; otherwise the shared agent model is tinted.
   dressAgent(a) {
     const own = providedModel(`agent-${a.archetype}`);
-    if (own && !a.ownGLB && !a.ownLoading) { a.ownLoading = true; loadGLB(`models/${own}`).then((g) => { a.ownGLB = g; this.dressAgent(a); }).catch((e) => console.warn(`[world] ${own}`, e?.message || e)); }
+    if (own && !a.ownGLB && !a.ownLoading) { a.ownLoading = true; loadGLB(`models/${own}`).then((g) => { a.ownGLB = g; this.dressAgent(a); }).catch((e) => { a.ownFailed = true; console.warn(`[world] ${own}`, e?.message || e); this.dressAgent(a); }); }
+    // An archetype with its own model waits for it rather than flashing the placeholder.
+    if (own && !a.ownGLB && !a.ownFailed) { if (a.body) { a.group.remove(a.body); a.body = null; } return; }
     const src = a.ownGLB || this.agentGLB;
     if (a.body) { a.group.remove(a.body); a.mixer?.stopAllAction(); a.mixer = null; }
     if (!src) { a.body = capsuleAgent(a.color); a.group.add(a.body); return; }
@@ -310,6 +313,7 @@ export class World {
       o.castShadow = a.isPlayer; o.frustumCulled = !o.isSkinnedMesh;
       o.material = o.material.clone();
       if (!a.ownGLB && o.material.name === "Main") { o.material.color = tint.clone(); o.material.emissive = tint.clone(); o.material.emissiveIntensity = 0.12; }
+      if (a.ownGLB) addGlow(o, "agent");
     });
     a.body = body; a.group.add(body);
     a.mixer = new THREE.AnimationMixer(body); a.actions = {};
@@ -318,7 +322,9 @@ export class World {
   }
   play(a, name, once = false) {
     if (!a.mixer || (a.current === name && !once)) return;
-    const find = (n) => a.actions[n] || Object.entries(a.actions).find(([k]) => k.toLowerCase().includes(n.toLowerCase()))?.[1];
+    // Clip names differ per model (Walking vs Casual_Walk_inplace): match by keyword.
+    const key = { Idle: "idle", Walking: "walk", Running: "run", Wave: "wave", Dance: "dance" };
+    const find = (n) => a.actions[n] || Object.entries(a.actions).find(([k]) => k.toLowerCase().includes(key[n] || n.toLowerCase()))?.[1];
     const next = find(name) || (name === "Running" && find("Walk")) || find("Idle"); if (!next) return;
     next.reset().fadeIn(0.25).play();
     if (once) { next.setLoop(THREE.LoopOnce, 1); next.clampWhenFinished = true; a.emoteUntil = this.t + next.getClip().duration; }

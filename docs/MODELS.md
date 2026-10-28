@@ -62,6 +62,12 @@ the building names on them in English or Chinese, whichever the player picks.
 scaffold until they launch. Model them as normal, finished buildings: the same
 file becomes the real building on launch day.
 
+**Status: characters 10–15 are done.** Generated from the turntable sheets in
+`Desktop/Character` (four cropped views each, Meshy multi-view to 3D in T-pose,
+auto-rig, then one GLB with the clips `Idle`, `Casual_Walk_inplace`,
+`run_fast_3_inplace` and `Wave_One_Hand`; ~750-800 KB each after compression).
+Crops are in `art-src/characters/<archetype>/`.
+
 **Character rig requirements (10–15):**
 - **Rig:** a humanoid skeleton (a Mixamo rig is ideal).
 - **Animation clips, embedded, with these names:** `Idle`, `Walking`, `Running`, `Wave` (greeting other agents), `Dance` (victory) and `Defeat`. Any clip whose name *contains* "idle", "walk" or "run" is picked up automatically.

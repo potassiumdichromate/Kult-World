@@ -17,5 +17,11 @@
   "flowers": "flowers.glb",
   "lamp": "lamp.glb",
   "bench": "bench.glb",
-  "crane": "crane.glb"
+  "crane": "crane.glb",
+  "agent-tactician": "agent-tactician.glb",
+  "agent-assassin": "agent-assassin.glb",
+  "agent-berserker": "agent-berserker.glb",
+  "agent-defender": "agent-defender.glb",
+  "agent-hybrid": "agent-hybrid.glb",
+  "agent-support": "agent-support.glb"
 }
