@@ -265,7 +265,9 @@ export function buildTerrain(scene) {
   anims.push(plazaInlay(scene));
   for (const end of ends) anims.push(bridge(scene, end, texs));
   if (stream) anims.push(waterfall(scene, stream));
-  return { anims, materials: { curb: new THREE.MeshStandardMaterial({ map: stoneTex(), roughness: 0.7 }) }, undersidePoints, waterfallTop: stream && new THREE.Vector3(W(stream.b[0]), 0.1, W(stream.b[1])) };
+  // Tile-space features for the minimap: bridges end at islets ~10 tiles out.
+  const features = { ends: ends.map((e) => ({ ...e, islet: [e.coast[0] + e.dir[0] * 10.1, e.coast[1] + e.dir[1] * 10.1] })), stream };
+  return { anims, features, materials: { curb: new THREE.MeshStandardMaterial({ map: stoneTex(), roughness: 0.7 }) }, undersidePoints, waterfallTop: stream && new THREE.Vector3(W(stream.b[0]), 0.1, W(stream.b[1])) };
 }
 
 // ------------------------------------------------------------------ road neon, lane lines, crossings

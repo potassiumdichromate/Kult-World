@@ -194,7 +194,7 @@ for (let i = 0; i < 26; i++) { const x = 31 + rnd() * 22, y = 31 + rnd() * 22; i
 for (let i = 0; i < 12; i++) { const x = 3 + rnd() * 22, y = 33 + rnd() * 20; if (free(x, y)) put("flowers", x, y, { rot: rnd() * 6.28 }, false); }
 // Billboards.
 put("billboard", 45.5, 21.5, { ad: 0 }); put("billboard", 7, 28.4, { ad: 1 }); put("billboard", 23.5, 33, { ad: 2 }); put("billboard", 51.5, 27, { ad: 3 });
-put("crane", 24.6, 37.4);
+put("crane", 31.5, 9.5);
 
 export const walkable = (x, y) => x >= 0 && y >= 0 && x < MAP && y < MAP && !blocked[x][y];
 

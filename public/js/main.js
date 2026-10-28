@@ -147,7 +147,7 @@ canvas.addEventListener("click", (e) => {
 canvas.addEventListener("wheel", (e) => { e.preventDefault(); world.zoomBy(e.deltaY > 0 ? 0.9 : 1.1); }, { passive: false });
 $("minimap").addEventListener("click", (e) => {
   const r = e.currentTarget.getBoundingClientRect();
-  world.walkToTile(((e.clientX - r.left) / r.width) * MAP, ((e.clientY - r.top) / r.height) * MAP);
+  world.walkToTile(...world.minimapToTile((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height));
 });
 
 let lastPlace = "", walkingLabel = false;

@@ -9,7 +9,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
-import { MAP, tiles, BUILDINGS, CAMPUS, WALL, MONUMENT, FOUNTAIN, SPAWN, PROPS, DISTRICTS, POND, CENTER, walkable, findPath, randomStreetTile, islandSD } from "./layout.js";
+import { MAP, tiles, BUILDINGS, CAMPUS, WALL, MONUMENT, FOUNTAIN, SPAWN, PROPS, DISTRICTS, POND, CENTER, SHAPES, walkable, findPath, randomStreetTile, islandSD } from "./layout.js";
 import { T, build, glowTexture, lightPool, loadProvided, loadGLB, providedModel, capsuleAgent, AGENT_PLACEHOLDER_URL, SLOTS, M, sign, instanceProps, swayTime } from "./models.js";
 import { buildTerrain, heightAt } from "./terrain.js";
 import { FX } from "./fx.js";
@@ -19,6 +19,8 @@ export { BUILDINGS, MAP, walkable, SPAWN, DISTRICTS, heightAt };
 const HALF = (MAP * T) / 2;
 export const toWorld = (x, y) => new THREE.Vector3(x * T - HALF, 0, y * T - HALF);
 const ISO_AZ = Math.PI / 4;
+// Minimap framing in tile space: the island plus the start of the bridges.
+const MM = { x0: -6, span: 68 };
 // Soft contact shadow under wandering agents (cheaper than a real shadow).
 const BLOB = { geo: new THREE.PlaneGeometry(1.6, 1.6), m: null, mat() { return this.m ||= new THREE.MeshBasicMaterial({ map: glowTexture(), color: "#000000", transparent: true, opacity: 0.5, depthWrite: false }); } };
 // Repeated props drawn as instanced meshes once their model is provided.
@@ -89,7 +91,7 @@ export class World {
     const s = this.scene, size = MAP * T;
     const terrain = buildTerrain(s);
     this.anims.push(...terrain.anims);
-    this.waterfallTop = terrain.waterfallTop;
+    this.waterfallTop = terrain.waterfallTop; this.features = terrain.features;
     const o = new THREE.Object3D(), oct = new THREE.OctahedronGeometry(1, 0);
     const hanging = ["#4fd8ff", "#ff4fa3"].map((c) => new THREE.InstancedMesh(oct, M.glow(c, 1.6), 15));
     for (let i = 0; i < 30; i++) {
@@ -508,25 +510,128 @@ export class World {
   }
 
   // ---------------------------------------------------------------- minimap
-  minimap(canvas) {
-    const g = canvas.getContext("2d"), W = canvas.width, k = W / MAP;
-    if (!this.mapBase) {
-      const c = document.createElement("canvas"); c.width = c.height = W;
-      const m = c.getContext("2d");
-      const col = { g: "#235e4a", c: "#2b6e52", r: "#3a3360", p: "#6a5fa6", w: "#2a6cc0", e: "#1a1230" };
-      for (let x = 0; x < MAP; x++) for (let y = 0; y < MAP; y++) { if (tiles[x][y] === "v") continue; m.fillStyle = col[tiles[x][y]]; m.fillRect(x * k, y * k, k + 0.5, k + 0.5); }
-      m.strokeStyle = "#ffc94d"; m.lineWidth = 1.5; m.strokeRect(CAMPUS.x0 * k + 1, CAMPUS.y0 * k + 1, (CAMPUS.x1 - CAMPUS.x0) * k - 2, (CAMPUS.y1 - CAMPUS.y0) * k - 2);
-      for (const b of BUILDINGS) { if (b.kind === "park") continue; m.fillStyle = b.color; m.globalAlpha = b.status === "soon" ? 0.45 : 1; m.fillRect(b.x0 * k, b.y0 * k, (b.x1 - b.x0) * k, (b.y1 - b.y0) * k); m.globalAlpha = 1; }
-      m.fillStyle = "#ff7eb6"; m.beginPath(); m.arc(FOUNTAIN.x * k, FOUNTAIN.y * k, 2.5, 0, 7); m.fill();
-      this.mapBase = c;
+  // A drawn map: the coast with a soft glow, lawns and paving, smooth roads
+  // with neon edges, buildings in their colours, the pond and its waterfall,
+  // bridges to the beacon islets, the camera's view and everyone on the island.
+  minimapToTile(fx, fy) { return [MM.x0 + fx * MM.span, MM.x0 + fy * MM.span]; }
+  minimapBase(S) {
+    const c = document.createElement("canvas"); c.width = c.height = S;
+    const g = c.getContext("2d"), k = S / MM.span, f = this.features || { ends: [] };
+    let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const bg = g.createRadialGradient(S / 2, S / 2, S * 0.1, S / 2, S / 2, S * 0.75); bg.addColorStop(0, "#1d1142"); bg.addColorStop(1, "#08051a");
+    g.fillStyle = bg; g.fillRect(0, 0, S, S);
+    for (let i = 0; i < 110; i++) { g.fillStyle = `rgba(220,210,255,${0.12 + rnd() * 0.5})`; const z = rnd() < 0.15 ? 2 : 1; g.fillRect(rnd() * S, rnd() * S, z, z); }
+    // Land, shaded from the coast inward, with a glow just off the coast.
+    const img = g.getImageData(0, 0, S, S), d = img.data;
+    for (let py = 0; py < S; py++) for (let px = 0; px < S; px++) {
+      const sd = islandSD(MM.x0 + (px + 0.5) / k, MM.x0 + (py + 0.5) / k), i = (py * S + px) * 4;
+      if (sd < -1.6) continue;
+      const glow = sd < 0 ? (1 + sd / 1.6) ** 2 * 0.5 : 0;
+      d[i] += (79 - d[i]) * glow; d[i + 1] += (216 - d[i + 1]) * glow; d[i + 2] += (255 - d[i + 2]) * glow;
+      const land = Math.min(1, Math.max(0, sd * k + 0.5));
+      if (!land) continue;
+      const t = Math.min(1, sd / 7), rim = sd < 0.35 ? 1 - sd / 0.35 : 0;
+      const cr = 30 + t * 16 + rim * 90, cg = 84 + t * 40 + rim * 130, cb = 70 + t * 26 + rim * 110;
+      d[i] += (cr - d[i]) * land; d[i + 1] += (cg - d[i + 1]) * land; d[i + 2] += (cb - d[i + 2]) * land;
     }
-    g.clearRect(0, 0, W, W); g.drawImage(this.mapBase, 0, 0);
-    for (const a of this.agents.values()) { if (a.isPlayer) continue; g.fillStyle = a.color; g.beginPath(); g.arc(a.x * k, a.y * k, 2, 0, 7); g.fill(); }
+    g.putImageData(img, 0, 0);
+    g.save(); g.scale(k, k); g.translate(-MM.x0, -MM.x0);
+    const glowLine = (color, blur) => { g.shadowColor = color; g.shadowBlur = blur; };
+    // Trees as soft dots give the lawns texture.
+    for (const p of PROPS) {
+      if (!["tree", "pine", "blossom", "bush"].includes(p.kind)) continue;
+      g.fillStyle = p.kind === "blossom" ? "rgba(255,140,200,0.75)" : "rgba(18,70,52,0.85)";
+      g.beginPath(); g.arc(p.x, p.y, p.kind === "bush" ? 0.35 : 0.55, 0, Math.PI * 2); g.fill();
+    }
+    // Campus lawn and its wall.
+    const cw = CAMPUS.x1 - CAMPUS.x0, ch = CAMPUS.y1 - CAMPUS.y0;
+    g.fillStyle = "#2f8a62"; g.beginPath(); g.roundRect(CAMPUS.x0, CAMPUS.y0, cw, ch, 1.2); g.fill();
+    g.strokeStyle = "rgba(255,255,255,0.05)"; g.lineWidth = 1;
+    for (let y = CAMPUS.y0 + 1; y < CAMPUS.y1; y += 2) { g.beginPath(); g.moveTo(CAMPUS.x0, y); g.lineTo(CAMPUS.x1, y); g.stroke(); }
+    // Paving (plaza, paths, forecourts).
+    g.fillStyle = "#5c5294";
+    for (const sh of SHAPES) {
+      if (sh.k !== "p") continue;
+      g.beginPath();
+      if (sh.rect) { const [x0, y0, x1, y1] = sh.rect; g.roundRect(x0, y0, x1 - x0, y1 - y0, 0.5); } else { const [x, y, r] = sh.circle; g.arc(x, y, r, 0, Math.PI * 2); }
+      g.fill();
+    }
+    glowLine("#ffc94d", 6); g.strokeStyle = "#ffc94d"; g.lineWidth = 0.35; g.beginPath(); g.roundRect(CAMPUS.x0 + 0.2, CAMPUS.y0 + 0.2, cw - 0.4, ch - 0.4, 1); g.stroke();
+    // Bridges and islets, under the roads so the joins are clean.
+    for (const e of f.ends) {
+      const [cx, cy] = e.coast, [ix, iy] = e.islet;
+      g.shadowBlur = 0; g.strokeStyle = "#2a2450"; g.lineWidth = 2.4; g.beginPath(); g.moveTo(cx, cy); g.lineTo(ix, iy); g.stroke();
+      glowLine(e.color, 8); g.strokeStyle = e.color; g.lineWidth = 0.18;
+      const nx = -e.dir[1] * 1.2, ny = e.dir[0] * 1.2;
+      for (const s of [-1, 1]) { g.beginPath(); g.moveTo(cx + nx * s, cy + ny * s); g.lineTo(ix + nx * s - e.dir[0] * 3, iy + ny * s - e.dir[1] * 3); g.stroke(); }
+      g.shadowBlur = 0; g.fillStyle = "#2f8a62"; g.beginPath(); g.arc(ix, iy, 3.2, 0, Math.PI * 2); g.fill();
+      glowLine(e.color, 10); g.strokeStyle = e.color; g.lineWidth = 0.3; g.stroke();
+    }
+    // Avenues, coast to coast: asphalt, neon edges, dashed centre line.
+    g.shadowBlur = 0;
+    const [W, E, N, Sx] = f.ends.length ? f.ends : [{ coast: [3, 28.5] }, { coast: [54, 28.5] }, { coast: [28.5, 3] }, { coast: [28.5, 54] }];
+    g.fillStyle = "#231d3c"; g.fillRect(W.coast[0], 27, E.coast[0] - W.coast[0], 3); g.fillRect(27, N.coast[1], 3, Sx.coast[1] - N.coast[1]);
+    const line = (x0, y0, x1, y1, color, width, dash) => { g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash || []); g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.setLineDash([]); };
+    glowLine("#4fd8ff", 6); line(W.coast[0], 27.15, E.coast[0], 27.15, "#4fd8ff", 0.22); line(W.coast[0], 29.85, E.coast[0], 29.85, "#4fd8ff", 0.22);
+    glowLine("#ff4fa3", 6); line(27.15, N.coast[1], 27.15, Sx.coast[1], "#ff4fa3", 0.22); line(29.85, N.coast[1], 29.85, Sx.coast[1], "#ff4fa3", 0.22);
+    g.shadowBlur = 0; line(W.coast[0], 28.5, E.coast[0], 28.5, "rgba(232,182,74,0.8)", 0.14, [0.9, 0.9]); line(28.5, N.coast[1], 28.5, Sx.coast[1], "rgba(232,182,74,0.8)", 0.14, [0.9, 0.9]);
+    // The plaza over the crossing, with its rings.
+    const [px0, py0] = CENTER;
+    g.fillStyle = "#5c5294"; g.beginPath(); g.arc(px0, py0, 7.6, 0, Math.PI * 2); g.fill();
+    for (const [r, c] of [[7.2, "#ff4fa3"], [6.1, "#4fd8ff"], [3.4, "#ffc94d"]]) { glowLine(c, 6); g.strokeStyle = c; g.lineWidth = 0.22; g.beginPath(); g.arc(px0, py0, r, 0, Math.PI * 2); g.stroke(); }
+    // Pond, stream and the waterfall's lip.
+    g.shadowBlur = 0;
+    if (f.stream) { glowLine("#4fb8ff", 6); line(f.stream.a[0], f.stream.a[1], f.stream.b[0], f.stream.b[1], "#3aa0f0", 1.1); g.fillStyle = "#e8f8ff"; g.beginPath(); g.arc(f.stream.b[0], f.stream.b[1], 0.7, 0, Math.PI * 2); g.fill(); }
+    const pg = g.createRadialGradient(POND.x - 1, POND.y - 1, 0.5, POND.x, POND.y, POND.r); pg.addColorStop(0, "#6cc8ff"); pg.addColorStop(1, "#1a5cc0");
+    glowLine("#4fb8ff", 8); g.fillStyle = pg; g.beginPath(); g.arc(POND.x, POND.y, POND.r, 0, Math.PI * 2); g.fill();
+    g.shadowBlur = 0; g.strokeStyle = "rgba(220,240,255,0.6)"; g.lineWidth = 0.2; g.stroke();
+    // Buildings, each in its own colour.
+    for (const b of BUILDINGS) {
+      if (b.kind === "park") continue;
+      const x = b.x0 + 0.35, y = b.y0 + 0.35, bw = b.x1 - b.x0 - 0.7, bh = b.y1 - b.y0 - 0.7, gr = g.createLinearGradient(x, y, x + bw, y + bh);
+      gr.addColorStop(0, b.color); gr.addColorStop(1, "#1a1032");
+      g.globalAlpha = b.status === "soon" ? 0.6 : 1;
+      glowLine(b.color, 10); g.fillStyle = gr; g.beginPath(); g.roundRect(x, y, bw, bh, 0.9); g.fill();
+      g.shadowBlur = 0; g.strokeStyle = "rgba(255,255,255,0.7)"; g.lineWidth = 0.15; g.setLineDash(b.status === "soon" ? [0.6, 0.5] : []); g.stroke(); g.setLineDash([]);
+      g.globalAlpha = 1;
+    }
+    // The fountain at the heart of the plaza.
+    glowLine("#ff4fa3", 10); g.fillStyle = "#ff8cc6"; g.beginPath(); g.arc(px0, py0, 1.1, 0, Math.PI * 2); g.fill();
+    g.restore();
+    // Soft vignette.
+    const v = g.createRadialGradient(S / 2, S / 2, S * 0.4, S / 2, S / 2, S * 0.72); v.addColorStop(0, "rgba(6,3,18,0)"); v.addColorStop(1, "rgba(6,3,18,0.55)");
+    g.fillStyle = v; g.fillRect(0, 0, S, S);
+    return c;
+  }
+  minimap(canvas) {
+    const S = canvas.width, g = canvas.getContext("2d"), k = S / MM.span, X = (t) => (t - MM.x0) * k, u = S / 176, t = this.t;
+    if (!this.mapBase || this.mapBase.width !== S) this.mapBase = this.minimapBase(S);
+    g.clearRect(0, 0, S, S); g.drawImage(this.mapBase, 0, 0);
+    // What the camera sees.
+    const v = new THREE.Vector2(), hit = new THREE.Vector3();
+    const view = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([nx, ny]) => { this.raycaster.setFromCamera(v.set(nx, ny), this.camera); this.raycaster.ray.intersectPlane(this.ground, hit); return [X((hit.x + HALF) / T), X((hit.z + HALF) / T)]; });
+    g.beginPath(); view.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath();
+    g.fillStyle = "rgba(255,255,255,0.07)"; g.fill(); g.strokeStyle = "rgba(255,255,255,0.5)"; g.lineWidth = 1 * u; g.setLineDash([4 * u, 3 * u]); g.stroke(); g.setLineDash([]);
+    // Pulsing beacons on the islets.
+    for (const e of this.features?.ends || []) {
+      const r = (1.6 + (Math.sin(t * 3) + 1) * 0.9) * u;
+      g.shadowColor = e.color; g.shadowBlur = 10 * u; g.fillStyle = e.color; g.beginPath(); g.arc(X(e.islet[0]), X(e.islet[1]), r, 0, Math.PI * 2); g.fill();
+    }
+    // Everyone else.
+    for (const a of this.agents.values()) {
+      if (a.isPlayer) continue;
+      g.shadowColor = a.color; g.shadowBlur = 6 * u; g.fillStyle = a.color; g.beginPath(); g.arc(X(a.x), X(a.y), 1.8 * u, 0, Math.PI * 2); g.fill();
+    }
+    g.shadowBlur = 0;
+    // You: a pulse ring and a heading arrow.
     const p = this.player;
     if (p) {
-      g.save(); g.translate(p.x * k, p.y * k); g.rotate(-p.group.rotation.y + Math.PI);
-      g.fillStyle = "#ffc94d"; g.shadowColor = "#ffc94d"; g.shadowBlur = 8;
-      g.beginPath(); g.moveTo(0, -6); g.lineTo(4.5, 5); g.lineTo(0, 2.5); g.lineTo(-4.5, 5); g.closePath(); g.fill(); g.restore();
+      const px = X(p.x), py = X(p.y), pulse = (t * 0.8) % 1;
+      g.strokeStyle = `rgba(255,201,77,${1 - pulse})`; g.lineWidth = 1.5 * u; g.beginPath(); g.arc(px, py, (4 + pulse * 12) * u, 0, Math.PI * 2); g.stroke();
+      g.save(); g.translate(px, py); g.rotate(-p.group.rotation.y + Math.PI);
+      g.fillStyle = "#ffc94d"; g.shadowColor = "#ffc94d"; g.shadowBlur = 10 * u;
+      g.beginPath(); g.moveTo(0, -7 * u); g.lineTo(5 * u, 5.5 * u); g.lineTo(0, 3 * u); g.lineTo(-5 * u, 5.5 * u); g.closePath(); g.fill();
+      g.shadowBlur = 0; g.strokeStyle = "#1a1030"; g.lineWidth = 1.2 * u; g.stroke(); g.restore();
     }
   }
   districtAt(x, y) { return DISTRICTS.find((d) => x >= d.x0 && x < d.x1 && y >= d.y0 && y < d.y1)?.id || "city"; }
@@ -547,12 +652,23 @@ function skyTexture() {
     g.lineTo(1024, 320 + i * 60); for (let x = 1024; x >= 0; x -= 32) g.lineTo(x, 260 + i * 60 + Math.sin(x / 140 + i) * 30); g.fill();
   }
   for (let i = 0; i < 320; i++) { g.fillStyle = `rgba(255,255,255,${Math.random() * 0.85})`; const s = Math.random() < 0.08 ? 2 : 1; g.fillRect(Math.random() * 1024, Math.random() * 600, s, s); }
-  const px = 800, py = 220;
-  const halo = g.createRadialGradient(px, py, 60, px, py, 220); halo.addColorStop(0, "rgba(255,160,210,0.35)"); halo.addColorStop(1, "rgba(255,160,210,0)"); g.fillStyle = halo; g.fillRect(px - 240, py - 240, 480, 480);
-  const pg = g.createRadialGradient(px - 30, py - 30, 10, px, py, 90); pg.addColorStop(0, "#ffd0e8"); pg.addColorStop(0.6, "#b05aa8"); pg.addColorStop(1, "#4a1e6a");
-  g.fillStyle = pg; g.beginPath(); g.arc(px, py, 80, 0, 7); g.fill();
-  g.strokeStyle = "rgba(255,200,230,0.55)"; g.lineWidth = 6; g.beginPath(); g.ellipse(px, py, 140, 26, -0.35, 0, 7); g.stroke();
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  // A painted ringed gas giant, loaded after the first frame; its cropped
+  // right and bottom edges fade into the sky.
+  const img = new Image();
+  img.onload = () => {
+    const pw = 470, ph = Math.round(pw * img.height / img.width), px = 1024 - pw + 30, py = 70;
+    const halo = g.createRadialGradient(px + pw * 0.62, py + ph * 0.5, 40, px + pw * 0.62, py + ph * 0.5, 300); halo.addColorStop(0, "rgba(255,150,210,0.32)"); halo.addColorStop(1, "rgba(255,150,210,0)");
+    g.fillStyle = halo; g.fillRect(px - 120, py - 160, pw + 240, ph + 320);
+    const p = document.createElement("canvas"); p.width = pw; p.height = ph; const q = p.getContext("2d");
+    q.drawImage(img, 0, 0, pw, ph); q.globalCompositeOperation = "destination-in";
+    const fx = q.createLinearGradient(0, 0, pw, 0); fx.addColorStop(0, "#000"); fx.addColorStop(0.82, "#000"); fx.addColorStop(1, "rgba(0,0,0,0)"); q.fillStyle = fx; q.fillRect(0, 0, pw, ph);
+    const fy = q.createLinearGradient(0, 0, 0, ph); fy.addColorStop(0, "#000"); fy.addColorStop(0.78, "#000"); fy.addColorStop(1, "rgba(0,0,0,0)"); q.fillStyle = fy; q.fillRect(0, 0, pw, ph);
+    g.globalAlpha = 0.95; g.drawImage(p, px, py); g.globalAlpha = 1;
+    t.needsUpdate = true;
+  };
+  img.src = "art/sky/planet.webp";
+  return t;
 }
 
 function frameTexture() {

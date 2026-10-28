@@ -559,7 +559,10 @@ function neonMask(map, gold = false, bright = false) {
   return tex;
 }
 const GOLD = new Set(["bld-deal-room", "monument", "campus-gate"]), BRIGHT = new Set(["lamp"]);
+// Painted yellow/neon-free props that should not glow.
+const NO_GLOW = new Set(["crane"]);
 function addGlow(obj, slot) {
+  if (NO_GLOW.has(slot)) return;
   const gold = GOLD.has(slot), bright = BRIGHT.has(slot);
   obj.traverse((o) => {
     if (!o.isMesh) return;
