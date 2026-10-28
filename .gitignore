@@ -1,4 +1,4 @@
 node_modules/
 art-src/meshy/*_textures/
 art-src/meshy/raw/
-art-src/characters/*/animated.glb
+art-src/characters/*/*.glb
