@@ -12,7 +12,7 @@ const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "");
 const money = (n) => `${Number(n).toFixed(2)} USDT`;
 
 export function createAgencies(ctx) {
-  const { el, t, toast, sound, burst, onJobAccepted, customer } = ctx;
+  const { el, t, toast, sound, burst, onJobAccepted, customer, wallet, signTypedData } = ctx;
   const $ = (id) => document.getElementById(id);
   const s = { api: null, list: null, paymentMode: "demo", error: null, room: null, pollT: null };
 
@@ -172,10 +172,39 @@ export function createAgencies(ctx) {
     return log;
   }
 
-  async function act(path, body, okSound = "pop") {
+  // OKX x402 on X Layer: the player's wallet signs a USD₮0
+  // TransferWithAuthorization for exactly the challenge's amount and payee,
+  // and it travels as the PAYMENT-SIGNATURE header. The agency verifies it
+  // with OKX before working and settles it only after delivery passes.
+  async function payLive(e) {
+    const from = wallet?.();
+    if (!from) return toast(t("ag.pay.noWallet"), "bad");
+    try {
+      const ch = await api(`/engagements/${e.id}/payment`);
+      const req = ch.accepts[0];
+      const nonce = `0x${[...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+      const authorization = { from, to: req.payTo, value: req.amount, validAfter: "0", validBefore: String(Math.floor(Date.now() / 1000) + req.maxTimeoutSeconds), nonce };
+      toast(t("ag.pay.signing"));
+      const signature = await signTypedData(196, {
+        domain: { name: req.extra.name, version: req.extra.version, chainId: 196, verifyingContract: req.asset },
+        types: {
+          EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }, { name: "verifyingContract", type: "address" }],
+          TransferWithAuthorization: [{ name: "from", type: "address" }, { name: "to", type: "address" }, { name: "value", type: "uint256" }, { name: "validAfter", type: "uint256" }, { name: "validBefore", type: "uint256" }, { name: "nonce", type: "bytes32" }]
+        },
+        primaryType: "TransferWithAuthorization",
+        message: authorization
+      });
+      const payment = { x402Version: 2, resource: ch.resource, accepted: req, payload: { signature, authorization } };
+      // UTF-8 safe base64: the asset's name (USD₮0) is not ASCII.
+      const header = btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(payment))));
+      return act("/pay", null, "deal", { "PAYMENT-SIGNATURE": header });
+    } catch (err) { toast(err.message, "bad"); return null; }
+  }
+
+  async function act(path, body, okSound = "pop", headers = {}) {
     const e = s.room.engagement;
     try {
-      const next = await api(`/engagements/${e.id}${path}`, { method: "POST", body: body || {} });
+      const next = await api(`/engagements/${e.id}${path}`, { method: "POST", body: body || {}, headers });
       s.room.engagement = next; sound.play(okSound); renderRoom();
       if (["paid", "executing"].includes(next.status)) startPoll();
       return next;
@@ -195,7 +224,7 @@ export function createAgencies(ctx) {
     }
     if (e.agreement && e.status === "agreed") {
       parts.push(agreementCard(e), el("div", { class: "ag-actions" },
-        el("button", { type: "button", class: "btn primary", onclick: () => act("/pay", null, "deal") }, t(s.paymentMode === "x402" ? "ag.pay.live" : "ag.pay.demo", { price: money(e.agreement.price) })),
+        el("button", { type: "button", class: "btn primary", onclick: () => (s.paymentMode === "x402" ? payLive(e) : act("/pay", null, "deal")) }, t(s.paymentMode === "x402" ? "ag.pay.live" : "ag.pay.demo", { price: money(e.agreement.price) })),
         el("small", { class: "muted" }, t(s.paymentMode === "x402" ? "ag.pay.liveNote" : "ag.pay.demoNote"))));
     }
     if (["paid", "executing"].includes(e.status)) {

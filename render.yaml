@@ -1,12 +1,17 @@
-# Render Blueprint for Kult World (static frontend served by a zero-dependency
-# Node server).
+# Render Blueprint for Kult World: the static page served by a zero-dependency
+# Node server, which also forwards /api/arena/* to the AI Arena gateway and
+# /api/kult/* to the Kult backend. The build step only bundles the Privy login
+# island (privy-login/ → public/privy/).
 #
 # NOTE: syncing this Blueprint CREATES A BILLABLE web service (starter plan).
 # Change `plan` to `free` for a free service (it sleeps when idle, so the
 # first visit after a pause is slow).
 #
-# Kult Create only renders inside origins in its ALLOWED_ORIGINS: add this
-# service's URL there so the Gaming Studio opens inside Kult World.
+# Outside this file:
+#   - Privy dashboard: this site's origin must be an allowed origin (it already
+#     lists world.kult.games).
+#   - Kult Create: add this origin to its ALLOWED_ORIGINS so the Gaming Studio
+#     opens inside Kult World.
 
 services:
   - type: web
@@ -14,14 +19,22 @@ services:
     runtime: node
     region: oregon
     plan: starter
-    buildCommand: echo "no build step"
+    buildCommand: npm ci && npm run build
     startCommand: node server.mjs
     healthCheckPath: /health
     autoDeployTrigger: commit
     envVars:
       - key: NODE_VERSION
         value: "22.20.0"
-      # The agency marketplace API (a2a-marketplace-service behind the gateway).
-      # Add this service's URL to the gateway's ALLOWED_ORIGINS too.
-      - key: AGENCY_API_URL
-        value: https://aiarena-gateway.onrender.com/v1/marketplace/agencies
+      - key: PRIVY_APP_ID
+        value: cmhfx1cl20001l10d4l0w8u4j       # the shared KULT Privy app (AI Arena verifies its tokens)
+      - key: AI_ARENA_API_URL
+        value: https://aiarena-gateway.kult.games
+      - key: KULT_API_URL
+        value: https://api-backend-v2.kult.games/api
+      - key: UNITY_BUILD_URL
+        value: https://pub-2c48e58780b648b7a2a77316f7b0aa2c.r2.dev/v4/WarzoneV4
+      - key: KULT_CREATE_URL
+        value: https://kult-create.onrender.com
+      - key: KULT_SPORTS_URL
+        value: https://kult-sports.onrender.com

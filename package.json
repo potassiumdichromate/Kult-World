@@ -6,7 +6,17 @@
   "description": "Kult World: the isometric pixel town and KULT landing page.",
   "scripts": {
     "start": "node server.mjs",
+    "build": "vite build --config privy-login/vite.config.js",
     "templates": "node scripts/world-templates.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "devDependencies": {
+    "@privy-io/react-auth": "^3.35.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "viem": "^2.38.0",
+    "vite": "^7.3.1"
+  }
 }

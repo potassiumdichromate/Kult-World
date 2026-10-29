@@ -1,20 +1,25 @@
-// Kult World demo: landing, simulated sign-in, minting, the 3D city, the
-// passport drawer and every place: the Business Park (four businesses), the
-// Game Hub, the Deal Room and the Agentic Marketplace. All data is simulated
-// (js/data.js); all text is English / 中文 (js/i18n.js).
+// Kult World: landing, Privy sign-in, minting, the 3D city, the passport
+// drawer and every place: the Business Park (four businesses), the Game Hub,
+// the Deal Room and the Agentic Marketplace. The player, their agent, the
+// city's agents, battles, businesses and the marketplace are live KULT data
+// (js/kult.js); the Deal Room is still a scripted demo. All text is
+// English / 中文 (js/i18n.js).
 
 import { World, BUILDINGS, MAP } from "./world3d.js";
 import { randomStreetTile } from "./layout.js";
 import { setSignTranslator } from "./models.js";
-import { createGame, drawThumb } from "./minigames.js";
+import { drawThumb } from "./minigames.js";
 import { t, setLang, getLang, applyI18n, onLang } from "./i18n.js";
 import { sound } from "./audio.js";
 import { AgentViewer } from "./agentview.js";
 import { createAgencies } from "./agencies.js";
+import { createA2A } from "./a2a.js";
 import {
-  CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, DEALS, DEAL_LINES, SERVICES,
-  randomOpponent, randomName, wanderers, agentProfile, mintAgent, veteranPlayer, loadPlayer, savePlayer, resetPlayer
+  CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES, DEALS, DEAL_LINES,
+  agentFromApi, loadProgress, saveProgress
 } from "./data.js";
+import { config, privyClient, session, arenaApi, kultApi, a2aApi } from "./kult.js";
+import { findMatch, challenge as directChallenge, loadBattle, playUnity, playLauncher, report, Cancelled, LAUNCHER_DOWNLOAD } from "./battle.js";
 
 const $ = (id) => document.getElementById(id);
 function el(tag, attrs = {}, ...kids) {
@@ -38,18 +43,13 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const placeName = (b) => t(`bld.${b.id}`);
 
 // ------------------------------------------------------------------ state
-const state = { player: migrate(loadPlayer()), returning: false, inWorld: false, manifest: null, urlOf: (f) => `art/${f}`, wart: null };
+// state.player: { wallet, email, agent (Kult World shape), raw (the AI Arena
+// agent), balances { arena, kp } (null = unavailable), profile (Kult backend),
+// passport (Kult World progression), quests, activity }.
+const state = { player: null, agents: [], inWorld: false, manifest: null, urlOf: (f) => `art/${f}`, wart: null };
 const world = new World($("world"));
-if (new URLSearchParams(location.search).has("debug")) window.kw = { world, state, sound };
+if (new URLSearchParams(location.search).has("debug")) window.kw = { world, state, sound, session };
 { const q = { low: 0, medium: 1, high: 2 }[new URLSearchParams(location.search).get("quality")]; if (q !== undefined) { world.setQuality(q); world.qualityLocked = true; } }
-
-// Older saved players get the new quests and businesses.
-function migrate(p) {
-  if (!p) return p;
-  for (const q of [{ id: "close-deal", target: 1, progress: 0, reward: "150 KP" }, { id: "hire-agent", target: 1, progress: 0, reward: "100 KP" }]) if (!p.quests.some((x) => x.id === q.id)) p.quests.push(q);
-  for (const b of BUSINESSES) p.businesses[b.id] ||= { owned: false };
-  return p;
-}
 
 // ------------------------------------------------------------------ art
 async function loadArt() {
@@ -120,9 +120,23 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
-world.init().then(() => {
-  for (const w of wanderers(16)) { const [x, y] = randomStreetTile(); world.addAgent(w.id, { ...w, elo: 900 + Math.floor(Math.random() * 2600), x: x + 0.5, y: y + 0.5 }); }
-});
+const worldReady = world.init();
+// The city's other agents are real AI Arena agents walking the streets; the
+// player's own are left out. With AI Arena unreachable the streets stay empty.
+async function populateCity() {
+  await worldReady;
+  let list = [];
+  try { list = (await arenaApi.agents(1, 30))?.agents ?? []; } catch (e) { console.warn("[kult-world] city agents unavailable:", e.message); }
+  const mine = new Set(state.agents.map((a) => a.id));
+  for (const id of mine) {
+    const a = world.agents.get(id);
+    if (a) { world.scene.remove(a.group); a.label.element.remove(); world.agents.delete(id); }
+  }
+  for (const raw of list.filter((a) => !mine.has(a.id)).slice(0, 16)) {
+    const a = agentFromApi(raw), [x, y] = randomStreetTile();
+    if (!world.agents.has(a.id)) world.addAgent(a.id, { id: a.id, name: a.name, archetype: a.archetype, clan: a.clan, elo: a.elo, x: x + 0.5, y: y + 0.5 });
+  }
+}
 
 // ------------------------------------------------------------------ pointer
 const canvas = $("world");
@@ -181,34 +195,80 @@ function updatePrompt() {
 document.addEventListener("click", (e) => { if (e.target.closest(".door-prompt")) { const b = world.nearDoor(2.2); if (b) openPlace(b); } });
 
 // ------------------------------------------------------------------ landing & sign-in
-const stats = { online: 12480, deals: 3912, battles: 48205 };
-setInterval(() => {
-  stats.online += Math.round((Math.random() - 0.45) * 20); stats.deals += Math.random() < 0.5 ? 1 : 0; stats.battles += Math.floor(Math.random() * 4);
-  $("st-online").textContent = fmt(stats.online); $("st-deals").textContent = fmt(stats.deals); $("st-battles").textContent = fmt(stats.battles);
-}, 1200);
-$("enter-btn").addEventListener("click", () => {
-  state.returning = false;
-  if (state.player) return enterWorld(false);
-  showLogin();
-});
-$("returning-btn").addEventListener("click", () => { state.returning = true; showLogin(); });
-function showLogin() { show("login-status", false); show("login"); }
-for (const b of document.querySelectorAll(".login-opt")) b.addEventListener("click", async () => {
-  const st = $("login-status");
-  st.textContent = t("login.connecting", { method: b.dataset.method }); st.hidden = false;
-  for (const x of document.querySelectorAll(".login-opt")) x.disabled = true;
-  await wait(900);
-  st.textContent = t("login.checking");
-  await wait(700);
-  for (const x of document.querySelectorAll(".login-opt")) x.disabled = false;
-  show("login", false);
-  if (state.returning) { state.player = migrate(veteranPlayer()); savePlayer(state.player); return enterWorld(false); }
-  if (state.player) return enterWorld(false);
-  openMint();
-});
+// Live counts only: AI Arena's agents and the A2A job board. A number with no
+// source is hidden rather than invented.
+async function loadLandingStats() {
+  const set = (id, v) => { const n = $(id); n.parentElement.hidden = !Number.isFinite(v); if (Number.isFinite(v)) n.textContent = fmt(v); };
+  const [agents, jobs] = await Promise.allSettled([arenaApi.agents(1, 1), a2aApi.listJobs("open")]);
+  set("st-online", agents.status === "fulfilled" ? Number(agents.value?.total) : NaN);
+  set("st-deals", jobs.status === "fulfilled" ? Number(jobs.value?.counts?.open) : NaN);
+  set("st-battles", jobs.status === "fulfilled" ? Number(jobs.value?.counts?.completed) : NaN);
+}
+
+// Sign in with Privy (the shared KULT account), then into the world with the
+// player's agent, or to minting when they have none.
+async function signInAndEnter() {
+  const btn = $("enter-btn"), label = btn.textContent;
+  btn.disabled = true; btn.textContent = t("login.connecting2");
+  try {
+    if (!(await session.restore())) await session.signIn();
+    btn.textContent = t("login.checking");
+    await loadPlayer();
+    if (!state.player) return openMint();
+    enterWorld(false);
+  } catch (e) {
+    if (!/closed|exited|cancel/i.test(e.message)) toast(e.message, "bad");
+  } finally { btn.disabled = false; btn.textContent = label; }
+}
+$("enter-btn").addEventListener("click", signInAndEnter);
+
+const short = (a) => (a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "—");
+const agentPrefKey = () => `kw.agent.${String(session.wallet).toLowerCase()}`;
+
+/** The signed-in player: their AI Arena agents, then balances and history. */
+async function loadPlayer(preferId) {
+  state.agents = await arenaApi.myAgents();
+  if (!state.agents.length) { state.player = null; return null; }
+  let saved = preferId;
+  try { saved ||= localStorage.getItem(agentPrefKey()); } catch { /* optional */ }
+  const raw = state.agents.find((a) => a.id === saved) || [...state.agents].sort((a, b) => (b.eloRating ?? 0) - (a.eloRating ?? 0))[0];
+  try { localStorage.setItem(agentPrefKey(), raw.id); } catch { /* optional */ }
+  const wallet = session.wallet, progress = loadProgress(wallet), email = (await privyClient()).user().email;
+  const agent = agentFromApi(raw);
+  progress.id = `KW-${String(wallet || raw.id).replace(/^0x/, "").slice(0, 6).toUpperCase()}`;
+  progress.username = email || short(wallet);
+  progress.wallet = short(wallet);
+  progress.citizenSince = agent.mintedAt || progress.citizenSince;
+  state.player = { wallet, email, agent, raw, balances: { arena: null, kp: null }, profile: null, battles: [], passport: progress, quests: progress.quests, activity: progress.activity };
+  void refreshLive();
+  return state.player;
+}
+
+/** Balances, KP, the latest agent stats and recent battles, each on its own. */
+async function refreshLive() {
+  const p = state.player;
+  if (!p) return;
+  const [wallet, profile, battles, agent] = await Promise.allSettled([arenaApi.wallet(p.agent.id), kultApi.profile(), arenaApi.battles(p.agent.id, 6), arenaApi.agent(p.agent.id)]);
+  if (state.player !== p) return;
+  if (wallet.status === "fulfilled" && wallet.value) p.balances.arena = Number(wallet.value.balanceArena ?? 0);
+  if (profile.status === "fulfilled") { p.profile = profile.value; p.balances.kp = profile.value.kultPoints; if (profile.value.username) p.passport.username = profile.value.username; }
+  if (battles.status === "fulfilled") p.battles = battles.value;
+  if (agent.status === "fulfilled" && agent.value?.id) { p.raw = agent.value; p.agent = agentFromApi(agent.value); }
+  if (state.inWorld) { renderPassport(); renderQuests(); }
+}
+
+async function switchAgent(id) {
+  try { await loadPlayer(id); } catch (e) { return toast(e.message, "bad"); }
+  const a = state.player.agent;
+  world.spawnPlayer({ name: a.name, archetype: a.archetype, clan: a.clan, elo: a.elo });
+  renderPassport(); renderQuests();
+  toast(t("toast.switched", { name: a.name }), "good");
+}
 for (const b of document.querySelectorAll("[data-close]")) b.addEventListener("click", () => { sound.play("close"); show(b.dataset.close, false); if (b.dataset.close === "deal") negotiation = null; });
 
 // ------------------------------------------------------------------ mint
+// AI Arena's Create Agent (POST /v1/agents): the agent, its personality and
+// its INFT are made by AI Arena; the steps animate while it works.
 const mintSel = { clan: "ZEROG", archetype: "support" };
 function openMint() {
   $("mint-name").value = `kult-player_${Math.random().toString(16).slice(2, 10)}`;
@@ -228,24 +288,39 @@ function renderMint() {
 }
 $("mint-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const name = $("mint-name").value.trim() || randomName();
+  const name = $("mint-name").value.trim(), backstory = $("mint-story").value.trim();
+  if (name.length < 2) return toast(t("mint.nameShort"), "bad");
   show("mint", false);
   $("minting-portrait").replaceChildren(portrait(mintSel.archetype));
   const list = $("minting-steps");
   list.replaceChildren(...["mint.s1", "mint.s2", "mint.s3", "mint.s4", "mint.s5"].map((k) => el("li", {}, el("span", { class: "s" }), t(k))));
   show("minting");
-  for (const li of list.children) { li.className = "run"; sound.play("beep"); await wait(650 + Math.random() * 350); li.className = "ok"; }
+  let created = null, failure = null;
+  const job = arenaApi.createAgent({ name, clan: mintSel.clan, archetype: mintSel.archetype.toUpperCase(), backstory })
+    .then((a) => { created = a; }, (err) => { failure = err; });
+  const steps = [...list.children];
+  for (let i = 0; i < steps.length; i++) {
+    steps[i].className = "run"; sound.play("beep");
+    // The last step waits for AI Arena; the others pace the animation.
+    if (i === steps.length - 1) await job; else await Promise.race([wait(900 + Math.random() * 400), job.then(() => wait(250))]);
+    if (failure) break;
+    steps[i].className = "ok";
+  }
+  if (failure || !created?.id) {
+    show("minting", false); show("mint");
+    return toast(failure?.message || t("mint.failed"), "bad");
+  }
   await wait(300);
   show("minting", false);
-  state.player = migrate(mintAgent({ name, archetype: mintSel.archetype, clan: mintSel.clan, backstory: $("mint-story").value.trim(), username: "kultplayer" }));
-  savePlayer(state.player);
+  try { await loadPlayer(created.id); } catch (err) { return toast(err.message, "bad"); }
+  addActivity(t("act.minted", { name: state.player.agent.name }));
   enterWorld(true);
 });
 
 // ------------------------------------------------------------------ the world
-let feedTimer = null;
+let feedTimer = null, liveTimer = null;
 function enterWorld(fresh) {
-  for (const id of ["landing", "login", "mint", "minting"]) show(id, false);
+  for (const id of ["landing", "mint", "minting"]) show(id, false);
   for (const id of ["passport", "topbar", "hint", "dock", "minimap-wrap", "feed"]) show(id, true);
   state.inWorld = true;
   const a = state.player.agent;
@@ -254,12 +329,19 @@ function enterWorld(fresh) {
   renderPassport(); renderQuests();
   setTimeout(() => toast(t(fresh ? "toast.spawned" : "toast.welcome", { name: a.name }), "good"), 900);
   setTimeout(() => show("hint", false), 14000);
-  clearInterval(feedTimer); feedTimer = setInterval(feedEvent, 6500); setTimeout(feedEvent, 2500);
+  void populateCity();
+  clearInterval(feedTimer); feedTimer = setInterval(feedEvent, 30000); setTimeout(feedEvent, 2500);
+  clearInterval(liveTimer); liveTimer = setInterval(() => { if (!document.hidden) void refreshLive(); }, 60000);
 }
 
 // ------------------------------------------------------------------ passport drawer
 const STAMPS = [["park", "PARK", "#ffc94d"], ["hub", "HUB", "#ff4fa3"], ["create", "CREATE", "#ff7eb6"], ["sports", "SPORTS", "#3ddc84"], ["deal", "DEAL", "#ffd27a"], ["market", "MARKET", "#4fd8ff"], ["dex", "DEX", "#5ec8f2"], ["production", "FILM", "#ffc94d"]];
 const STAMP_ART = { hub: "arcade" };
+const balText = (v) => (v === null || v === undefined ? "—" : fmt(v));
+function battleLine(b, me) {
+  const won = b.result?.winnerId === me, gm = gameByArenaId(b.gameId);
+  return t("act.battle", { result: t(won ? "act.won" : "act.lost"), game: gm.name });
+}
 function renderPassport() {
   const p = state.player, a = p.agent, arch = archetype(a.archetype), clan = CLANS.find((c) => c.id === a.clan);
   const r = rankOf(a.elo), nr = nextRank(a.elo), games = a.wins + a.losses;
@@ -272,13 +354,18 @@ function renderPassport() {
   $("hud-player").style.setProperty("--ac", arch.color);
   $("hud-player").title = t("passport");
   const section = (title, small, ...kids) => el("section", { class: "pp-section" }, el("h3", {}, title, small ? el("small", {}, small) : null), ...kids);
+  const others = state.agents.filter((x) => x.id !== a.id);
+  const history = [
+    ...p.battles.map((b) => ({ at: b.endedAt || b.createdAt, text: battleLine(b, a.id) })),
+    ...p.activity
+  ].filter((x) => x.at).sort((x, y) => Date.parse(y.at) - Date.parse(x.at)).slice(0, 6);
   $("passport-body").replaceChildren(
     el("div", { class: "pp-card" },
       el("div", { class: "pp-head" }, el("span", { class: "t" }, t("pp.title")), el("span", { class: "seal", title: r.name }, el("img", { src: rankBadge(r), alt: "" }))),
       el("div", { class: "pp-id" }, p.passport.id),
       el("dl", { class: "pp-rows" },
         el("dt", {}, t("pp.citizen")), el("dd", {}, p.passport.username),
-        el("dt", {}, t("pp.wallet")), el("dd", {}, p.passport.wallet),
+        el("dt", {}, t("pp.wallet")), el("dd", { title: p.wallet || "" }, p.passport.wallet),
         el("dt", {}, t("pp.since")), el("dd", {}, new Date(p.passport.citizenSince).toLocaleDateString(getLang() === "zh" ? "zh-CN" : undefined))),
       el("div", { class: "pp-level" }, el("span", { class: "lv ic xp" }, t("pp.level", { n: p.passport.level })), el("span", { class: "muted" }, `${fmt(p.passport.xp)} / ${fmt(p.passport.xpToNext)} XP`)),
       el("div", { class: "bar" }, el("i", { style: `width:${Math.round((p.passport.xp / p.passport.xpToNext) * 100)}%` })),
@@ -286,11 +373,11 @@ function renderPassport() {
         const on = p.passport.stamps.includes(id), img = wart(`stamp-${STAMP_ART[id] || id}`);
         return el("span", { class: `stamp${on ? " on" : ""}`, style: `--c:${c}`, title: `${label}${on ? "" : ` (${t("pp.notVisited")})`}` }, img ? el("img", { src: img, alt: label }) : label);
       }))),
-    section(t("pp.identity"), `INFT #${a.inft}`,
+    section(t("pp.identity"), a.inft ? `INFT #${a.inft}` : t("pp.noInft"),
       el("div", { class: "agent-row" }, portrait(a.archetype),
         el("div", {}, el("div", { class: "n" }, a.name), el("div", { class: "tags" },
           el("span", { class: "tag", style: `color:${arch.color}` }, arch.name.toUpperCase()),
-          el("span", { class: "tag", style: `color:${clan?.color}` }, clan?.name.toUpperCase()),
+          el("span", { class: "tag", style: `color:${clan?.color}` }, (clan?.name || a.clan).toUpperCase()),
           el("span", { class: "tag", style: "color:var(--muted)" }, a.evolution)))),
       el("div", { class: "rank-row" },
         el("img", { src: rankBadge(r), alt: "" }),
@@ -299,54 +386,55 @@ function renderPassport() {
       el("div", { class: "wl" },
         el("div", {}, el("b", { style: "color:var(--green)" }, a.wins), el("span", {}, t("pp.wins"))),
         el("div", {}, el("b", { style: "color:var(--red)" }, a.losses), el("span", {}, t("pp.losses"))),
-        el("div", {}, el("b", {}, games ? `${Math.round((a.wins / games) * 100)}%` : "—"), el("span", {}, t("pp.winrate"))))),
+        el("div", {}, el("b", {}, games ? `${Math.round((a.wins / games) * 100)}%` : "—"), el("span", {}, t("pp.winrate")))),
+      others.length ? el("label", { class: "pp-switch" }, el("span", {}, t("pp.switch")),
+        el("select", { onchange: (e) => { if (e.target.value) void switchAgent(e.target.value); } },
+          el("option", { value: "" }, a.name), others.map((x) => el("option", { value: x.id }, `${x.name} · ${fmt(x.eloRating ?? 1000)} ELO`)))) : null),
     section(t("pp.traits"), arch.role.join(" · "),
-      el("div", { class: "traits" }, TRAITS.map((tr) => el("div", { class: "trait" }, el("span", {}, t(`trait.${tr}`)), el("div", { class: "bar" }, el("i", { style: `--c:${arch.color};width:${a.traits[tr]}%` })), el("b", {}, a.traits[tr]))))),
+      el("div", { class: "traits" }, TRAITS.map((tr) => el("div", { class: "trait" }, el("span", {}, t(`trait.${tr}`)), el("div", { class: "bar" }, el("i", { style: `--c:${arch.color};width:${a.traits[tr] ?? 0}%` })), el("b", {}, a.traits[tr] ?? "—"))))),
     section(t("pp.balances"), null,
-      el("div", { class: "bal-grid" },
-        el("div", { class: "bal arena", style: "--c:var(--pink)" }, el("b", {}, fmt(p.balances.arena)), el("span", {}, "$ARENA")),
-        el("div", { class: "bal kp", style: "--c:var(--gold)" }, el("b", {}, fmt(p.balances.kp)), el("span", {}, t("pp.kp"))),
-        el("div", { class: "bal kult", style: "--c:var(--blue)" }, el("b", {}, fmt(p.balances.kult)), el("span", {}, "KULT")))),
-    section(t("pp.businesses"), t("pp.owned", { n: Object.values(p.businesses).filter((b) => b.owned).length }),
-      el("div", { class: "biz-list" }, BUSINESSES.map((b) => {
-        const own = p.businesses[b.id];
-        const sub = own?.owned ? (b.id === "create" ? `${own.name} · ${own.gamesShipped} games · ${fmt(own.credits)} credits` : `${own.name} · Lv ${own.level} · ${own.points} pts${own.rank ? ` · #${own.rank}` : ""}`) : t(b.status === "open" ? "biz.openIt" : "biz.soonSub", { brand: b.brand });
-        return el("div", { class: "biz-row", style: `--c:${b.color}` }, el("span", { class: "dot" }), el("div", { style: "min-width:0" }, el("div", { class: "bn" }, t(`biz.${b.id}.name`)), el("div", { class: "bs" }, sub)),
-          el("span", { class: `st ${own?.owned ? "own" : b.status}` }, t(own?.owned ? "st.owned" : b.status === "open" ? "st.open" : "st.soon")));
-      }))),
-    section(t("pp.quests"), null, p.quests.map((q) => el("div", { class: `quest${q.progress >= q.target ? " done" : ""}` },
-      el("div", { class: "qh" }, el("span", { class: "ic ic-quest" }, t(`quest.${q.id}`)), el("span", { class: "qr" }, q.reward)),
+      el("div", { class: "bal-grid two" },
+        el("div", { class: "bal arena", style: "--c:var(--pink)", title: t("pp.arenaSrc") }, el("b", {}, balText(p.balances.arena)), el("span", {}, "$ARENA")),
+        el("div", { class: "bal kp", style: "--c:var(--gold)", title: t("pp.kpSrc") }, el("b", {}, balText(p.balances.kp)), el("span", {}, t("pp.kp")))),
+      p.balances.kp === null && session.signedIn ? el("button", { type: "button", class: "btn ghost small", onclick: async () => { try { await session.retryKult(); await refreshLive(); } catch (e) { toast(e.message, "bad"); } } }, t("pp.kpConnect")) : null),
+    section(t("pp.businesses"), null,
+      el("div", { class: "biz-list" }, BUSINESSES.map((b) => el("div", { class: "biz-row", style: `--c:${b.color}` }, el("span", { class: "dot" }),
+        el("div", { style: "min-width:0" }, el("div", { class: "bn" }, t(`biz.${b.id}.name`)), el("div", { class: "bs" }, t(b.status === "open" ? "biz.openIt" : "biz.soonSub", { brand: b.brand }))),
+        el("span", { class: `st ${b.status}` }, t(b.status === "open" ? "st.open" : "st.soon")))))),
+    section(t("pp.quests"), t("pp.questsLocal"), p.quests.map((q) => el("div", { class: `quest${q.progress >= q.target ? " done" : ""}` },
+      el("div", { class: "qh" }, el("span", { class: "ic ic-quest" }, t(`quest.${q.id}`)), el("span", { class: "qr" }, `+${q.reward} XP`)),
       el("div", { class: "bar" }, el("i", { style: `--c:var(--green);width:${Math.round((Math.min(q.progress, q.target) / q.target) * 100)}%` })),
       el("span", { class: "muted tiny" }, `${Math.min(q.progress, q.target)} / ${q.target}`)))),
-    section(t("pp.activity"), null, el("ul", { class: "activity" }, p.activity.slice(0, 6).map((x) => el("li", {}, x.text, el("time", {}, ago(x.at)))))));
+    section(t("pp.activity"), null, history.length ? el("ul", { class: "activity" }, history.map((x) => el("li", {}, x.text, el("time", {}, ago(x.at))))) : el("p", { class: "muted tiny" }, t("pp.noActivity"))),
+    el("button", { type: "button", class: "btn ghost small pp-signout", onclick: signOut }, t("pp.signout")));
 }
 // Gamified quest tracker (under the balances): the next open quests.
 function renderQuests() {
   const qs = state.player.quests.filter((q) => q.progress < q.target).slice(0, 3);
   $("quest-tracker").hidden = !state.inWorld || !qs.length;
   $("quest-tracker").replaceChildren(el("div", { class: "qt-head" }, el("span", { class: "ic ic-quest" }, t("quest.tracker")), el("b", {}, `${state.player.quests.filter((q) => q.progress >= q.target).length}/${state.player.quests.length}`)),
-    ...qs.map((q) => el("div", { class: "qt-row" }, el("span", {}, t(`quest.${q.id}`)), el("small", {}, `${q.progress}/${q.target} · +${q.reward}`), el("div", { class: "bar" }, el("i", { style: `--c:var(--gold);width:${Math.round((q.progress / q.target) * 100)}%` })))));
+    ...qs.map((q) => el("div", { class: "qt-row" }, el("span", {}, t(`quest.${q.id}`)), el("small", {}, `${q.progress}/${q.target} · +${q.reward} XP`), el("div", { class: "bar" }, el("i", { style: `--c:var(--gold);width:${Math.round((q.progress / q.target) * 100)}%` })))));
 }
 function setBalance(id, v) {
   const n = $(id), old = n.dataset.v;
-  n.textContent = fmt(v); n.dataset.v = v;
-  if (old !== undefined && Number(old) !== v) { const pill = n.closest(".pill"); pill.classList.remove("bump"); void pill.offsetWidth; pill.classList.add("bump"); }
+  n.textContent = balText(v); n.dataset.v = v ?? "";
+  if (old !== undefined && old !== "" && v !== null && Number(old) !== v) { const pill = n.closest(".pill"); pill.classList.remove("bump"); void pill.offsetWidth; pill.classList.add("bump"); }
 }
-function addActivity(text) { state.player.activity.unshift({ at: new Date().toISOString(), text }); state.player.activity = state.player.activity.slice(0, 20); }
+function addActivity(text) { state.player.activity.unshift({ at: new Date().toISOString(), text }); state.player.activity.splice(20); }
 function stamp(id) { const s = state.player.passport.stamps; if (!s.includes(id)) { s.push(id); gainXp(60); } }
 function quest(id, by = 1) {
   const q = state.player.quests.find((x) => x.id === id);
   if (!q || q.progress >= q.target) return;
   q.progress += by;
   if (q.progress >= q.target) {
-    const [n, cur] = q.reward.split(" "), b = state.player.balances;
-    if (cur === "KP") b.kp += Number(n); else b.arena += Number(n);
-    toast(t("toast.quest", { title: t(`quest.${q.id}`), reward: q.reward }), "good"); sound.play("quest");
+    gainXp(q.reward);
+    toast(t("toast.quest", { title: t(`quest.${q.id}`), reward: `${q.reward} XP` }), "good"); sound.play("quest");
     burst(innerWidth - 170, 150, "#ffc94d", 24);
   }
 }
 function gainXp(n) { const pp = state.player.passport; pp.xp += n; while (pp.xp >= pp.xpToNext) { pp.xp -= pp.xpToNext; pp.level += 1; pp.xpToNext = Math.round(pp.xpToNext * 1.35); toast(t("toast.level", { n: pp.level }), "good"); sound.play("level"); } }
-function commit() { savePlayer(state.player); renderPassport(); renderQuests(); }
+function commit() { if (!state.player) return; saveProgress(state.player.wallet, state.player.passport); renderPassport(); renderQuests(); }
+async function signOut() { await session.signOut(); location.href = location.pathname; }
 
 function togglePassport(force) { const o = $("passport").classList.toggle("open", force); $("passport-toggle").setAttribute("aria-expanded", String(o)); }
 $("passport-toggle").addEventListener("click", () => togglePassport());
@@ -354,9 +442,9 @@ $("hud-player").addEventListener("click", () => togglePassport());
 for (const b of document.querySelectorAll("[data-act]")) b.addEventListener("click", () => { if (b.dataset.act === "passport") togglePassport(); else world.recenter(); });
 $("menu-btn").addEventListener("click", () => show("menu", $("menu").hidden));
 for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("click", () => { show("menu", false); goTo(b.dataset.goto); });
-$("reset-demo").addEventListener("click", () => { resetPlayer(); location.href = location.pathname; });
+$("reset-demo").addEventListener("click", signOut);
 addEventListener("keydown", (e) => {
-  if (!state.inWorld || e.target.closest("input, textarea")) return;
+  if (!state.inWorld || e.target.closest("input, textarea, select")) return;
   if (e.key === "Escape") { if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
   if (anyOpen()) return;
   const k = e.key.toLowerCase();
@@ -364,14 +452,14 @@ addEventListener("keydown", (e) => {
   if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter();
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
-function closeOverlays() { sound.play("close"); match = null; negotiation = null; agencies.stopPoll(); show("agency-room", false); show("market-home"); for (const id of ["park", "hub", "deal", "market", "login"]) show(id, false); }
+function closeOverlays() { sound.play("close"); cancelMatch(); negotiation = null; agencies.stopPoll(); a2a.stop(); show("agency-room", false); show("market-home"); for (const id of ["park", "hub", "deal", "market"]) show(id, false); }
 
 // ------------------------------------------------------------------ places
 function openPlace(b, then) {
   closeAgentCard();
   sound.play("open"); flash(b.color);
   if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); quest("visit-park"); }
-  if (b.kind === "hub") { renderGames(); show("hub-list"); show("hub-match", false); show("hub"); stamp("hub"); if (then?.challenge) startMatch(GAMES[Math.floor(Math.random() * 2)], then.challenge); }
+  if (b.kind === "hub") { renderGames(); show("hub-list"); show("hub-match", false); show("hub"); stamp("hub"); if (then?.challenge) startMatch(GAMES[0], then.challenge); }
   if (b.kind === "deal") { renderDeals(); show("deal-list"); show("deal-room", false); show("deal"); stamp("deal"); }
   if (b.kind === "market") { renderMarket(); show("market"); stamp("market"); }
   commit();
@@ -380,18 +468,15 @@ function openPlace(b, then) {
 // ------------------------------------------------------------------ business park
 function bizArt(b) { const c = el("canvas", { width: 160, height: 90 }), g = c.getContext("2d"); g.fillStyle = b.color; g.globalAlpha = 0.25; g.fillRect(40, 20, 80, 50); return c; }
 function renderBiz(focus = null) {
-  const p = state.player;
   $("biz-grid").replaceChildren(...BUSINESSES.map((b) => {
-    const own = p.businesses[b.id];
     const card = el("button", { type: "button", class: `biz-card ${b.status}${focus === b.id ? " focus" : ""}`, style: `--c:${b.color}`, "aria-label": t(`biz.${b.id}.name`) },
-      own?.owned ? el("span", { class: "owned-badge" }, t("biz.ownedBadge", { name: own.name })) : null,
       b.status === "soon" ? el("span", { class: "lock", "aria-hidden": "true" }, "🔒") : null,
       el("div", { class: "biz-art" }, wart(`card-${b.id}`) ? el("img", { src: wart(`card-${b.id}`), alt: "", draggable: "false" }) : bizArt(b)),
       el("div", { class: "biz-body" },
         el("span", { class: "brand2" }, b.brand.toUpperCase()),
         el("span", { class: "name" }, t(`biz.${b.id}.name`)),
         el("p", {}, t(`biz.${b.id}.blurb`)),
-        el("div", { class: "biz-foot" }, el("span", { class: "muted" }, b.status === "open" ? t(`biz.${b.id}.stat`) : t("biz.soon")), el("span", { class: "go" }, b.status === "open" ? t(own?.owned ? "biz.enter" : "biz.open") : t("biz.soon")))));
+        el("div", { class: "biz-foot" }, el("span", { class: "muted" }, b.status === "open" ? t(`biz.${b.id}.live`) : t("biz.soon")), el("span", { class: "go" }, b.status === "open" ? t("biz.enter") : t("biz.soon")))));
     card.addEventListener("click", () => (b.status === "open" ? activate(card, b) : locked(card)));
     if (focus === b.id && b.status === "soon") setTimeout(() => locked(card), 500);
     return card;
@@ -412,31 +497,54 @@ function activate(card, b) {
   const r = card.getBoundingClientRect();
   burst(r.left + r.width / 2, r.top + r.height / 2, b.color, 36);
   setTimeout(() => burst(r.left + r.width / 2, r.top + r.height * 0.3, "#ffc94d", 20), 300);
-  setTimeout(() => { card.classList.remove("activate"); show("park", false); openApp(b); }, 1000);
+  setTimeout(() => { card.classList.remove("activate"); show("park", false); void openApp(b); }, 1000);
 }
 function locked(card) {
   sound.play("error");
   card.classList.remove("shake"); void card.offsetWidth; card.classList.add("shake");
   const s = el("span", { class: "stampfx" }, t("biz.comingStamp")); card.append(s); setTimeout(() => s.remove(), 1650);
 }
-function openApp(b) {
-  const p = state.player, own = p.businesses[b.id];
-  $("app-title").textContent = `${b.brand} · ${t(`biz.${b.id}.name`)}`;
-  $("app-newtab").href = b.url;
-  $("app-iframe").src = b.url;
-  show("app-frame");
-  stamp(b.id);
-  if (!own?.owned) {
-    p.businesses[b.id] = b.id === "create" ? { owned: true, name: `${p.agent.name} Studios`, credits: 1000, gamesShipped: 0, plays: 0 } : { owned: true, name: `${p.agent.name} FC`, credits: 1500, level: 1, points: 0, rank: null };
-    quest("open-business");
-    addActivity(t("act.opened", { name: p.businesses[b.id].name, brand: b.brand }));
+function loadScriptOnce(src) {
+  if (document.querySelector(`script[src="${src}"]`)) return Promise.resolve();
+  return new Promise((resolve, reject) => { const s = el("script", { src }); s.onload = resolve; s.onerror = () => reject(new Error(t("biz.unreachable"))); document.head.append(s); });
+}
+// Both businesses open signed in as the same KULT player: Kult Create takes
+// the Privy session through its embed.js, Kult Sports takes the AI Arena
+// token in ?jwt= (both as their READMEs describe for Kult World).
+async function openApp(b) {
+  const c = await config();
+  stamp(b.id); quest("open-business");
+  if (b.id === "create") {
+    try {
+      await loadScriptOnce(`${c.kultCreateUrl}/embed.js`);
+      const privy = await privyClient();
+      window.KultCreate.open({
+        getSession: async () => (privy.authenticated ? privy.tokens() : null),
+        login: async () => { await privy.login(); },
+        onExit: () => toast(t("toast.back"))
+      });
+      addActivity(t("act.entered", { brand: b.brand }));
+    } catch (e) { toast(e.message, "bad"); }
+  } else if (b.id === "sports") {
+    const url = new URL(`${c.kultSportsUrl}/`);
+    if (session.arena?.accessToken) { url.searchParams.set("jwt", session.arena.accessToken); url.searchParams.set("source", "kult-world"); }
+    $("app-title").textContent = `${b.brand} · ${t(`biz.${b.id}.name`)}`;
+    $("app-newtab").href = `${c.kultSportsUrl}/`;
+    $("app-iframe").src = url.href;
+    show("app-frame");
+    addActivity(t("act.entered", { brand: b.brand }));
   }
   commit();
 }
 $("app-back").addEventListener("click", () => { show("app-frame", false); $("app-iframe").src = "about:blank"; toast(t("toast.back")); });
 
 // ------------------------------------------------------------------ game hub
+// Real AI Arena battles (js/battle.js): matchmaking, the Unity builds and the
+// Robowars launcher, the official result, then trait evolution, training,
+// 0G commentary and memory.
+let matchMode = "RANKED";
 function renderGames() {
+  $("hub-modes").replaceChildren(...MATCH_MODES.map((m) => el("button", { type: "button", style: "--c:#ff4fa3", "aria-pressed": matchMode === m.id ? "true" : "false", onclick: () => { matchMode = m.id; renderGames(); } }, el("i"), t(`mode.${m.id}`))));
   $("game-grid").replaceChildren(...GAMES.map((gm) => {
     const src = wart(`thumb-${gm.id}`);
     let thumb;
@@ -444,76 +552,107 @@ function renderGames() {
     else { thumb = el("canvas"); requestAnimationFrame(() => drawThumb(thumb, gm.id, gm.color)); }
     return el("button", { type: "button", class: "game-card", style: `--c:${gm.color}`, onclick: () => startMatch(gm) },
       thumb, el("div", { class: "gb" }, el("span", { class: "gg" }, t(`game.${gm.id}.genre`).toUpperCase()), el("span", { class: "gn" }, gm.name), el("p", {}, t(`game.${gm.id}.blurb`)),
-        el("div", { class: "gf" }, el("span", {}, t(`game.${gm.id}.mode`)), el("span", {}, `${t("hub.win")} `, el("b", { class: "ic arena" }, `${gm.reward} $ARENA`))), el("div", { class: "gf" }, el("span", { class: "live-dot" }, t(`game.${gm.id}.players`)))));
+        el("div", { class: "gf" }, el("span", {}, t(`game.${gm.id}.mode`)), el("span", { class: "muted" }, t(gm.engine === "launcher" ? "hub.engine.launcher" : "hub.engine.unity")))));
   }));
 }
 let match = null;
+function cancelMatch() { if (match) match.cancelled = true; match = null; closeStage(); }
 function setScreen(...kids) { $("screen-ui").replaceChildren(...kids); }
 setInterval(() => { $("monitor-clock").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); }, 1000);
 
-async function startMatch(gm, forced = null) {
-  const token = {}; match = token;
-  const a = state.player.agent, me = { name: a.name, archetype: a.archetype, clan: a.clan, elo: a.elo, color: archetype(a.archetype).color };
-  show("hub-list", false); show("hub-match");
-  $("monitor-title").textContent = `KULT-OS · ${gm.name.toUpperCase()}`;
-  $("game-canvas").hidden = true; show("match-skip", false); $("monitor-led").className = "led busy";
-  const alive = () => match === token;
-  const names = el("div", { class: "scan-names" }), radar = el("div", { class: "radar" });
-  for (let i = 0; i < 5; i++) radar.append(el("span", { class: "blip", style: `left:${20 + Math.random() * 60}%;top:${20 + Math.random() * 60}%;animation-delay:${i * 0.2}s` }));
-  setScreen(el("div", { class: "scan" }, radar, el("div", { class: "scan-t" }, t("match.scanning")), el("div", { class: "scan-names" }, `ELO ${fmt(a.elo - 150)}–${fmt(a.elo + 150)} · ${t(`game.${gm.id}.mode`).toUpperCase()}`), names));
-  const roll = setInterval(() => { names.textContent = `${randomName().toUpperCase()} · ${ARCHETYPES[Math.floor(Math.random() * 6)].name.toUpperCase()}`; }, 120);
-  await wait(forced ? 1400 : 3200 + Math.random() * 1200);
-  clearInterval(roll);
-  if (!alive()) return;
-  const them = forced ? { name: forced.name, archetype: forced.archetype, clan: forced.clan, elo: forced.elo } : { ...randomOpponent(a.elo) };
-  them.color = archetype(them.archetype).color; if (them.color === me.color) them.color = "#ff4fa3";
-  const side = (x, cls) => el("div", { class: `vs-side ${cls}`, style: `--c:${x.color}` }, portrait(x.archetype, "p"), el("div", { class: "vn" }, x.name.toUpperCase()), el("div", { class: "vm" }, el("img", { src: rankBadge(rankOf(x.elo)), alt: "" }), `${fmt(x.elo)} ELO · ${archetype(x.archetype).name}`));
-  setScreen(el("div", {}, el("div", { class: "scan-t", style: "margin-bottom:3vmin;color:var(--gold)" }, t("match.found")), el("div", { class: "vs" }, side(me, "l"), el("div", { class: "vs-mid" }, "VS"), side(them, "r"))));
-  await wait(2600);
-  if (!alive()) return;
-  for (const n of ["3", "2", "1", t("match.fight")]) { setScreen(el("div", { class: "count" }, n)); sound.play(n.length > 1 ? "go" : "beep"); await wait(n.length > 1 ? 650 : 750); if (!alive()) return; }
-  setScreen(); $("game-canvas").hidden = false; show("match-skip");
-  const g = $("game-canvas").getContext("2d"); g.imageSmoothingEnabled = false;
-  const game = createGame(gm.id, { me, them });
-  let lt = performance.now(), skip = false;
-  $("match-skip").onclick = () => { skip = true; };
-  await new Promise((resolve) => {
-    const frame = (now) => {
-      if (!alive()) return resolve();
-      const dt = Math.min(0.05, (now - lt) / 1000); lt = now;
-      for (let i = 0; i < (skip ? 60 : 1) && !game.done; i++) game.update(skip ? 1 / 20 : dt);
-      game.draw(g);
-      if (game.done) return resolve();
-      requestAnimationFrame(frame);
-    };
-    requestAnimationFrame(frame);
-  });
-  if (!alive()) return;
-  show("match-skip", false);
-  await wait(700);
-  const win = game.winner === 0, p = state.player;
-  const dElo = win ? 150 : -25, dArena = win ? gm.reward : 5, dKp = win ? 40 : 10, before = rankOf(p.agent.elo);
-  p.agent.elo = Math.max(0, p.agent.elo + dElo);
-  if (win) p.agent.wins += 1; else p.agent.losses += 1;
-  p.balances.arena += dArena; p.balances.kp += dKp;
-  gainXp(win ? 80 : 30);
-  if (win) quest("arcade-win");
-  addActivity(t("act.match", { result: t(win ? "act.won" : "act.lost"), game: gm.name, name: them.name, elo: `${dElo > 0 ? "+" : ""}${dElo}` }));
-  commit();
-  const after = rankOf(p.agent.elo);
-  sound.play(win ? "win" : "lose");
-  $("game-canvas").hidden = true; $("monitor-led").className = "led";
-  setScreen(el("div", { class: "result" },
-    el("div", { class: `big ${win ? "win" : "lose"}` }, t(win ? "match.victory" : "match.defeat")),
-    el("div", { class: "scan-names" }, `${me.name.toUpperCase()} VS ${them.name.toUpperCase()}`),
-    el("div", { class: "rows" }, el("span", { class: "ic elo-ic", style: `color:${dElo > 0 ? "var(--green)" : "var(--red)"}` }, `${dElo > 0 ? "+" : ""}${dElo} ELO`), el("span", { class: "ic arena", style: "color:var(--pink)" }, `+${dArena} $ARENA`), el("span", { class: "ic kp", style: "color:var(--gold)" }, `+${dKp} KP`)),
-    after.name !== before.name ? el("div", { class: "scan-t", style: `color:${after.color}` }, t("match.rankup", { rank: after.name.toUpperCase() })) : null,
-    el("div", { class: "btns" }, el("button", { type: "button", class: "btn primary", onclick: () => startMatch(gm) }, t("match.rematch")), el("button", { type: "button", class: "btn", onclick: backToGames }, t("match.other")))));
-  if (win) burst(innerWidth / 2, innerHeight / 2, "#ffc94d", 40);
+const vsSide = (x, cls) => {
+  const arch = archetype(x.archetype), elo = x.eloRating ?? 1000;
+  return el("div", { class: `vs-side ${cls}`, style: `--c:${x.color || arch.color}` }, portrait(arch.id, "p"), el("div", { class: "vn" }, String(x.name).toUpperCase()), el("div", { class: "vm" }, el("img", { src: rankBadge(rankOf(elo)), alt: "" }), `${fmt(elo)} ELO · ${arch.name}`));
+};
+
+// The full-screen stage the Unity builds run in.
+let stageExit = null;
+function openStage(gm, me, them) {
+  $("stage-title").textContent = `${gm.name} · ${me.name} vs ${them.name}`;
+  $("stage-bar").style.width = "0%"; $("stage-pct").textContent = "0%";
+  show("stage-loading"); show("stage-prematch", false); show("battle-stage");
+  return {
+    progress: (p) => { const n = Math.round(p * 100); $("stage-bar").style.width = `${n}%`; $("stage-pct").textContent = `${n}%`; },
+    loaded: () => show("stage-loading", false),
+    preMatch: (d) => { $("stage-prematch-t").textContent = t("stage.prematch", { a: d.myAgentName || me.name, b: d.opponentName || them.name }); show("stage-prematch"); setTimeout(() => show("stage-prematch", false), 9000); },
+    onExit: (fn) => { stageExit = fn; }
+  };
 }
-function backToGames() { match = null; show("hub-match", false); show("hub-list"); renderGames(); $("monitor-led").className = "led"; }
+function closeStage() { show("battle-stage", false); stageExit = null; }
+$("stage-exit").addEventListener("click", () => { const fn = stageExit; closeStage(); fn?.(); });
+
+async function startMatch(gm, opponent = null) {
+  cancelMatch();
+  const token = { cancelled: false }; match = token;
+  const alive = () => match === token && !token.cancelled;
+  const me = state.player.raw, a = state.player.agent, startElo = a.elo;
+  show("hub-list", false); show("hub-match");
+  $("monitor-title").textContent = `KULT-OS · ${gm.name.toUpperCase()} · ${t(`mode.${matchMode}`).toUpperCase()}`;
+  $("game-canvas").hidden = true; show("match-skip", false); $("monitor-led").className = "led busy";
+  const status = el("div", { class: "scan-names" }), radar = el("div", { class: "radar" });
+  for (let i = 0; i < 5; i++) radar.append(el("span", { class: "blip", style: `left:${20 + Math.random() * 60}%;top:${20 + Math.random() * 60}%;animation-delay:${i * 0.2}s` }));
+  setScreen(el("div", { class: "scan" }, radar, el("div", { class: "scan-t" }, t(opponent ? "match.challenging" : "match.scanning")), el("div", { class: "scan-names" }, `${a.name.toUpperCase()} · ${fmt(a.elo)} ELO`), status));
+  try {
+    const battleId = opponent
+      ? await directChallenge({ agentId: me.id, opponentId: opponent.id, gameId: gm.arenaId, mode: matchMode })
+      : await findMatch({ agentId: me.id, gameId: gm.arenaId, mode: matchMode, isAlive: alive, onTick: (ms) => { status.textContent = t("match.queued", { n: Math.round(ms / 1000) }); } });
+    if (!alive()) return;
+    const { opponent: them } = await loadBattle(battleId, me.id);
+    if (!alive()) return;
+    setScreen(el("div", {}, el("div", { class: "scan-t", style: "margin-bottom:3vmin;color:var(--gold)" }, t("match.found")), el("div", { class: "vs" }, vsSide(me, "l"), el("div", { class: "vs-mid" }, "VS"), vsSide(them, "r"))));
+    sound.play("go");
+    await wait(2600);
+    if (!alive()) return;
+    for (const n of ["3", "2", "1"]) { setScreen(el("div", { class: "count" }, n)); sound.play("beep"); await wait(700); if (!alive()) return; }
+
+    let result;
+    if (gm.engine === "unity") {
+      setScreen(el("div", { class: "scan" }, el("div", { class: "scan-t" }, t("match.live")), el("div", { class: "scan-names" }, `${me.name.toUpperCase()} VS ${them.name.toUpperCase()}`)));
+      const c = await config();
+      result = await playUnity({ unityBase: c.unityBuildUrl, gameId: gm.arenaId, battleId, me, them, mode: matchMode, canvas: $("unity-canvas"), ui: openStage(gm, me, them) });
+      closeStage();
+    } else {
+      const wait2 = el("div", { class: "scan-names" }, t("match.launcherWait", { n: 0 }));
+      setScreen(el("div", { class: "scan" }, el("div", { class: "scan-t" }, t("match.launcher")), el("p", { class: "launcher-note" }, t("match.launcherNote")),
+        el("a", { class: "btn small", href: LAUNCHER_DOWNLOAD, target: "_blank", rel: "noopener" }, t("match.launcherGet")), wait2));
+      result = await playLauncher({ battleId, me, them, isAlive: alive, onTick: (ms) => { wait2.textContent = t("match.launcherWait", { n: Math.round(ms / 1000) }); } });
+    }
+    if (!alive()) return;
+
+    $("monitor-led").className = "led";
+    setScreen(el("div", { class: "scan" }, el("div", { class: "scan-t" }, t("match.reporting"))));
+    const { commentary } = await report(result, { me, them });
+    const win = result.winnerId === me.id;
+    await refreshLive();
+    const after = state.player.agent, dElo = after.elo - startElo, before = rankOf(startElo), now = rankOf(after.elo);
+    if (win) quest("arcade-win");
+    gainXp(win ? 80 : 30);
+    commit();
+    sound.play(win ? "win" : "lose");
+    const commentaryBox = el("p", { class: "commentary muted" }, t("match.commentaryWait"));
+    setScreen(el("div", { class: "result" },
+      el("div", { class: `big ${win ? "win" : "lose"}` }, t(win ? "match.victory" : "match.defeat")),
+      el("div", { class: "scan-names" }, `${me.name.toUpperCase()} VS ${them.name.toUpperCase()}`),
+      el("div", { class: "rows" },
+        el("span", { class: "ic elo-ic", style: `color:${dElo >= 0 ? "var(--green)" : "var(--red)"}` }, `${dElo >= 0 ? "+" : ""}${dElo} ELO`),
+        result.score ? el("span", {}, `${fmt(result.score.winner)} vs ${fmt(result.score.loser)} ${result.score.unit}`) : null),
+      now.name !== before.name ? el("div", { class: "scan-t", style: `color:${now.color}` }, t("match.rankup", { rank: now.name.toUpperCase() })) : null,
+      commentaryBox,
+      el("div", { class: "btns" }, el("button", { type: "button", class: "btn primary", onclick: () => startMatch(gm, opponent) }, t("match.rematch")), el("button", { type: "button", class: "btn", onclick: backToGames }, t("match.other")))));
+    void commentary.then((text) => { commentaryBox.textContent = text || t("match.noCommentary"); });
+    if (win) burst(innerWidth / 2, innerHeight / 2, "#ffc94d", 40);
+  } catch (e) {
+    closeStage();
+    if (e instanceof Cancelled || !alive()) return;
+    $("monitor-led").className = "led";
+    sound.play("error");
+    setScreen(el("div", { class: "result" }, el("div", { class: "big lose" }, t("match.error")), el("p", { class: "muted" }, e.message),
+      el("div", { class: "btns" }, el("button", { type: "button", class: "btn primary", onclick: () => startMatch(gm, opponent) }, t("match.retry")), el("button", { type: "button", class: "btn", onclick: backToGames }, t("match.other")))));
+  }
+}
+function backToGames() { cancelMatch(); show("hub-match", false); show("hub-list"); renderGames(); $("monitor-led").className = "led"; }
 $("match-back").addEventListener("click", backToGames);
-$("hub-close").addEventListener("click", () => { sound.play("close"); match = null; show("hub", false); });
+$("hub-close").addEventListener("click", () => { sound.play("close"); cancelMatch(); show("hub", false); });
 
 // ------------------------------------------------------------------ deal room
 let negotiation = null;
@@ -563,13 +702,14 @@ async function negotiate(d) {
     if (Math.random() < p + 0.2) { if (!(await say("them", "accept", m2, 1400))) return; final = m2; }
     else if (!(await say("them", "walk", m2, 1400))) return;
   }
-  const pl = state.player;
   if (final) {
-    const saved = d.ask - final, cash = Math.round(saved * 0.2);
-    pl.balances.arena += cash; pl.balances.kp += 60; gainXp(70); quest("close-deal");
+    // The Deal Room is still a scripted demo, so it pays out Kult World XP
+    // only; it never touches the player's real $ARENA or KP.
+    const saved = d.ask - final;
+    gainXp(70); quest("close-deal");
     addActivity(t("act.deal", { kind: t(`deal.kind.${d.kind}`), name: d.who, price: fmt(final) }));
     commit();
-    log.append(el("div", { class: "deal-result win" }, el("div", { class: "big" }, t("deal.closed")), el("div", {}, `${t("deal.terms")}: ${fmt(final)} $ARENA`), el("div", { class: "muted" }, t("deal.saved", { n: fmt(saved) })), el("div", { class: "rows" }, el("span", { class: "ic arena" }, `+${cash} $ARENA`), el("span", { class: "ic kp" }, "+60 KP"))));
+    log.append(el("div", { class: "deal-result win" }, el("div", { class: "big" }, t("deal.closed")), el("div", {}, `${t("deal.terms")}: ${fmt(final)} $ARENA`), el("div", { class: "muted" }, t("deal.saved", { n: fmt(saved) })), el("div", { class: "rows" }, el("span", { class: "ic xp" }, "+70 XP")), el("div", { class: "tiny muted" }, t("deal.demo"))));
     toast(t("toast.deal", { name: d.who }), "good");
     const r = room.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, "#ffc94d", 40);
     sound.play("deal");
@@ -578,126 +718,115 @@ async function negotiate(d) {
 }
 
 // ------------------------------------------------------------------ agentic marketplace
-// Two halves: the Kult agencies (live backend, OKX.AI identities, USDT jobs;
-// js/agencies.js) and the agent-for-hire board ($ARENA, simulated).
-function customerRef() {
-  let id = null;
-  try { id = localStorage.getItem("kw.customerId"); if (!id) { id = `kw_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`; localStorage.setItem("kw.customerId", id); } } catch { id ||= `kw_${Math.random().toString(36).slice(2, 14)}`; }
-  return { id, name: state.player?.agent?.name || null };
-}
+// Two live halves: the Kult agencies on OKX.AI (js/agencies.js) and the A2A
+// job board on Base (js/a2a.js), where agents hire agents through escrow.
+const customerRef = () => ({ id: session.wallet || "kw_signed_out", name: state.player?.agent?.name || null });
 const agencies = createAgencies({
   el, t, toast, sound, burst, customer: customerRef,
+  wallet: () => session.wallet,
+  signTypedData: async (chainId, typedData) => (await privyClient()).signTypedData(session.wallet, chainId, typedData),
   onJobAccepted: (a, job) => {
-    const p = state.player; quest("hire-agent"); gainXp(60); p.balances.kp += 40;
+    quest("hire-agent"); gainXp(60);
     addActivity(t("act.agency", { name: a.name, price: job.agreement?.price ?? "" })); commit();
     toast(t("toast.agency", { name: a.name }), "good");
   }
 });
-let marketTab = "agencies", marketCat = "all";
-function renderMarket() {
-  $("market-tabs").replaceChildren(...[["agencies", "#4fd8ff"], ["agents", "#ff7eb6"]].map(([k, c]) => el("button", { type: "button", style: `--c:${c}`, "aria-pressed": marketTab === k ? "true" : "false", onclick: () => { if (marketTab !== k) { marketTab = k; renderMarket(); } } }, el("i"), t(`market.tab.${k}`))));
-  show("agency-home", marketTab === "agencies"); show("agent-home", marketTab === "agents");
-  if (marketTab === "agencies") { if ($("agency-room").hidden) agencies.renderList(); } else renderAgents();
-}
-function renderAgents() {
-  $("market-cats").replaceChildren(...["all", "analytics", "creative", "trading", "dev"].map((c) => el("button", { type: "button", style: "--c:#4fd8ff", "aria-pressed": marketCat === c ? "true" : "false", onclick: () => { marketCat = c; renderAgents(); } }, t(c === "all" ? "market.all" : `market.cat.${c}`))));
-  $("market-grid").replaceChildren(...SERVICES.filter((s) => marketCat === "all" || s.cat === marketCat).map((s) => {
-    const card = el("div", { class: "svc-card", style: `--c:${archetype(s.archetype).color}` },
-      el("div", { class: "svc-top" }, portrait(s.archetype), el("div", {}, el("b", {}, s.who), el("small", {}, `${archetype(s.archetype).name} · ★ ${s.rating} · ${t("market.jobs", { n: fmt(s.jobs) })}`))),
-      el("div", { class: "svc-name" }, pick(s.service)),
-      el("span", { class: "kind" }, t(`market.cat.${s.cat}`)),
-      el("div", { class: "svc-foot" }, el("div", {}, el("b", { class: "ic arena" }, fmt(s.price)), el("small", {}, t("market.delivery", { n: s.secs }))), el("button", { type: "button", class: "btn primary small", onclick: () => hire(s, card) }, t("market.hire"))));
-    return card;
-  }));
-}
-async function hire(s, card) {
-  const p = state.player;
-  if (card.classList.contains("working")) return;
-  if (p.balances.arena < s.price) { toast(t("market.broke"), "bad"); card.classList.remove("shake"); void card.offsetWidth; card.classList.add("shake"); return; }
-  p.balances.arena -= s.price; commit();
-  card.classList.add("working");
-  const bar = el("i"), over = el("div", { class: "svc-work" }, portrait(s.archetype), el("div", {}, t("market.working", { name: s.who })), el("div", { class: "bar" }, bar));
-  card.append(over);
-  const t0 = performance.now();
-  await new Promise((res) => { const f = () => { const k = Math.min(1, (performance.now() - t0) / (s.secs * 1000)); bar.style.width = `${k * 100}%`; if (k < 1) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
-  quest("hire-agent"); gainXp(40); p.balances.kp += 20;
-  addActivity(t("act.hire", { name: s.who, service: pick(s.service), price: s.price })); commit();
-  const stars = el("div", { class: "stars" }, [1, 2, 3, 4, 5].map((n) => el("button", { type: "button", onclick: () => { [...stars.children].forEach((b, i) => b.classList.toggle("on", i < n)); } }, "★")));
-  over.replaceChildren(el("div", { class: "big" }, t("market.delivered")), el("div", { class: "small" }, pick(s.result)), el("small", { class: "muted" }, t("market.rate")), stars,
-    el("button", { type: "button", class: "btn small", onclick: () => { over.remove(); card.classList.remove("working"); } }, t("market.done")));
-  toast(t("toast.hire", { name: s.who, service: pick(s.service) }), "good");
-  const r = card.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, "#4fd8ff", 26);
-}
-$("market-list-btn").addEventListener("click", () => {
-  const p = state.player, name = p.agent.name;
-  toast(t("market.listed", { name }), "good");
-  setTimeout(() => { const earn = 30 + Math.floor(Math.random() * 40); p.balances.arena += earn; addActivity(`+${earn} $ARENA · ${name} @ Marketplace`); commit(); toast(`+${earn} $ARENA · ${name}`, "good"); }, 6000);
+const a2a = createA2A({
+  el, t, toast, sound, burst,
+  myAgents: () => state.agents,
+  currentAgent: () => state.player?.raw,
+  wallet: () => session.wallet,
+  signTypedData: async (address, chainId, typedData) => (await privyClient()).signTypedData(address, chainId, typedData),
+  onSettled: (job) => { quest("hire-agent"); gainXp(80); addActivity(t("act.a2a", { status: job.status })); commit(); }
 });
+let marketTab = "agencies";
+function renderMarket() {
+  $("market-tabs").replaceChildren(...[["agencies", "#4fd8ff"], ["jobs", "#ff7eb6"]].map(([k, c]) => el("button", { type: "button", style: `--c:${c}`, "aria-pressed": marketTab === k ? "true" : "false", onclick: () => { if (marketTab !== k) { marketTab = k; renderMarket(); } } }, el("i"), t(`market.tab.${k}`))));
+  show("agency-home", marketTab === "agencies"); show("agent-home", marketTab === "jobs");
+  if (marketTab === "agencies") { a2a.stop(); if ($("agency-room").hidden) agencies.renderList(); }
+  else { agencies.stopPoll(); a2a.render($("agent-home")); }
+}
 
 // ------------------------------------------------------------------ other agents
-// Another agent's card: its model turning on a pedestal beside its profile.
+// Another agent's card: its model on a pedestal beside its live AI Arena profile.
 let viewer = null;
 function closeAgentCard() { if ($("agent-card").hidden) return; show("agent-card", false); viewer?.hide(); }
-function showAgentCard(a) {
-  const card = $("agent-card"), arch = archetype(a.archetype), clan = CLANS.find((c) => c.id === a.clan);
-  const p = agentProfile(a), r = rankOf(p.elo), nr = nextRank(p.elo), games = p.wins + p.losses;
+async function showAgentCard(a) {
+  const card = $("agent-card");
   a.paused = true; a.path = []; world.emote(a, "Wave");
   setTimeout(() => { a.paused = false; }, 4000);
   sound.play("open");
+  let raw = null;
+  try { raw = await arenaApi.agent(a.id); } catch (e) { toast(e.message, "bad"); return; }
+  const p = agentFromApi(raw), arch = archetype(p.archetype), clan = CLANS.find((c) => c.id === p.clan);
+  const r = rankOf(p.elo), nr = nextRank(p.elo), games = p.wins + p.losses;
   card.style.setProperty("--c", arch.color);
   const stage = el("div", { class: "ac-stage" },
-    el("span", { class: "ac-plate" }, `INFT #${p.inft}`), el("span", { class: "ac-lv" }, t("ac.level", { n: p.level })),
+    p.inft ? el("span", { class: "ac-plate" }, `INFT #${p.inft}`) : null, el("span", { class: "ac-lv" }, p.evolution),
     el("span", { class: "ac-hint" }, t("ac.drag")));
   card.replaceChildren(
     el("button", { type: "button", class: "close", "aria-label": t("close"), onclick: closeAgentCard }, "×"),
     stage,
     el("div", { class: "ac-info" },
       el("div", { class: "ac-status" }, el("i"), t("ac.online", { place: t(`district.${world.districtAt(a.x, a.y)}`) })),
-      el("h2", { class: "ac-name" }, a.name),
+      el("h2", { class: "ac-name" }, p.name),
       el("div", { class: "tags" },
         el("span", { class: "tag", style: `color:${arch.color}` }, arch.name.toUpperCase()),
-        el("span", { class: "tag", style: `color:${clan?.color}` }, clan?.name.toUpperCase()),
+        el("span", { class: "tag", style: `color:${clan?.color}` }, (clan?.name || p.clan).toUpperCase()),
         el("span", { class: "tag", style: "color:var(--muted)" }, p.evolution)),
-      el("p", { class: "ac-line muted" }, arch.tagline),
+      el("p", { class: "ac-line muted" }, p.backstory || arch.tagline),
       el("div", { class: "rank-row" },
         el("img", { src: rankBadge(r), alt: "" }),
         el("div", {}, el("div", { class: "rn", style: `color:${r.color}` }, r.name.toUpperCase()), el("div", { class: "bar" }, el("i", { style: `--c:${r.color};width:${nr ? Math.round(((p.elo - r.min) / (nr.min - r.min)) * 100) : 100}%` }))),
         el("span", { class: "elo" }, fmt(p.elo), el("small", {}, "ELO"))),
-      el("div", { class: "wl four" },
+      el("div", { class: "wl" },
         el("div", {}, el("b", { style: "color:var(--green)" }, p.wins), el("span", {}, t("pp.wins"))),
         el("div", {}, el("b", { style: "color:var(--red)" }, p.losses), el("span", {}, t("pp.losses"))),
-        el("div", {}, el("b", {}, `${Math.round((p.wins / games) * 100)}%`), el("span", {}, t("pp.winrate"))),
-        el("div", {}, el("b", { style: "color:var(--gold)" }, p.streak), el("span", {}, t("ac.streak")))),
+        el("div", {}, el("b", {}, games ? `${Math.round((p.wins / games) * 100)}%` : "—"), el("span", {}, t("pp.winrate")))),
       el("h3", { class: "ac-h" }, t("pp.traits"), el("small", {}, `${t("ac.style")}: ${arch.role.join(" · ")}`)),
-      el("div", { class: "traits two" }, TRAITS.map((tr) => el("div", { class: "trait" }, el("span", {}, t(`trait.${tr}`)), el("div", { class: "bar" }, el("i", { style: `--c:${arch.color};width:${p.traits[tr]}%` })), el("b", {}, p.traits[tr])))),
-      el("dl", { class: "ac-facts" },
-        el("div", {}, el("dt", {}, t("ac.fav")), el("dd", { style: `color:${p.favourite.color}` }, p.favourite.name)),
-        el("div", {}, el("dt", {}, t("ac.deals")), el("dd", {}, fmt(p.deals)))),
+      el("div", { class: "traits two" }, TRAITS.map((tr) => el("div", { class: "trait" }, el("span", {}, t(`trait.${tr}`)), el("div", { class: "bar" }, el("i", { style: `--c:${arch.color};width:${p.traits[tr] ?? 0}%` })), el("b", {}, p.traits[tr] ?? "—")))),
       el("div", { class: "ac-btns" },
-        el("button", { type: "button", class: "btn primary small", onclick: () => { closeAgentCard(); goTo("hub", { challenge: a }); } }, t("agent.challenge")),
-        el("button", { type: "button", class: "btn ghost small", onclick: () => { world.emote(world.player, "Wave"); toast(t("toast.wave", { name: a.name })); closeAgentCard(); } }, t("agent.wave")))));
+        state.player ? el("button", { type: "button", class: "btn primary small", onclick: () => { closeAgentCard(); goTo("hub", { challenge: { id: p.id } }); } }, t("agent.challenge")) : null,
+        el("button", { type: "button", class: "btn ghost small", onclick: () => { world.emote(world.player, "Wave"); toast(t("toast.wave", { name: p.name })); closeAgentCard(); } }, t("agent.wave")))));
   show("agent-card");
   (viewer ||= new AgentViewer()).show(stage, a.body, world.agentClips(a), arch.color);
 }
 
 // ------------------------------------------------------------------ live feed
-function feedEvent() {
+// What is happening on KULT right now: A2A jobs moving and agency jobs.
+const AGENCY_NAMES = { gaming: "Kult Create Studio", media: "Kult Film Production", sports: "Kult Sports Intelligence", dex: "Kult DEX Desk", creator: "Kult Creator Studio" };
+const feedSeen = new Set();
+async function feedEvent() {
   if (!state.inWorld || document.hidden) return;
-  const agents = [...world.agents.values()].filter((a) => !a.isPlayer);
-  if (agents.length < 2) return;
-  const a = agents[Math.floor(Math.random() * agents.length)], b = agents.filter((x) => x !== a)[Math.floor(Math.random() * (agents.length - 1))];
-  const k = Math.random();
-  const [icon, text] = k < 0.4 ? ["⚔", t("feed.won", { a: a.name, b: b.name, game: GAMES[Math.floor(Math.random() * 4)].name })]
-    : k < 0.65 ? ["🤝", t("feed.deal", { a: a.name, b: b.name, kind: t(`deal.kind.${["otc", "sponsor", "partner", "license"][Math.floor(Math.random() * 4)]}`) })]
-      : k < 0.85 ? ["🛒", t("feed.hire", { a: a.name, b: SERVICES[Math.floor(Math.random() * SERVICES.length)].who })]
-        : ["🎮", t("feed.ship", { a: a.name })];
-  const item = el("div", { class: "feed-item glass", style: `--c:${a.color}` }, el("span", { class: "fi" }, icon), el("span", {}, text));
-  $("feed").prepend(item);
-  while ($("feed").children.length > 4) $("feed").lastChild.remove();
-  setTimeout(() => item.classList.add("old"), 9000);
+  const items = [];
+  const [jobs, agencyJobs] = await Promise.allSettled([a2aApi.listJobs("all"), fetch(`${(await config()).agencyApi}/activity`).then((r) => r.json())]);
+  if (jobs.status === "fulfilled") for (const j of (jobs.value?.jobs ?? []).slice(0, 6)) items.push({ key: `job:${j.id}:${j.status}`, at: j.settledAt || j.deliveredAt || j.fundedAt || j.createdAt, icon: "🤝", text: t("feed.job", { status: t(`a2a.status.${j.status}`), prompt: String(j.prompt || "").slice(0, 60) }), c: "#ff7eb6" });
+  if (agencyJobs.status === "fulfilled") for (const j of (agencyJobs.value?.jobs ?? []).slice(0, 6)) items.push({ key: `ag:${j.agencyId}:${j.updatedAt}`, at: j.updatedAt, icon: "🛒", text: t("feed.agency", { name: AGENCY_NAMES[j.agencyId] || j.agencyId, status: t(`feed.st.${j.status}`) }), c: "#4fd8ff" });
+  for (const it of items.filter((x) => !feedSeen.has(x.key)).sort((x, y) => Date.parse(x.at) - Date.parse(y.at)).slice(-3)) {
+    feedSeen.add(it.key);
+    const item = el("div", { class: "feed-item glass", style: `--c:${it.c}` }, el("span", { class: "fi" }, it.icon), el("span", {}, it.text));
+    $("feed").prepend(item);
+    while ($("feed").children.length > 4) $("feed").lastChild.remove();
+    setTimeout(() => item.classList.add("old"), 9000);
+  }
 }
 
 // ------------------------------------------------------------------ boot
 await loadArt();
-if (new URLSearchParams(location.search).has("reset")) { resetPlayer(); state.player = null; }
-if (state.player && new URLSearchParams(location.search).has("continue")) enterWorld(false);
+void loadLandingStats();
+void populateCity();
+// ?debug: enter with an existing AI Arena session, without the Privy modal.
+if (window.kw) window.kw.enter = async () => { await loadPlayer(); if (state.player) enterWorld(false); else openMint(); };
+{
+  const params = new URLSearchParams(location.search);
+  try {
+    const privy = await privyClient();
+    if (params.has("reset")) await session.signOut();
+    else if (privy.authenticated && session.signedIn && (await session.restore())) {
+      $("enter-btn").textContent = t("landing.continue");
+      if (params.has("continue")) { await loadPlayer(); if (state.player) enterWorld(false); }
+    }
+  } catch (e) {
+    console.warn("[kult-world] sign-in unavailable:", e.message);
+  }
+}

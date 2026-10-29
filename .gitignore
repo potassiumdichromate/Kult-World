@@ -2,3 +2,5 @@ node_modules/
 art-src/meshy/*_textures/
 art-src/meshy/raw/
 art-src/characters/*/*.glb
+# built by npm run build (privy-login/)
+public/privy/

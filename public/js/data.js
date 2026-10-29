@@ -1,12 +1,16 @@
-// Simulated data for the Kult World demo. Everything the real backends will
-// provide later (player, passport, agent, balances, businesses, arcade games,
-// opponents) lives here, so wiring the APIs means replacing this module.
+// Kult World's catalogues and the mapping from KULT's live data. The player,
+// their agent, balances and the city's other agents come from the backends
+// (js/kult.js); this module holds what the world itself defines: clans,
+// archetypes, ranks, businesses, the Game Hub line-up, the Deal Room's deals,
+// and the player's Kult World progression (level, stamps, quests), which is
+// kept per wallet because no KULT backend tracks it.
 // Shapes and wording follow the Kult browser (kult-games-v3) and AI Arena.
 
 export const CLANS = [
   { id: "ZEROG", name: "ZeroG", color: "#b18cff" },
   { id: "BASE", name: "Base", color: "#5ea0ff" },
-  { id: "SOLANA", name: "Solana", color: "#3ddc84" }
+  { id: "SOLANA", name: "Solana", color: "#3ddc84" },
+  { id: "OKX", name: "OKX", color: "#e8e8e8" }
 ];
 
 // AI Arena archetypes (kult-games-v3 src/constants/arenaAgentArchetypes.ts).
@@ -20,16 +24,8 @@ export const ARCHETYPES = [
 ];
 export const archetype = (id) => ARCHETYPES.find((a) => a.id === String(id).toLowerCase()) || ARCHETYPES[5];
 
-// The 8 agent traits (kult-games-v3 TraitsPanel), 0-100.
+// The 8 agent traits shown in Kult World, and the AI Arena trait each reads.
 export const TRAITS = ["Aggression", "Precision", "Adaptability", "Creativity", "Patience", "Resilience", "Deception", "Loyalty"];
-const TRAIT_BIAS = {
-  berserker: { Aggression: 30, Resilience: 10, Patience: -20 },
-  tactician: { Precision: 20, Patience: 20, Aggression: -10 },
-  defender: { Resilience: 30, Loyalty: 15, Aggression: -15 },
-  assassin: { Deception: 30, Precision: 15, Loyalty: -10 },
-  support: { Loyalty: 30, Patience: 15, Deception: -15 },
-  hybrid: { Adaptability: 30, Creativity: 15 }
-};
 
 // The 8 ELO rank tiers (kult-games-v3 memory.md / ai_arena_icons).
 export const RANKS = [
@@ -45,32 +41,27 @@ export const RANKS = [
 export const rankOf = (elo) => [...RANKS].reverse().find((r) => elo >= r.min) || RANKS[0];
 export const nextRank = (elo) => RANKS.find((r) => r.min > elo) || null;
 
+// Kult Create and Kult Sports open inside Kult World already signed in
+// (see openApp in main.js); their addresses come from /config.json.
 export const BUSINESSES = [
-  {
-    id: "create", name: "Gaming Studio", brand: "Kult Create", status: "open", color: "#ff7eb6",
-    blurb: "Run an indie game studio. Your agent is the CEO; an AI team builds and ships games.",
-    stat: "1,284 studios", url: "https://kult-create.onrender.com/office/?demo=1"
-  },
-  {
-    id: "sports", name: "Sports Agency", brand: "Kult Sports", status: "open", color: "#3ddc84",
-    blurb: "Run a football analysis agency. Analysts read every match; real results climb the leaderboard.",
-    stat: "862 agencies", url: "https://kult-sports.onrender.com/?demo=1"
-  },
-  {
-    id: "dex", name: "Dex Trading", brand: "Kult Dex", status: "soon", color: "#5ec8f2",
-    blurb: "Let your agent trade on-chain markets with the strategies you design.", stat: "Coming soon"
-  },
-  {
-    id: "production", name: "Film Production", brand: "Kult Production", status: "soon", color: "#f2c14e",
-    blurb: "Produce films, trailers and music videos with an AI crew.", stat: "Coming soon"
-  }
+  { id: "create", name: "Gaming Studio", brand: "Kult Create", status: "open", color: "#ff7eb6", blurb: "Run an indie game studio. Your agent is the CEO; an AI team builds and ships games." },
+  { id: "sports", name: "Sports Agency", brand: "Kult Sports", status: "open", color: "#3ddc84", blurb: "Run a football analysis agency. Analysts read every match; real results climb the leaderboard." },
+  { id: "dex", name: "Dex Trading", brand: "Kult Dex", status: "soon", color: "#5ec8f2", blurb: "Let your agent trade on-chain markets with the strategies you design." },
+  { id: "production", name: "Film Production", brand: "Kult Production", status: "soon", color: "#f2c14e", blurb: "Produce films, trailers and music videos with an AI crew." }
 ];
 
+// The AI Arena games (kult-games-v3 src/constants/aiArenaMatchmaking.ts).
+// `id` keys Kult World's art and text; `arenaId` is what AI Arena calls it.
 export const GAMES = [
-  { id: "warzone", name: "Warzone Warriors", genre: "Top-down shooter", blurb: "Two agents, one arena, last one standing.", color: "#f78c6b", mode: "1v1 duel", reward: 40, players: "2,140 playing" },
-  { id: "robowars", name: "Robowars", genre: "Mech brawler", blurb: "Giant robots trade lasers and punches.", color: "#5ec8f2", mode: "1v1 duel", reward: 40, players: "1,382 playing" },
-  { id: "wave", name: "Warzone Warriors Wave", genre: "Wave survival", blurb: "Hold out against endless waves. Top score wins.", color: "#c792ea", mode: "1v1 score attack", reward: 50, players: "906 playing" },
-  { id: "highway", name: "Highway Hustle", genre: "Racing", blurb: "Weave through traffic at full speed. Furthest wins.", color: "#f2c14e", mode: "1v1 race", reward: 35, players: "1,775 playing" }
+  { id: "warzone", arenaId: "warzone", name: "Warzone Warriors", color: "#f78c6b", engine: "unity" },
+  { id: "robowars", arenaId: "robowar", name: "Robowars", color: "#5ec8f2", engine: "launcher" },
+  { id: "wave", arenaId: "warzone-wave", name: "Warzone Warriors Wave", color: "#c792ea", engine: "unity" },
+  { id: "highway", arenaId: "highway-hustle", name: "Highway Hustle", color: "#f2c14e", engine: "unity" }
+];
+export const gameByArenaId = (id) => GAMES.find((g) => g.arenaId === id) || GAMES[0];
+export const MATCH_MODES = [
+  { id: "RANKED", name: "Ranked" },
+  { id: "CASUAL", name: "Casual" }
 ];
 
 // ------------------------------------------------------------------ Deal Room
@@ -90,100 +81,45 @@ export const DEAL_LINES = {
   walk: { en: "We're too far apart. Maybe next time.", zh: "差距太大了，下次再说吧。" }
 };
 
-// ------------------------------------------------------------------ Agentic Marketplace
-export const SERVICES = [
-  { id: "s1", cat: "analytics", service: { en: "Match prediction report", zh: "比赛预测报告" }, who: "Oracle-7", archetype: "tactician", rating: 4.9, jobs: 1284, price: 60, secs: 4, result: { en: "Report delivered: 3 value picks for this weekend.", zh: "报告已交付：本周末 3 个价值推荐。" } },
-  { id: "s2", cat: "creative", service: { en: "Game trailer edit", zh: "游戏预告片剪辑" }, who: "Muse", archetype: "hybrid", rating: 4.8, jobs: 642, price: 120, secs: 5, result: { en: "Trailer delivered: 45s cut with music.", zh: "预告片已交付：45 秒剪辑并配乐。" } },
-  { id: "s3", cat: "trading", service: { en: "Grid trading bot setup", zh: "网格交易机器人配置" }, who: "Quant", archetype: "assassin", rating: 4.7, jobs: 931, price: 90, secs: 4, result: { en: "Bot configured: 12 grids on KULT/$ARENA.", zh: "机器人已配置：KULT/$ARENA 12 格。" } },
-  { id: "s4", cat: "dev", service: { en: "Playtest & bug report", zh: "试玩与缺陷报告" }, who: "Glitch", archetype: "defender", rating: 4.9, jobs: 2210, price: 45, secs: 3, result: { en: "QA done: 7 bugs found, 2 critical.", zh: "测试完成：发现 7 个缺陷，2 个严重。" } },
-  { id: "s5", cat: "creative", service: { en: "Character concept art", zh: "角色概念设计" }, who: "Palette", archetype: "support", rating: 4.6, jobs: 488, price: 80, secs: 5, result: { en: "Art delivered: 4 character sheets.", zh: "美术已交付：4 张角色设定。" } },
-  { id: "s6", cat: "analytics", service: { en: "Scout a rival agent", zh: "侦察对手智能体" }, who: "Scout", archetype: "berserker", rating: 4.5, jobs: 377, price: 35, secs: 3, result: { en: "Scouting done: rival leans aggressive early.", zh: "侦察完成：对手开局偏激进。" } }
+// ------------------------------------------------------------------ live agents
+const TRAIT_KEY = { Aggression: "aggression", Precision: "precision", Adaptability: "adaptability", Creativity: "creativity", Patience: "patience", Resilience: "resilience", Deception: "deception", Loyalty: "loyalty" };
+
+/** An AI Arena agent (GET /v1/agents/...) in Kult World's shape. Missing traits stay null. */
+export function agentFromApi(a) {
+  const raw = a?.traits && typeof a.traits === "object" ? a.traits : {};
+  const traits = Object.fromEntries(TRAITS.map((t) => {
+    const v = Number(raw[TRAIT_KEY[t]] ?? raw[t]);
+    return [t, Number.isFinite(v) ? Math.round(v <= 1 ? v * 100 : v) : null];
+  }));
+  return {
+    id: String(a.id), name: String(a.name ?? "Agent"), archetype: String(a.archetype ?? "hybrid").toLowerCase(),
+    clan: String(a.clan ?? "ZEROG").toUpperCase(), backstory: a.description ?? a.metadata?.backstory ?? "",
+    inft: a.inftTokenId ?? null, evolution: String(a.evolutionStage ?? "GENESIS"),
+    elo: Number(a.eloRating ?? 1000), wins: Number(a.wins ?? 0), losses: Number(a.losses ?? 0), draws: Number(a.draws ?? 0),
+    traits, mintedAt: a.createdAt ?? null, status: a.status ?? null
+  };
+}
+
+// ------------------------------------------------------------------ Kult World progression
+// Level, XP, stamps and quests are Kult World's own game layer. No KULT
+// backend tracks them, so they live in this browser, keyed by wallet.
+const QUESTS = [
+  { id: "visit-park", target: 1, reward: 50 },
+  { id: "arcade-win", target: 3, reward: 150 },
+  { id: "open-business", target: 1, reward: 100 },
+  { id: "close-deal", target: 1, reward: 80 },
+  { id: "hire-agent", target: 1, reward: 100 }
 ];
+const progressKey = (wallet) => `kw.progress.v2.${String(wallet || "anon").toLowerCase()}`;
 
-const NAMES = ["Kraken", "Vex", "Orion", "Nyx", "Bolt", "Saga", "Rook", "Echo", "Mako", "Rune", "Pip", "Zephyr", "Halo", "Glitch", "Nova", "Blaze", "Talon", "Quill"];
-export const randomName = () => NAMES[Math.floor(Math.random() * NAMES.length)];
-export function randomOpponent(myElo = 1200) {
-  const a = ARCHETYPES[Math.floor(Math.random() * ARCHETYPES.length)], c = CLANS[Math.floor(Math.random() * CLANS.length)];
-  return { name: randomName(), archetype: a.id, clan: c.id, elo: Math.max(900, Math.round(myElo + (Math.random() - 0.5) * 220)), wins: 10 + Math.floor(Math.random() * 90), losses: 5 + Math.floor(Math.random() * 40) };
-}
-
-// Other players' agents walking around the world.
-export function wanderers(n = 8) {
-  return Array.from({ length: n }, (_, i) => ({ id: `npc${i}`, name: NAMES[(i * 5 + 3) % NAMES.length], archetype: ARCHETYPES[(i + 2) % ARCHETYPES.length].id, clan: CLANS[i % CLANS.length].id }));
-}
-
-// ------------------------------------------------------------------ the player
-const KEY = "kultworld.demo.player.v1";
-const seed = (s) => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
-
-const traitsFor = (name, arch) => { const h = seed(name + arch); return Object.fromEntries(TRAITS.map((t, i) => [t, Math.max(8, Math.min(96, 45 + ((h >>> i) % 21) - 10 + (TRAIT_BIAS[arch]?.[t] || 0)))])); };
-
-// The public profile of another player's agent (the card shown on click),
-// derived from its name so it stays the same between visits.
-export function agentProfile({ id = "", name, archetype: arch, clan, elo = 1000 }) {
-  const h = seed(id + name + arch), games = 12 + Math.round(elo / 40) + (h % 60), rate = Math.min(0.82, Math.max(0.28, 0.32 + elo / 9000 + ((h >>> 4) % 15) / 100));
-  const wins = Math.round(games * rate);
-  return {
-    name, archetype: arch, clan, elo, wins, losses: games - wins, traits: traitsFor(name, arch),
-    inft: 4000 + (h % 6000), level: 2 + Math.floor(elo / 400) + ((h >>> 6) % 4),
-    evolution: elo >= 3000 ? "ASCENDED" : elo >= 1500 ? "AWAKENED" : "GENESIS",
-    streak: (h >>> 9) % 7, favourite: GAMES[(h >>> 3) % GAMES.length], deals: 3 + ((h >>> 11) % 40)
-  };
-}
-
-// A freshly minted agent and the player's passport.
-export function mintAgent({ name, archetype: arch, clan, backstory, username }) {
-  const h = seed(name + arch), traits = traitsFor(name, arch);
-  return {
-    passport: {
-      id: `KW-${String(100000 + (h % 900000))}`, username: username || "kultplayer", wallet: `0x${(h * 2654435761 >>> 0).toString(16).padStart(8, "0")}…${(h % 65536).toString(16).padStart(4, "0")}`,
-      citizenSince: new Date().toISOString(), level: 1, xp: 0, xpToNext: 500, stamps: []
-    },
-    agent: {
-      name, archetype: arch, clan, backstory, inft: 4000 + (h % 6000), evolution: "GENESIS",
-      elo: 1000, wins: 0, losses: 0, traits, mintedAt: new Date().toISOString()
-    },
-    balances: { arena: 250, kp: 100, kult: 0 },
-    businesses: {
-      create: { owned: false }, sports: { owned: false }, dex: { owned: false }, production: { owned: false }
-    },
-    quests: [
-      { id: "visit-park", title: "Visit the Kult Business Park", target: 1, progress: 0, reward: "50 KP" },
-      { id: "arcade-win", title: "Win 3 battles in the Kult Arcade", target: 3, progress: 0, reward: "100 $ARENA" },
-      { id: "open-business", title: "Open your first business", target: 1, progress: 0, reward: "250 KP" },
-      { id: "close-deal", title: "Close a deal in the Deal Room", target: 1, progress: 0, reward: "150 KP" },
-      { id: "hire-agent", title: "Hire an agent in the Marketplace", target: 1, progress: 0, reward: "100 KP" }
-    ],
-    activity: [{ at: new Date().toISOString(), text: `${name} was minted and spawned in Kult World.` }]
-  };
-}
-
-// A returning player with history (for the "existing player" demo path).
-export function veteranPlayer() {
-  const p = mintAgent({ name: "Nova", archetype: "tactician", clan: "ZEROG", backstory: "Built for smart plays, sharp banter, and a long climb up the arena ladder.", username: "nova.eth" });
-  Object.assign(p.passport, { level: 7, xp: 320, xpToNext: 900, citizenSince: new Date(Date.now() - 41 * 864e5).toISOString(), stamps: ["park", "arcade", "create", "sports"] });
-  Object.assign(p.agent, { elo: 1640, wins: 23, losses: 9, evolution: "AWAKENED", mintedAt: new Date(Date.now() - 41 * 864e5).toISOString() });
-  p.balances = { arena: 1840, kp: 4210, kult: 12 };
-  p.businesses = {
-    create: { owned: true, name: "Pixel Pirates", credits: 960, gamesShipped: 4, plays: 1203 },
-    sports: { owned: true, name: "Pixel FC", credits: 1380, level: 2, points: 61.5, rank: 7 },
-    dex: { owned: false }, production: { owned: false }
-  };
-  p.quests = [
-    { id: "visit-park", title: "Visit the Kult Business Park", target: 1, progress: 1, reward: "50 KP" },
-    { id: "arcade-win", title: "Win 3 battles in the Kult Arcade", target: 3, progress: 2, reward: "100 $ARENA" },
-    { id: "open-business", title: "Open your first business", target: 1, progress: 1, reward: "250 KP" },
-    { id: "close-deal", title: "Close a deal in the Deal Room", target: 1, progress: 0, reward: "150 KP" },
-    { id: "hire-agent", title: "Hire an agent in the Marketplace", target: 1, progress: 0, reward: "100 KP" }
-  ];
-  p.activity = [
-    { at: new Date(Date.now() - 3600e3).toISOString(), text: "Won Robowars vs Kraken (+150 ELO)" },
-    { at: new Date(Date.now() - 5 * 3600e3).toISOString(), text: "Pixel FC locked picks for Arsenal v Chelsea" },
-    { at: new Date(Date.now() - 26 * 3600e3).toISOString(), text: "Pixel Pirates shipped “Neon Space Shooter”" }
-  ];
+export function loadProgress(wallet) {
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem(progressKey(wallet)) || "null"); } catch { /* storage optional */ }
+  p ||= { citizenSince: new Date().toISOString(), level: 1, xp: 0, xpToNext: 500, stamps: [], quests: [], activity: [] };
+  for (const q of QUESTS) if (!p.quests.some((x) => x.id === q.id)) p.quests.push({ ...q, progress: 0 });
+  p.quests = p.quests.filter((q) => QUESTS.some((x) => x.id === q.id)).map((q) => ({ ...q, reward: QUESTS.find((x) => x.id === q.id).reward }));
   return p;
 }
-
-export function loadPlayer() { try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch { return null; } }
-export function savePlayer(p) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* private mode */ } }
-export function resetPlayer() { try { localStorage.removeItem(KEY); } catch { /* ignore */ } }
+export function saveProgress(wallet, p) {
+  try { localStorage.setItem(progressKey(wallet), JSON.stringify({ citizenSince: p.citizenSince, level: p.level, xp: p.xp, xpToNext: p.xpToNext, stamps: p.stamps, quests: p.quests, activity: p.activity.slice(0, 20) })); } catch { /* private mode */ }
+}
