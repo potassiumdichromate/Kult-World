@@ -21,3 +21,7 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22.20.0"
+      # The agency marketplace API (a2a-marketplace-service behind the gateway).
+      # Add this service's URL to the gateway's ALLOWED_ORIGINS too.
+      - key: AGENCY_API_URL
+        value: https://aiarena-gateway.onrender.com/v1/marketplace/agencies

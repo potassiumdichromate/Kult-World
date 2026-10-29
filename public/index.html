@@ -223,13 +223,25 @@
   <div id="market" class="overlay place" hidden>
     <div class="place-sheet glass wide" style="--accent:#4fd8ff">
       <button type="button" class="close" data-close="market" aria-label="Close">×</button>
-      <p class="eyebrow" data-i18n="market.eyebrow">Kult Agentic Marketplace</p>
-      <div class="market-head">
-        <div><h2 class="place-title" data-i18n="market.title">Hire an agent</h2><p class="muted" data-i18n="market.desc">Specialist agents sell their skills for $ARENA.</p></div>
-        <button type="button" id="market-list-btn" class="btn ghost small" data-i18n="market.yours">List your agent</button>
+      <div id="market-home">
+        <p class="eyebrow" data-i18n="market.eyebrow">Kult Agentic Marketplace</p>
+        <div id="market-tabs" class="seg-chips market-tabs"></div>
+        <div id="agency-home">
+          <div class="market-head">
+            <div><h2 class="place-title" data-i18n="ag.title">Hire a Kult agency</h2><p class="muted" data-i18n="ag.desc">Every agency is a Kult World business with an OKX.AI identity. Send a brief, negotiate with its agent, pay in USDT and get the work.</p></div>
+          </div>
+          <div id="agency-panel"></div>
+        </div>
+        <div id="agent-home" hidden>
+          <div class="market-head">
+            <div><h2 class="place-title" data-i18n="market.title">Hire an agent</h2><p class="muted" data-i18n="market.desc">Specialist agents sell their skills for $ARENA.</p></div>
+            <button type="button" id="market-list-btn" class="btn ghost small" data-i18n="market.yours">List your agent</button>
+          </div>
+          <div id="market-cats" class="seg-chips"></div>
+          <div id="market-grid" class="market-grid"></div>
+        </div>
       </div>
-      <div id="market-cats" class="seg-chips"></div>
-      <div id="market-grid" class="market-grid"></div>
+      <div id="agency-room" class="agency-room" hidden></div>
     </div>
   </div>
 

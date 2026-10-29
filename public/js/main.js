@@ -10,6 +10,7 @@ import { createGame, drawThumb } from "./minigames.js";
 import { t, setLang, getLang, applyI18n, onLang } from "./i18n.js";
 import { sound } from "./audio.js";
 import { AgentViewer } from "./agentview.js";
+import { createAgencies } from "./agencies.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, DEALS, DEAL_LINES, SERVICES,
   randomOpponent, randomName, wanderers, agentProfile, mintAgent, veteranPlayer, loadPlayer, savePlayer, resetPlayer
@@ -363,7 +364,7 @@ addEventListener("keydown", (e) => {
   if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter();
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
-function closeOverlays() { sound.play("close"); match = null; negotiation = null; for (const id of ["park", "hub", "deal", "market", "login"]) show(id, false); }
+function closeOverlays() { sound.play("close"); match = null; negotiation = null; agencies.stopPoll(); show("agency-room", false); show("market-home"); for (const id of ["park", "hub", "deal", "market", "login"]) show(id, false); }
 
 // ------------------------------------------------------------------ places
 function openPlace(b, then) {
@@ -577,9 +578,29 @@ async function negotiate(d) {
 }
 
 // ------------------------------------------------------------------ agentic marketplace
-let marketCat = "all";
+// Two halves: the Kult agencies (live backend, OKX.AI identities, USDT jobs;
+// js/agencies.js) and the agent-for-hire board ($ARENA, simulated).
+function customerRef() {
+  let id = null;
+  try { id = localStorage.getItem("kw.customerId"); if (!id) { id = `kw_${crypto.randomUUID().replace(/-/g, "").slice(0, 20)}`; localStorage.setItem("kw.customerId", id); } } catch { id ||= `kw_${Math.random().toString(36).slice(2, 14)}`; }
+  return { id, name: state.player?.agent?.name || null };
+}
+const agencies = createAgencies({
+  el, t, toast, sound, burst, customer: customerRef,
+  onJobAccepted: (a, job) => {
+    const p = state.player; quest("hire-agent"); gainXp(60); p.balances.kp += 40;
+    addActivity(t("act.agency", { name: a.name, price: job.agreement?.price ?? "" })); commit();
+    toast(t("toast.agency", { name: a.name }), "good");
+  }
+});
+let marketTab = "agencies", marketCat = "all";
 function renderMarket() {
-  $("market-cats").replaceChildren(...["all", "analytics", "creative", "trading", "dev"].map((c) => el("button", { type: "button", style: "--c:#4fd8ff", "aria-pressed": marketCat === c ? "true" : "false", onclick: () => { marketCat = c; renderMarket(); } }, t(c === "all" ? "market.all" : `market.cat.${c}`))));
+  $("market-tabs").replaceChildren(...[["agencies", "#4fd8ff"], ["agents", "#ff7eb6"]].map(([k, c]) => el("button", { type: "button", style: `--c:${c}`, "aria-pressed": marketTab === k ? "true" : "false", onclick: () => { if (marketTab !== k) { marketTab = k; renderMarket(); } } }, el("i"), t(`market.tab.${k}`))));
+  show("agency-home", marketTab === "agencies"); show("agent-home", marketTab === "agents");
+  if (marketTab === "agencies") { if ($("agency-room").hidden) agencies.renderList(); } else renderAgents();
+}
+function renderAgents() {
+  $("market-cats").replaceChildren(...["all", "analytics", "creative", "trading", "dev"].map((c) => el("button", { type: "button", style: "--c:#4fd8ff", "aria-pressed": marketCat === c ? "true" : "false", onclick: () => { marketCat = c; renderAgents(); } }, t(c === "all" ? "market.all" : `market.cat.${c}`))));
   $("market-grid").replaceChildren(...SERVICES.filter((s) => marketCat === "all" || s.cat === marketCat).map((s) => {
     const card = el("div", { class: "svc-card", style: `--c:${archetype(s.archetype).color}` },
       el("div", { class: "svc-top" }, portrait(s.archetype), el("div", {}, el("b", {}, s.who), el("small", {}, `${archetype(s.archetype).name} · ★ ${s.rating} · ${t("market.jobs", { n: fmt(s.jobs) })}`))),

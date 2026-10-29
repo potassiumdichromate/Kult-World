@@ -6,11 +6,14 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "public");
 const PORT = Number(process.env.PORT || 4500);
+const AGENCY_API = process.env.AGENCY_API_URL || "https://aiarena-gateway.onrender.com/v1/marketplace/agencies";
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp", ".ico": "image/x-icon", ".glb": "model/gltf-binary", ".gltf": "model/gltf+json", ".webp": "image/webp" };
 
 createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   if (url.pathname === "/health") { res.writeHead(200, { "Content-Type": "application/json" }); return res.end('{"ok":true,"service":"kult-world"}'); }
+  // Where the agency marketplace lives (js/agencies.js); "?api=" overrides it per visit.
+  if (url.pathname === "/config.json") { res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-cache" }); return res.end(JSON.stringify({ agencyApi: AGENCY_API })); }
   let rel = decodeURIComponent(url.pathname);
   if (rel.endsWith("/")) rel += "index.html";
   const file = normalize(join(ROOT, rel));
