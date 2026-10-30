@@ -11,7 +11,7 @@
 
 import { DEMO_WALLET } from "./mock-privy.js";
 
-const KEY = "kw.demo.state.v2";
+const KEY = "kw.demo.state.v3";
 const PUBLIC_GATEWAY = "https://aiarena-gateway.kult.games";
 const OKX_BASE = "/v1/marketplace/okx";
 const DAY = 864e5;
@@ -57,19 +57,24 @@ function seed(fresh) {
   ];
   const fixtures = TEAMS.map(([home, away, league], i) => ({ id: 51001 + i, home, away, league, kickoffAt: iso(now() + (1 + i * 0.6) * DAY + 3600e3 * (i % 3)) }));
   const others = [
-    provider("CREATE", "biz-pixel-pirates", "Pixel Pirates", "u-kraken", "7342", "4000000", 41, 4.8),
+    provider("CREATE", "biz-arcade-owls", "Arcade Owls", "u-kraken", "7342", "4000000", 41, 4.8),
     provider("CREATE", "biz-neon-forge", "Neon Forge Studios", "u-zephyr", "8120", "6500000", 27, 4.6),
-    provider("SPORTS", "biz-pixel-fc", "Pixel FC", "u-rune", "6911", "500000", 118, 4.7),
+    provider("SPORTS", "biz-rune-fc", "Rune FC", "u-rune", "6911", "500000", 118, 4.7),
     provider("SPORTS", "biz-kraken-analytics", "Kraken Analytics", "u-vex", "7788", "750000", 64, 4.5),
     provider("CREATE", "biz-orbit-games", "Orbit Games", "u-blaze", "9031", "3500000", 15, 4.9)
   ];
   return {
-    v: 2, fresh: Boolean(fresh), me, agents: [...mine, ...city],
+    v: 3, fresh: Boolean(fresh), me, agents: [...mine, ...city],
     wallets: Object.fromEntries([...mine, ...city].map((a) => [a.id, a.userId === me.userId ? (a.id === "agt-nova" ? 1840 : 320) : 500])),
     kp: fresh ? 0 : 4210, battles: seedBattles(mine), queue: {},
-    businesses: [], providers: others, okxJobs: [], fixtures,
+    businesses: [], providers: fresh ? others : [novaStudio(), ...others], okxJobs: [], fixtures,
     a2aJobs: seedA2A(fresh), negotiations: seedNegotiations(fresh)
   };
+}
+function novaStudio() {
+  const p = provider("CREATE", "biz-my-studio", "Pixel Pirates", "u-demo", "2170", "5000000", 0, 4.8);
+  Object.assign(p, { id: "prv-my-studio", enabledAt: iso(now() - 170000), stats: { jobs: 0, earnedBaseUnits: "0", rating: 4.8, reviews: 3 } });
+  return p;
 }
 function provider(business, businessId, name, ownerUserId, okxAgentId, price, jobs, rating) {
   const service = business === "CREATE" ? "build-game" : "match-analysis";
@@ -131,10 +136,11 @@ const fail = (status, error) => res(status, { error });
 function myBusinesses() {
   const lead = mine()[0];
   if (!lead) return [];
+  const veteran = lead.id === "agt-nova";
   if (!S.businesses.length) {
     S.businesses = [
-      { business: "CREATE", businessId: "biz-my-studio", name: `${lead.name} Studios`, ceo: { name: lead.name, archetype: lead.archetype }, credits: 960 },
-      { business: "SPORTS", businessId: "biz-my-agency", name: `${lead.name} FC`, ceo: { name: lead.name, archetype: lead.archetype }, credits: 1380,
+      { business: "CREATE", businessId: "biz-my-studio", name: veteran ? "Pixel Pirates" : `${lead.name} Studios`, ceo: { name: lead.name, archetype: lead.archetype }, credits: 960 },
+      { business: "SPORTS", businessId: "biz-my-agency", name: veteran ? "Pixel FC" : `${lead.name} FC`, ceo: { name: lead.name, archetype: lead.archetype }, credits: 1380,
         analysts: [["Juno", "Form"], ["Rio", "Tactics"], ["Vera", "Set pieces"], ["Byte", "Data"]] }
     ];
     save();
@@ -494,7 +500,7 @@ function kultBackend(method, path) {
 export async function install() {
   const fresh = new URLSearchParams(location.search).has("fresh");
   try { S = JSON.parse(localStorage.getItem(KEY) || "null"); } catch { S = null; }
-  if (!S || S.v !== 2 || fresh) { S = seed(fresh); save(); }
+  if (!S || S.v !== 3 || fresh) { S = seed(fresh); save(); }
   const real = window.fetch.bind(window);
   window.fetch = async (input, init = {}) => {
     const url = new URL(typeof input === "string" ? input : input.url, location.href);

@@ -70,6 +70,10 @@ createServer(async (req, res) => {
   if (url.pathname.startsWith("/api/arena/")) return proxy(req, res, ARENA_API, url.pathname.slice("/api/arena".length) + url.search);
   if (url.pathname.startsWith("/api/kult/")) return proxy(req, res, KULT_API, url.pathname.slice("/api/kult".length) + url.search);
   let rel = decodeURIComponent(url.pathname);
+  // The business demos (public/biz/, scripts/sync-business-demos.mjs) draw
+  // the same archetype characters Kult World ships in public/models/.
+  const bizModel = rel.match(/^\/biz\/(?:create|sports)\/models\/(agent-[a-z]+\.glb)$/);
+  if (bizModel) rel = `/models/${bizModel[1]}`;
   if (rel.endsWith("/")) rel += "index.html";
   const file = normalize(join(ROOT, rel));
   if (!file.startsWith(ROOT + sep)) { res.writeHead(403); return res.end("Forbidden"); }

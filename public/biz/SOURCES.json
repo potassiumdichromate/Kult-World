@@ -1,0 +1,12 @@
+{
+  "create": {
+    "repo": "https://github.com/potassiumdichromate/kult-create.git",
+    "commit": "be953d4",
+    "files": 46
+  },
+  "sports": {
+    "repo": "https://github.com/potassiumdichromate/Kult-Sports.git",
+    "commit": "fe0460c",
+    "files": 56
+  }
+}

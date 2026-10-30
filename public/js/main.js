@@ -466,7 +466,11 @@ function closeOverlays() { sound.play("close"); cancelMatch(); negotiation = nul
 function openPlace(b, then) {
   closeAgentCard();
   sound.play("open"); flash(b.color);
-  if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); quest("visit-park"); }
+  // Walking into an open business goes straight inside it; the campus gate
+  // and the coming-soon buildings show the Business Park.
+  const biz = b.kind === "biz" ? BUSINESSES.find((x) => x.id === b.id && x.status === "open") : null;
+  if (biz) { stamp("park"); quest("visit-park"); void openApp(biz); }
+  else if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); quest("visit-park"); }
   if (b.kind === "hub") { renderGames(); show("hub-list"); show("hub-match", false); show("hub"); stamp("hub"); if (then?.challenge) startMatch(GAMES[0], then.challenge); }
   if (b.kind === "deal") { renderDeals(); show("deal-list"); show("deal-room", false); show("deal"); stamp("deal"); }
   if (b.kind === "market") { renderMarket(); show("market"); stamp("market"); }
@@ -522,9 +526,10 @@ function loadScriptOnce(src) {
 async function openApp(b) {
   const c = await config();
   stamp(b.id); quest("open-business");
-  // Demo mode: both businesses run their own offline demos (?demo=1).
+  // Demo mode: both businesses run their own offline demos (?demo=1), bundled
+  // in public/biz/ so they open without their services.
   if (c.demo) {
-    const url = b.id === "create" ? `${c.kultCreateUrl}/office/?demo=1` : `${c.kultSportsUrl}/?demo=1`;
+    const url = new URL(`biz/${b.id}/?demo=1`, location.href).href;
     $("app-title").textContent = `${b.brand} · ${t(`biz.${b.id}.name`)}`;
     $("app-newtab").href = url; $("app-iframe").src = url;
     show("app-frame");
