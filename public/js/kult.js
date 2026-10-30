@@ -15,17 +15,29 @@ const KEYS = { arena: "kw.arena.session.v1", kult: "kw.kult.session.v1" };
 const read = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
 const write = (k, v) => { try { v ? localStorage.setItem(k, JSON.stringify(v)) : localStorage.removeItem(k); } catch { /* private mode */ } };
 
-let CFG = null;
-export async function config() {
-  if (!CFG) CFG = await fetch("config.json", { cache: "no-store" }).then((r) => r.json());
-  return CFG;
+// Demo mode (DEMO_MODE=1 on the server, or ?demo in the address) answers
+// every backend call in the browser with the same shapes the real backends
+// return (js/demo/), and swaps Privy for a look-alike sign-in. Nothing else
+// in Kult World knows the difference.
+let CFG = null, cfgLoading = null;
+export function config() {
+  cfgLoading ||= (async () => {
+    const c = await fetch("config.json", { cache: "no-store" }).then((r) => r.json());
+    if (new URLSearchParams(location.search).has("demo")) c.demo = true;
+    if (c.demo) await (await import("./demo/mock-api.js")).install(c);
+    CFG = c;
+    return c;
+  })();
+  return cfgLoading;
 }
+export const isDemo = () => Boolean(CFG?.demo);
 
 // ------------------------------------------------------------------ Privy
 let privy = null, privyLoading = null;
 export function privyClient() {
   privyLoading ||= (async () => {
     const c = await config();
+    if (c.demo) return (privy = await (await import("./demo/mock-privy.js")).init());
     const { init } = await import(new URL("../privy/kult-privy.js", import.meta.url).href);
     privy = await init({ appId: c.privyAppId, clientId: c.privyClientId });
     return privy;
@@ -219,6 +231,39 @@ export const a2aApi = {
   identity: async (agentId) => { try { const d = await arena(`/v1/marketplace/agents/${enc(agentId)}/identity`); return d?.identity ?? (typeof d?.status === "string" ? d : null); } catch { return null; } },
   registerIdentity: (agentId) => arena(`/v1/marketplace/agents/${enc(agentId)}/register-identity`, { method: "POST", body: {} }),
   reputation: (erc8004Id) => arena(`/v1/a2a/reputation/agents/${enc(erc8004Id)}`)
+};
+
+// ------------------------------------------------------------------ Kult OKX gateway
+// A player's business linked to the OKX.AI agent they own, sold to OKX users
+// per call (A2MCP: x402, USDT on X Layer). Paths are the gateway's own.
+const OKX = "/v1/marketplace/okx";
+export const okxApi = {
+  me: () => arena(`${OKX}/me`),
+  challenge: (body) => arena(`${OKX}/challenge`, { method: "POST", body }),
+  link: (body) => arena(`${OKX}/providers`, { method: "POST", body }),
+  update: (id, body) => arena(`${OKX}/providers/${enc(id)}`, { method: "PATCH", body }),
+  providers: (business) => arena(`${OKX}/providers${q({ business })}`, { auth: false }),
+  provider: (id) => arena(`${OKX}/providers/${enc(id)}`, { auth: false }),
+  jobs: (id) => arena(`${OKX}/providers/${enc(id)}/jobs`),
+  fixtures: async () => (await arena(`${OKX}/fixtures`, { auth: false }))?.fixtures ?? [],
+  job: async (id) => (await arena(`${OKX}/jobs/${enc(id)}`, { auth: false }))?.job,
+  /**
+   * One raw call to a provider's A2MCP endpoint, exactly as an OKX user's
+   * agent makes it: without payment it answers 402 with the x402 challenge;
+   * with PAYMENT-SIGNATURE it runs the job. Returns status, headers and body.
+   */
+  call: async (providerId, service, input, paymentHeader) => {
+    const c = await config();
+    const res = await fetch(`${c.arenaApi}${OKX}/p/${enc(providerId)}/${enc(service)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(paymentHeader ? { "PAYMENT-SIGNATURE": paymentHeader } : {}) },
+      body: JSON.stringify(input)
+    });
+    const text = await res.text();
+    let body = null;
+    try { body = text ? JSON.parse(text) : null; } catch { body = { error: text.slice(0, 200) }; }
+    return { status: res.status, headers: Object.fromEntries(res.headers.entries()), body };
+  }
 };
 
 export const usdc = (baseUnits) => {

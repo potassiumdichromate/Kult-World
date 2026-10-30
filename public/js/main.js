@@ -12,13 +12,13 @@ import { drawThumb } from "./minigames.js";
 import { t, setLang, getLang, applyI18n, onLang } from "./i18n.js";
 import { sound } from "./audio.js";
 import { AgentViewer } from "./agentview.js";
-import { createAgencies } from "./agencies.js";
+import { createOkx } from "./okx.js";
 import { createA2A } from "./a2a.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES, DEALS, DEAL_LINES,
   agentFromApi, loadProgress, saveProgress
 } from "./data.js";
-import { config, privyClient, session, arenaApi, kultApi, a2aApi } from "./kult.js";
+import { config, privyClient, session, arenaApi, kultApi, a2aApi, okxApi, isDemo } from "./kult.js";
 import { findMatch, challenge as directChallenge, loadBattle, playUnity, playLauncher, report, Cancelled, LAUNCHER_DOWNLOAD } from "./battle.js";
 
 const $ = (id) => document.getElementById(id);
@@ -108,7 +108,8 @@ addEventListener("resize", resize);
 resize();
 let last = performance.now(), slowAt = 0, frames = 0;
 function tick(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  // A frame stamped before the loop started would make dt (and the clock) negative.
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
   world.update(dt); world.draw();
   if (state.inWorld) {
     world.autoQuality(dt);
@@ -400,7 +401,8 @@ function renderPassport() {
     section(t("pp.businesses"), null,
       el("div", { class: "biz-list" }, BUSINESSES.map((b) => el("div", { class: "biz-row", style: `--c:${b.color}` }, el("span", { class: "dot" }),
         el("div", { style: "min-width:0" }, el("div", { class: "bn" }, t(`biz.${b.id}.name`)), el("div", { class: "bs" }, t(b.status === "open" ? "biz.openIt" : "biz.soonSub", { brand: b.brand }))),
-        el("span", { class: `st ${b.status}` }, t(b.status === "open" ? "st.open" : "st.soon")))))),
+        el("span", { class: `st ${b.status}` }, t(b.status === "open" ? "st.open" : "st.soon"))))),
+      el("button", { type: "button", class: "btn ghost small", onclick: () => { togglePassport(false); openOkxOwner(); } }, t("okx.manage"))),
     section(t("pp.quests"), t("pp.questsLocal"), p.quests.map((q) => el("div", { class: `quest${q.progress >= q.target ? " done" : ""}` },
       el("div", { class: "qh" }, el("span", { class: "ic ic-quest" }, t(`quest.${q.id}`)), el("span", { class: "qr" }, `+${q.reward} XP`)),
       el("div", { class: "bar" }, el("i", { style: `--c:var(--green);width:${Math.round((Math.min(q.progress, q.target) / q.target) * 100)}%` })),
@@ -442,7 +444,13 @@ $("hud-player").addEventListener("click", () => togglePassport());
 for (const b of document.querySelectorAll("[data-act]")) b.addEventListener("click", () => { if (b.dataset.act === "passport") togglePassport(); else world.recenter(); });
 $("menu-btn").addEventListener("click", () => show("menu", $("menu").hidden));
 for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("click", () => { show("menu", false); goTo(b.dataset.goto); });
-$("reset-demo").addEventListener("click", signOut);
+// Demo mode: the menu restarts the demo as a new or a returning player.
+async function resetDemo(fresh) {
+  window.kultDemo?.reset({ fresh });
+  const q = new URLSearchParams(location.search); q.delete("fresh"); q.delete("continue");
+  location.href = `${location.pathname}${q.toString() ? `?${q}` : ""}`;
+}
+$("reset-demo").addEventListener("click", () => (isDemo() ? resetDemo(true) : signOut()));
 addEventListener("keydown", (e) => {
   if (!state.inWorld || e.target.closest("input, textarea, select")) return;
   if (e.key === "Escape") { if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
@@ -452,7 +460,7 @@ addEventListener("keydown", (e) => {
   if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter();
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
-function closeOverlays() { sound.play("close"); cancelMatch(); negotiation = null; agencies.stopPoll(); a2a.stop(); show("agency-room", false); show("market-home"); for (const id of ["park", "hub", "deal", "market"]) show(id, false); }
+function closeOverlays() { sound.play("close"); cancelMatch(); negotiation = null; okx.stop(); a2a.stop(); for (const id of ["park", "hub", "deal", "market", "okx"]) show(id, false); }
 
 // ------------------------------------------------------------------ places
 function openPlace(b, then) {
@@ -514,6 +522,15 @@ function loadScriptOnce(src) {
 async function openApp(b) {
   const c = await config();
   stamp(b.id); quest("open-business");
+  // Demo mode: both businesses run their own offline demos (?demo=1).
+  if (c.demo) {
+    const url = b.id === "create" ? `${c.kultCreateUrl}/office/?demo=1` : `${c.kultSportsUrl}/?demo=1`;
+    $("app-title").textContent = `${b.brand} · ${t(`biz.${b.id}.name`)}`;
+    $("app-newtab").href = url; $("app-iframe").src = url;
+    show("app-frame");
+    addActivity(t("act.entered", { brand: b.brand })); commit();
+    return;
+  }
   if (b.id === "create") {
     try {
       await loadScriptOnce(`${c.kultCreateUrl}/embed.js`);
@@ -615,7 +632,7 @@ async function startMatch(gm, opponent = null) {
       const wait2 = el("div", { class: "scan-names" }, t("match.launcherWait", { n: 0 }));
       setScreen(el("div", { class: "scan" }, el("div", { class: "scan-t" }, t("match.launcher")), el("p", { class: "launcher-note" }, t("match.launcherNote")),
         el("a", { class: "btn small", href: LAUNCHER_DOWNLOAD, target: "_blank", rel: "noopener" }, t("match.launcherGet")), wait2));
-      result = await playLauncher({ battleId, me, them, isAlive: alive, onTick: (ms) => { wait2.textContent = t("match.launcherWait", { n: Math.round(ms / 1000) }); } });
+      result = await playLauncher({ battleId, me, them, isAlive: alive, monitor: $("game-canvas"), onStart: () => setScreen(), onTick: (ms) => { wait2.textContent = t("match.launcherWait", { n: Math.round(ms / 1000) }); } });
     }
     if (!alive()) return;
 
@@ -718,18 +735,21 @@ async function negotiate(d) {
 }
 
 // ------------------------------------------------------------------ agentic marketplace
-// Two live halves: the Kult agencies on OKX.AI (js/agencies.js) and the A2A
-// job board on Base (js/a2a.js), where agents hire agents through escrow.
-const customerRef = () => ({ id: session.wallet || "kw_signed_out", name: state.player?.agent?.name || null });
-const agencies = createAgencies({
-  el, t, toast, sound, burst, customer: customerRef,
+// Two halves: the Kult OKX gateway (js/okx.js), where OKX.AI users hire the
+// AI teams of players' businesses per call, and the A2A job board on Base
+// (js/a2a.js), where agents hire agents through escrow.
+const okx = createOkx({
+  el, t, toast, sound, burst,
   wallet: () => session.wallet,
   signTypedData: async (chainId, typedData) => (await privyClient()).signTypedData(session.wallet, chainId, typedData),
-  onJobAccepted: (a, job) => {
+  signMessage: async (address, message) => (await privyClient()).signMessage(address, message),
+  openDirectory: (providerId) => { show("okx", false); marketTab = "okx"; renderMarket(providerId); show("market"); stamp("market"); },
+  onHired: (p, job) => {
     quest("hire-agent"); gainXp(60);
-    addActivity(t("act.agency", { name: a.name, price: job.agreement?.price ?? "" })); commit();
-    toast(t("toast.agency", { name: a.name }), "good");
-  }
+    addActivity(t("act.okxHire", { name: p.businessName, price: job.payment.amount })); commit();
+    toast(t("toast.okxHire", { name: p.businessName }), "good");
+  },
+  onLinked: (b) => { gainXp(100); addActivity(t("act.okxLinked", { name: b.name })); commit(); }
 });
 const a2a = createA2A({
   el, t, toast, sound, burst,
@@ -739,13 +759,21 @@ const a2a = createA2A({
   signTypedData: async (address, chainId, typedData) => (await privyClient()).signTypedData(address, chainId, typedData),
   onSettled: (job) => { quest("hire-agent"); gainXp(80); addActivity(t("act.a2a", { status: job.status })); commit(); }
 });
-let marketTab = "agencies";
-function renderMarket() {
-  $("market-tabs").replaceChildren(...[["agencies", "#4fd8ff"], ["jobs", "#ff7eb6"]].map(([k, c]) => el("button", { type: "button", style: `--c:${c}`, "aria-pressed": marketTab === k ? "true" : "false", onclick: () => { if (marketTab !== k) { marketTab = k; renderMarket(); } } }, el("i"), t(`market.tab.${k}`))));
-  show("agency-home", marketTab === "agencies"); show("agent-home", marketTab === "jobs");
-  if (marketTab === "agencies") { a2a.stop(); if ($("agency-room").hidden) agencies.renderList(); }
-  else { agencies.stopPoll(); a2a.render($("agent-home")); }
+let marketTab = "okx";
+function renderMarket(focusProvider = null) {
+  $("market-tabs").replaceChildren(...[["okx", "#9fe8ff"], ["jobs", "#ff7eb6"]].map(([k, c]) => el("button", { type: "button", style: `--c:${c}`, "aria-pressed": marketTab === k ? "true" : "false", onclick: () => { if (marketTab !== k) { marketTab = k; renderMarket(); } } }, el("i"), t(`market.tab.${k}`))));
+  show("agency-home", marketTab === "okx"); show("agent-home", marketTab === "jobs");
+  if (marketTab === "okx") { a2a.stop(); okx.directory($("agency-home"), focusProvider); }
+  else { okx.stop(); a2a.render($("agent-home")); }
 }
+// The player's own businesses on OKX.AI: link, go live, prices, incoming calls.
+function openOkxOwner() {
+  closeAgentCard();
+  sound.play("open"); flash("#9fe8ff");
+  show("okx"); okx.owner($("okx-body"));
+}
+$("okx-close").addEventListener("click", () => { sound.play("close"); okx.stop(); show("okx", false); });
+$("okx-owner-btn").addEventListener("click", () => { show("park", false); openOkxOwner(); });
 
 // ------------------------------------------------------------------ other agents
 // Another agent's card: its model on a pedestal beside its live AI Arena profile.
@@ -793,15 +821,15 @@ async function showAgentCard(a) {
 }
 
 // ------------------------------------------------------------------ live feed
-// What is happening on KULT right now: A2A jobs moving and agency jobs.
-const AGENCY_NAMES = { gaming: "Kult Create Studio", media: "Kult Film Production", sports: "Kult Sports Intelligence", dex: "Kult DEX Desk", creator: "Kult Creator Studio" };
+// What is happening on KULT right now: A2A jobs moving and businesses
+// serving OKX.AI users through the gateway.
 const feedSeen = new Set();
 async function feedEvent() {
   if (!state.inWorld || document.hidden) return;
   const items = [];
-  const [jobs, agencyJobs] = await Promise.allSettled([a2aApi.listJobs("all"), fetch(`${(await config()).agencyApi}/activity`).then((r) => r.json())]);
+  const [jobs, providers] = await Promise.allSettled([a2aApi.listJobs("all"), okxApi.providers()]);
   if (jobs.status === "fulfilled") for (const j of (jobs.value?.jobs ?? []).slice(0, 6)) items.push({ key: `job:${j.id}:${j.status}`, at: j.settledAt || j.deliveredAt || j.fundedAt || j.createdAt, icon: "🤝", text: t("feed.job", { status: t(`a2a.status.${j.status}`), prompt: String(j.prompt || "").slice(0, 60) }), c: "#ff7eb6" });
-  if (agencyJobs.status === "fulfilled") for (const j of (agencyJobs.value?.jobs ?? []).slice(0, 6)) items.push({ key: `ag:${j.agencyId}:${j.updatedAt}`, at: j.updatedAt, icon: "🛒", text: t("feed.agency", { name: AGENCY_NAMES[j.agencyId] || j.agencyId, status: t(`feed.st.${j.status}`) }), c: "#4fd8ff" });
+  if (providers.status === "fulfilled") for (const p of (providers.value?.providers ?? []).slice(0, 6)) items.push({ key: `okx:${p.id}:${p.stats.jobs}`, at: p.linkedAt, icon: "🛒", text: t("feed.okx", { name: p.businessName, service: p.services[0].name, n: p.stats.jobs }), c: "#9fe8ff" });
   for (const it of items.filter((x) => !feedSeen.has(x.key)).sort((x, y) => Date.parse(x.at) - Date.parse(y.at)).slice(-3)) {
     feedSeen.add(it.key);
     const item = el("div", { class: "feed-item glass", style: `--c:${it.c}` }, el("span", { class: "fi" }, it.icon), el("span", {}, it.text));
@@ -813,6 +841,13 @@ async function feedEvent() {
 
 // ------------------------------------------------------------------ boot
 await loadArt();
+$("reset-demo").removeAttribute("data-i18n");
+$("reset-demo").textContent = t("pp.signout");
+if ((await config()).demo) {
+  document.body.append(el("div", { class: "demo-badge glass", title: t("demo.badgeHint") }, t("demo.badge")));
+  $("reset-demo").textContent = t("demo.resetNew");
+  $("reset-demo").after(el("button", { type: "button", class: $("reset-demo").className, onclick: () => resetDemo(false) }, t("demo.resetReturning")));
+}
 void loadLandingStats();
 void populateCity();
 // ?debug: enter with an existing AI Arena session, without the Privy modal.

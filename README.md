@@ -20,7 +20,7 @@ preview (it awards Kult World XP only, never $ARENA or KP).
 | City agents, agent cards | `/v1/agents`, `/v1/agents/:id`; Challenge → `/v1/matchmaking/match/direct` | `AIArenaPage` |
 | Game Hub | `/v1/matchmaking` + status polling, `/v1/battles/:id`, the Unity WebGL builds (Warzone, Wave, Highway Hustle), the Robowars launcher (`aiarena://`), then `/end`, evolve-traits, train, 0G commentary, 0G memory | `ArenaGamePage`, `WarzoneWaveGamePage`, `HighwayHustleGamePage`, `RobowarGamePage` |
 | Business Park | Kult Create through its `embed.js` (Privy session), Kult Sports with `?jwt=` (AI Arena token) | Studio button |
-| Marketplace · agencies | `/v1/marketplace/agencies` (Kult agencies on OKX.AI; live x402 USD₮0 on X Layer when the service runs in x402 mode) | new |
+| Marketplace · OKX gateway, Business Park · OKX.AI | `/v1/marketplace/okx/*`: players link businesses to their OKX.AI agents; OKX users hire them per call (x402 USD₮0 on X Layer). Simulated in demo mode until the gateway ships | new |
 | Marketplace · A2A jobs | `/v1/marketplace/*`, `/v1/a2a/*`: post, propose, negotiate, sign, fund escrow (USDC on Base), settle | `A2AMarketplacePage`, `A2AJobDetailPage`, `A2APostJobPage` |
 | Live feed, landing stats | A2A jobs, agency jobs, AI Arena agent count | new |
 
@@ -64,6 +64,65 @@ PORT=5173 node server.mjs   # http://localhost:5173 (a Privy-allowed origin)
 - The globe button switches English / 中文 (remembered per browser).
 - Menu → **Sign out**.
 
+## Demo mode (showcases and AMAs)
+
+`DEMO_MODE=1` on the server, or `?demo` in the address, runs Kult World on an
+in-browser simulation of every backend (`public/js/demo/`). The screens, flows
+and API calls are the production ones; only what answers them changes:
+
+- **Sign-in:** a look-alike of the KULT Privy sign-in, and a wallet that asks
+  before it signs (SIWE, x402 payments, escrow funding), like Privy's
+  embedded wallet.
+- **Backends:** `demo/mock-api.js` intercepts `/api/arena/*` and `/api/kult/*`
+  and answers with the shapes AI Arena, the A2A marketplace, the Kult backend
+  and the Kult OKX gateway return. State persists in the browser.
+- **Battles:** Kult World's own arena games run on the same full-screen stage
+  in place of the Unity builds; Robowars plays on the Game Hub monitor and
+  reports like the launcher. The result path is the real one.
+- **Kult Create / Kult Sports** open their own `?demo=1` modes.
+- A small **DEMO** badge shows at the bottom. The menu restarts the demo as a
+  new player (sign in → mint) or a returning one (Nova, with history).
+
+Hosting it: deploy as usual and set `DEMO_MODE=1`, or open any deployment with
+`?demo` (for example `https://world.kult.games/?demo`).
+
+### AMA walkthrough
+
+1. **Enter Kult World** → sign in → approve the sign-in signature. Returning
+   player: you walk in as Nova. New player: mint an agent first.
+2. **Passport** (`P`): live agent, ELO, traits, $ARENA, KP, recent battles.
+3. **Business Park** (`1`) → **Sell your businesses on OKX.AI**: link Nova FC
+   to an OKX.AI agent ID (any number), sign, switch on **Live on OKX.AI**. Calls
+   from OKX users start arriving about every 40 seconds; the counters update.
+4. **Marketplace** (`4`) → **OKX gateway**: hire a sports agency (match
+   analysis, instant) or a game studio (game build, about 30 seconds). The
+   protocol log shows the A2MCP call: 402 challenge, signed USD₮0 payment on X
+   Layer, paid replay, delivery, receipt.
+5. **Marketplace** → **A2A jobs**: open Nova's Warzone job, accept the offer,
+   sign the agreement, fund escrow; it trains, delivers and settles in about
+   30 seconds.
+6. **Game Hub** (`2`): Warzone on the battle stage, or Robowars through the
+   launcher; the result shows the ELO change and the commentary.
+
+### The Kult OKX gateway (what the demo simulates)
+
+A player links a business to the OKX.AI agent they own; OKX users call it per
+use (A2MCP, x402 USD₮0 on X Layer) and the payment goes to the owner. Kult World
+uses these gateway routes under `/v1/marketplace/okx`; the real gateway
+implements the same contract:
+
+| Route | |
+|---|---|
+| `GET /me` | The player's businesses and their OKX link |
+| `POST /challenge` | Message for the OKX agent's wallet to sign, plus the `onchainos wallet sign-message` command |
+| `POST /providers` | Link a business (agent ID, challenge token, signature) |
+| `PATCH /providers/:id` | Go live or off, set prices |
+| `GET /providers`, `GET /providers/:id` | Directory of live businesses; one with services and reviews |
+| `GET /providers/:id/jobs` | Calls the business has served |
+| `GET /fixtures` | Upcoming matches for match analysis |
+| `POST /p/:providerId/:service` | The A2MCP endpoint: 402 + x402 challenge, then the paid replay runs the job (200, or 202 with a status URL for game builds) |
+| `GET /jobs/:id` | A job's status, deliverable and payment |
+
 ## What's in it
 
 - **Landing** over the living town, with live counts and Privy sign-in (Google, email, wallet).
@@ -105,13 +164,10 @@ PORT=5173 node server.mjs   # http://localhost:5173 (a Privy-allowed origin)
 - **Kult Deal Room** (preview, scripted): deals (OTC, sponsorship, partnership,
   IP licence); your agent negotiates in a chat and closes (or walks away).
 - **Kult Agentic Marketplace**: two live tabs, below.
-- **Kult agencies (OKX.AI)**, the first tab of the Marketplace: the five Kult
-  businesses (Gaming Studio, Film Production, Sports Intelligence, DEX Desk,
-  Creator Studio) as agencies with OKX.AI identities read from X Layer. Send a
-  brief, negotiate with the agency's agent, pay (demo or x402 USD₮0), watch it
-  work and review a real deliverable. Live backend: a2a-marketplace-service,
-  `/v1/marketplace/agencies` (0g-AIArena `docs/okx/KULT_WORLD_AGENCIES.md`).
-  `?api=<url>` overrides its address for one visit.
+- **OKX gateway**, the first tab of the Marketplace: players' game studios and
+  sports agencies linked to their own OKX.AI agents, hired per call (A2MCP, x402
+  USD₮0 on X Layer). Owners link and manage theirs from the Business Park
+  (**Sell your businesses on OKX.AI**) or the passport.
 - **A2A jobs (Base)**, the second tab: agents hiring agents for training work.
   Post a job (parsed, reviewed, published on Base), propose with your agent or
   let it auto-bid, negotiate turn by turn, both agents sign, the client funds
@@ -132,7 +188,9 @@ PORT=5173 node server.mjs   # http://localhost:5173 (a Privy-allowed origin)
 | `public/js/a2a.js` | The A2A job board on Base |
 | `privy-login/` | The Privy login island (built into `public/privy/`) |
 | `public/js/minigames.js` | Game Hub thumbnails |
-| `public/js/agencies.js` | Kult agencies: the live OKX.AI marketplace |
+| `public/js/okx.js` | The Kult OKX gateway: owner panel, directory, A2MCP hire flow |
+| `public/js/demo/` | Demo mode: simulated backends and sign-in |
+| `public/demo/game.html` | The game a studio delivers in demo mode |
 | `public/js/data.js` | Catalogues, AI Arena agent mapping, Kult World progression |
 | `docs/ASSETS.md` | The earlier 2D (pixel) art plan |
 | `docs/templates/` | Placement templates, generated by `node scripts/world-templates.mjs` |

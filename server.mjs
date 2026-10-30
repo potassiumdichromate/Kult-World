@@ -19,6 +19,9 @@ const trim = (u) => String(u).replace(/\/+$/, "");
 const ARENA_API = trim(process.env.AI_ARENA_API_URL || "https://aiarena-gateway.kult.games");
 const KULT_API = trim(process.env.KULT_API_URL || "https://api-backend-v2.kult.games/api");
 const CONFIG = JSON.stringify({
+  // DEMO_MODE=1: the page runs on its in-browser simulation of the backends
+  // (public/js/demo/), same screens and API calls, for showcases.
+  demo: process.env.DEMO_MODE === "1",
   privyAppId: process.env.PRIVY_APP_ID || "cmhfx1cl20001l10d4l0w8u4j",
   privyClientId: process.env.PRIVY_CLIENT_ID || undefined,
   arenaApi: "/api/arena",

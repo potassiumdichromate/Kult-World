@@ -633,7 +633,7 @@ export class World {
     // You: a pulse ring and a heading arrow.
     const p = this.player;
     if (p) {
-      const px = X(p.x), py = X(p.y), pulse = (t * 0.8) % 1;
+      const px = X(p.x), py = X(p.y), pulse = (((t * 0.8) % 1) + 1) % 1;
       g.strokeStyle = `rgba(255,201,77,${1 - pulse})`; g.lineWidth = 1.5 * u; g.beginPath(); g.arc(px, py, (4 + pulse * 12) * u, 0, Math.PI * 2); g.stroke();
       g.save(); g.translate(px, py); g.rotate(-p.group.rotation.y + Math.PI);
       g.fillStyle = "#ffc94d"; g.shadowColor = "#ffc94d"; g.shadowBlur = 10 * u;

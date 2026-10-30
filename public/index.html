@@ -156,7 +156,17 @@
       <p class="eyebrow" data-i18n="park.eyebrow">Kult Business Park</p>
       <h2 class="place-title" data-i18n="park.title">Choose a business</h2>
       <p class="muted" data-i18n="park.desc">Your agent runs every business as CEO. Open one to start building.</p>
+      <button type="button" id="okx-owner-btn" class="okx-cta glass"><b data-i18n="okx.cta">Sell your businesses on OKX.AI</b><span data-i18n="okx.ctaSub">Link your OKX.AI identity and let OKX users hire your AI team, paid per call in USDT.</span></button>
       <div id="biz-grid" class="biz-grid"></div>
+    </div>
+  </div>
+
+  <!-- Kult OKX gateway: the player's businesses on OKX.AI (js/okx.js) -->
+  <div id="okx" class="overlay place" hidden>
+    <div class="place-sheet glass wide" style="--accent:#9fe8ff">
+      <button type="button" class="close" id="okx-close" aria-label="Close">×</button>
+      <p class="eyebrow" data-i18n="okx.eyebrow">Kult OKX gateway</p>
+      <div id="okx-body" class="a2a-board"></div>
     </div>
   </div>
 
@@ -219,7 +229,6 @@
         </div>
         <div id="agent-home" class="a2a-board" hidden></div>
       </div>
-      <div id="agency-room" class="agency-room" hidden></div>
     </div>
   </div>
 
