@@ -22,7 +22,7 @@ const CREATE = "http://localhost:4300", SPORTS = "http://localhost:4400", WORLD 
 
 const APPS = [
   { name: "kult-create", dir: join(ROOT, "..", "kult-create"), args: ["src/server.js"], port: 4300,
-    env: { PORT: "4300", PUBLIC_URL: CREATE, ALLOWED_ORIGINS: "*" } },
+    env: { PORT: "4300", PUBLIC_URL: CREATE, ALLOWED_ORIGINS: "*", CREATOR_STUDIO_URL: process.env.CREATOR_STUDIO_URL || "https://creator-studio-0nlg.onrender.com" } },
   { name: "kult-sports", dir: join(ROOT, "..", "kult-sports"), args: ["server.mjs"], port: 4400,
     env: { PORT: "4400" } },
   { name: "kult-world", dir: ROOT, args: ["server.mjs"], port: 5173,
