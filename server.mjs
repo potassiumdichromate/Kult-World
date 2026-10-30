@@ -22,6 +22,9 @@ const CONFIG = JSON.stringify({
   // DEMO_MODE=1: the page runs on its in-browser simulation of the backends
   // (public/js/demo/), same screens and API calls, for showcases.
   demo: process.env.DEMO_MODE === "1",
+  // BIZ_DEMO=local: in demo mode the businesses open their own running apps
+  // (KULT_CREATE_URL, KULT_SPORTS_URL) with ?demo=1, not the copies in public/biz/.
+  bizDemo: process.env.BIZ_DEMO === "local" ? "local" : "bundled",
   privyAppId: process.env.PRIVY_APP_ID || "cmhfx1cl20001l10d4l0w8u4j",
   privyClientId: process.env.PRIVY_CLIENT_ID || undefined,
   arenaApi: "/api/arena",

@@ -76,9 +76,10 @@ and API calls are the production ones; only what answers them changes:
 - **Backends:** `demo/mock-api.js` intercepts `/api/arena/*` and `/api/kult/*`
   and answers with the shapes AI Arena, the A2A marketplace, the Kult backend
   and the Kult OKX gateway return. State persists in the browser.
-- **Battles:** Kult World's own arena games run on the same full-screen stage
-  in place of the Unity builds; Robowars plays on the Game Hub monitor and
-  reports like the launcher. The result path is the real one.
+- **Battles:** Warzone, Warzone Wave and Highway Hustle play the real Unity
+  builds (Kult World's own arena games stand in only if a build can't load);
+  Robowars plays on the Game Hub monitor and reports like the launcher. The
+  result path is the real one.
 - **Kult Create / Kult Sports:** walking into the Gaming Studio or the Sports
   Agency opens that business's own offline demo (`?demo=1`), bundled in
   `public/biz/` so it works without their services. Refresh the bundle after
@@ -89,6 +90,20 @@ and API calls are the production ones; only what answers them changes:
 
 Hosting it: deploy as usual and set `DEMO_MODE=1`, or open any deployment with
 `?demo` (for example `https://world.kult.games/?demo`).
+
+### Everything on this machine
+
+With `kult-create` and `kult-sports` checked out next to this folder:
+
+```
+npm run local
+```
+
+starts Kult World (http://localhost:5173/?demo), Kult Create
+(http://localhost:4300/office/) and Kult Sports (http://localhost:4400/),
+reusing any that already run. `BIZ_DEMO=local` makes the Gaming Studio and the
+Sports Agency open those local apps in their demo mode (`?demo=1`), so they show
+their working copies rather than the bundle in `public/biz/`.
 
 ### AMA walkthrough
 

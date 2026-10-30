@@ -527,9 +527,12 @@ async function openApp(b) {
   const c = await config();
   stamp(b.id); quest("open-business");
   // Demo mode: both businesses run their own offline demos (?demo=1), bundled
-  // in public/biz/ so they open without their services.
+  // in public/biz/ so they open without their services, or served by their
+  // own apps when those run alongside (BIZ_DEMO=local).
   if (c.demo) {
-    const url = new URL(`biz/${b.id}/?demo=1`, location.href).href;
+    const url = c.bizDemo === "local"
+      ? `${b.id === "create" ? `${c.kultCreateUrl}/office` : c.kultSportsUrl}/?demo=1`
+      : new URL(`biz/${b.id}/?demo=1`, location.href).href;
     $("app-title").textContent = `${b.brand} · ${t(`biz.${b.id}.name`)}`;
     $("app-newtab").href = url; $("app-iframe").src = url;
     show("app-frame");
@@ -665,6 +668,8 @@ async function startMatch(gm, opponent = null) {
     if (win) burst(innerWidth / 2, innerHeight / 2, "#ffc94d", 40);
   } catch (e) {
     closeStage();
+    // Leaving the battle stage goes back to the game list.
+    if (e instanceof Cancelled && alive()) return backToGames();
     if (e instanceof Cancelled || !alive()) return;
     $("monitor-led").className = "led";
     sound.play("error");

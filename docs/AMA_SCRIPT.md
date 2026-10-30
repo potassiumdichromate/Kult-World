@@ -13,6 +13,8 @@ Open: `https://world.kult.games/?demo` (or your deployment with `?demo`).
 - Menu → **Restart demo (returning player)**. You start as Nova.
 - Sign in once and walk around to warm up the 3D city; then menu → **Restart
   demo (returning player)** again so the OKX call history starts fresh.
+- If you'll show a battle, play one Warzone match first: the real Unity game
+  takes about 40 seconds to download the first time, then the browser caches it.
 - Keep one tab only. Sound on (the city has ambience), browser zoom at 100%.
 - Have this script on a second screen.
 - If anything ever looks stuck: menu → **Restart demo**, or reload. Your demo

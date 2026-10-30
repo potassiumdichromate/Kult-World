@@ -16,9 +16,9 @@ import { arenaApi, isDemo } from "./kult.js";
 import { createGame, SW, SH } from "./minigames.js";
 import { archetype } from "./data.js";
 
-// Demo mode: Kult World's own arena games stand in for the Unity builds and
-// the Robowars launcher. They run on the same stage and report the result
-// the same way, so the screens around them are the real ones.
+// Demo mode plays the real Unity builds too. Kult World's own arena games
+// stand in for the Robowars launcher, and for a Unity build that cannot load
+// (offline); they run on the same stage and report the result the same way.
 const SIM = { warzone: "warzone", "warzone-wave": "wave", "highway-hustle": "highway", robowar: "robowars" };
 async function runSim(canvas, gameId, me, them, isAlive = () => true) {
   const side = (a, fallback) => ({ name: a.name, archetype: String(a.archetype).toLowerCase(), clan: a.clan, elo: a.eloRating ?? 1000, color: archetype(a.archetype).color || fallback });
@@ -99,23 +99,37 @@ function loadScript(src) {
  * Runs one Unity battle in `stage` and resolves with the normalised result.
  * `ui` reports progress and owns the exit button (ui.onExit(fn)).
  */
-export async function playUnity({ unityBase, gameId, battleId, me, them, mode, canvas, ui }) {
-  const spec = UNITY[gameId];
-  if (!spec) throw new Error(`No Unity build for ${gameId}`);
-  if (isDemo()) {
-    let exited = false;
-    ui.onExit(() => { exited = true; });
-    for (let p = 0; p <= 1; p += 0.2) { ui.progress(p); await wait(180); }
-    ui.loaded();
-    const r = await runSim(canvas, gameId, me, them, () => !exited);
-    if (exited) throw new Cancelled();
-    const stat = () => ({ jumps: 4 + Math.floor(Math.random() * 12), shotsAttempted: 30 + Math.floor(Math.random() * 60), shotsConnected: 10 + Math.floor(Math.random() * 25), timesHit: 5 + Math.floor(Math.random() * 20), distanceCovered: 80 + Math.floor(Math.random() * 300) });
-    return normalise(gameId, battleId, gameId === "warzone-wave"
-      ? { battleId, winnerAgentId: r.winner.id, loserAgentId: r.loser.id, winnerName: r.winner.name, loserName: r.loser.name, winnerCoins: 40 + Math.floor(Math.random() * 60), loserCoins: 10 + Math.floor(Math.random() * 30), durationSeconds: r.seconds, endReason: "waves" }
-      : gameId === "highway-hustle"
-        ? { battleId, winnerId: r.winner.id, loserId: r.loser.id, winnerName: r.winner.name, loserName: r.loser.name, winnerDistance: 1800 + Math.floor(Math.random() * 900), loserDistance: 600 + Math.floor(Math.random() * 900), durationSeconds: r.seconds }
-        : { battleId, winnerId: r.winner.id, loserId: r.loser.id, winnerName: r.winner.name, loserName: r.loser.name, winnerHpPercent: 20 + Math.floor(Math.random() * 60), loserHpPercent: 0, durationSeconds: r.seconds, endReason: "KO", playerStats: { [r.winner.id]: stat(), [r.loser.id]: stat() } });
+export async function playUnity(opts) {
+  const spec = UNITY[opts.gameId];
+  if (!spec) throw new Error(`No Unity build for ${opts.gameId}`);
+  if (!isDemo()) return playBuild(spec, opts);
+  try {
+    return await playBuild(spec, opts);
+  } catch (e) {
+    if (!e.buildMissing) throw e;
+    console.warn("[battle] Unity build unavailable, playing the arena game instead", e);
+    return playSim(opts);
   }
+}
+
+async function playSim({ gameId, battleId, me, them, canvas, ui }) {
+  let exited = false;
+  ui.onExit(() => { exited = true; });
+  for (let p = 0; p <= 1; p += 0.2) { ui.progress(p); await wait(180); }
+  ui.loaded();
+  const r = await runSim(canvas, gameId, me, them, () => !exited);
+  if (exited) throw new Cancelled();
+  const stat = () => ({ jumps: 4 + Math.floor(Math.random() * 12), shotsAttempted: 30 + Math.floor(Math.random() * 60), shotsConnected: 10 + Math.floor(Math.random() * 25), timesHit: 5 + Math.floor(Math.random() * 20), distanceCovered: 80 + Math.floor(Math.random() * 300) });
+  return normalise(gameId, battleId, gameId === "warzone-wave"
+    ? { battleId, winnerAgentId: r.winner.id, loserAgentId: r.loser.id, winnerName: r.winner.name, loserName: r.loser.name, winnerCoins: 40 + Math.floor(Math.random() * 60), loserCoins: 10 + Math.floor(Math.random() * 30), durationSeconds: r.seconds, endReason: "waves" }
+    : gameId === "highway-hustle"
+      ? { battleId, winnerId: r.winner.id, loserId: r.loser.id, winnerName: r.winner.name, loserName: r.loser.name, winnerDistance: 1800 + Math.floor(Math.random() * 900), loserDistance: 600 + Math.floor(Math.random() * 900), durationSeconds: r.seconds }
+      : { battleId, winnerId: r.winner.id, loserId: r.loser.id, winnerName: r.winner.name, loserName: r.loser.name, winnerHpPercent: 20 + Math.floor(Math.random() * 60), loserHpPercent: 0, durationSeconds: r.seconds, endReason: "KO", playerStats: { [r.winner.id]: stat(), [r.loser.id]: stat() } });
+}
+
+async function playBuild(spec, { unityBase, gameId, battleId, me, them, mode, canvas, ui }) {
+  // The wave build only starts wave co-op when told so (as the Kult browser does).
+  if (gameId === "warzone-wave") mode = "WAVECOOP";
   const payload = gameId === "highway-hustle"
     ? { battleId, carAId: me.id, carAName: me.name, carAElo: me.eloRating ?? 1000, carBId: them.id, carBName: them.name, carBElo: them.eloRating ?? 1000, mode }
     : { battleId, myAgentId: me.id, myAgentName: me.name, myAgentArchetype: me.archetype, myAgentElo: me.eloRating ?? 1000, myAgentClan: me.clan,
@@ -139,8 +153,13 @@ export async function playUnity({ unityBase, gameId, battleId, me, them, mode, c
   });
 
   try {
-    script = await loadScript(`${build}/${spec.file}.loader.js`);
-    if (typeof window.createUnityInstance !== "function") throw new Error("The game build did not load");
+    try {
+      script = await loadScript(`${build}/${spec.file}.loader.js`);
+      if (typeof window.createUnityInstance !== "function") throw new Error("The game build did not load");
+    } catch (e) {
+      throw Object.assign(e, { buildMissing: true });
+    }
+    Object.assign(canvas.style, { imageRendering: "", objectFit: "", background: "" });
     const r = canvas.getBoundingClientRect();
     canvas.width = Math.round(r.width); canvas.height = Math.round(r.height);
     instance = await window.createUnityInstance(canvas, {
