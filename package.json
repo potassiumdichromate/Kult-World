@@ -7,8 +7,7 @@
   "scripts": {
     "start": "node server.mjs",
     "build": "vite build --config privy-login/vite.config.js",
-    "templates": "node scripts/world-templates.mjs",
-    "local": "node scripts/local-showcase.mjs"
+    "templates": "node scripts/world-templates.mjs"
   },
   "engines": {
     "node": ">=22.13.0"

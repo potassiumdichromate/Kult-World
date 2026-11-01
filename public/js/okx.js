@@ -9,7 +9,7 @@
 //                    own (signed by its wallet), go live, set prices, copy
 //                    the endpoint for their OKX.AI listing, watch jobs come in.
 
-import { okxApi, usdc, toBaseUnits, isDemo } from "./kult.js";
+import { okxApi, usdc, toBaseUnits } from "./kult.js";
 
 const XLAYER = 196;
 const KIND = { CREATE: { label: "Game studio", brand: "Kult Create", color: "#ff7eb6" }, SPORTS: { label: "Sports agency", brand: "Kult Sports", color: "#3ddc84" } };
@@ -22,7 +22,7 @@ export function createOkx(ctx) {
   const s = { pollT: null, filter: "ALL" };
   const stop = () => { clearInterval(s.pollT); s.pollT = null; };
   const poll = (root, fn, ms) => { stop(); s.pollT = setInterval(() => { if (!document.hidden && root.isConnected && !root.closest("[hidden]")) fn(); else if (!root.isConnected) stop(); }, ms); };
-  const txLink = (h) => (isDemo() ? el("code", { title: t("okx.demoTx") }, short(h, 10)) : el("a", { href: `https://www.oklink.com/xlayer/tx/${h}`, target: "_blank", rel: "noopener" }, short(h, 10)));
+  const txLink = (h) => el("a", { href: `https://www.oklink.com/xlayer/tx/${h}`, target: "_blank", rel: "noopener" }, short(h, 10));
   const copyBtn = (text) => el("button", { type: "button", class: "btn ghost small", onclick: async () => { try { await navigator.clipboard.writeText(text); toast(t("okx.copied"), "good"); } catch { toast(text); } } }, t("okx.copy"));
   const kindChip = (b) => el("span", { class: "kind", style: `--c:${KIND[b].color}` }, KIND[b].label);
   const okxBadge = (p) => el("div", { class: "ag-okx" }, el("span", { class: "dot" }), el("div", {}, el("b", {}, `OKX.AI #${p.okxAgentId}`), el("small", {}, `${t("okx.payTo")} ${short(p.payTo)}`)));
@@ -64,7 +64,7 @@ export function createOkx(ctx) {
       let input;
       if (f["x-source"] === "fixtures") {
         input = el("select", {}, el("option", { value: "" }, t("okx.loadingFixtures")));
-        okxApi.fixtures().then((fx) => input.replaceChildren(...fx.map((x) => el("option", { value: String(x.id) }, `${x.home} vs ${x.away} · ${x.league} · ${new Date(x.kickoffAt).toLocaleDateString()}`)))).catch(() => {});
+        okxApi.fixtures(p.id).then((fx) => input.replaceChildren(...(fx.length ? fx.map((x) => el("option", { value: String(x.id) }, `${x.home} vs ${x.away} · ${x.league} · ${new Date(x.kickoffAt).toLocaleDateString()}`)) : [el("option", { value: "" }, t("okx.noFixtures"))]))).catch((e) => input.replaceChildren(el("option", { value: "" }, e.message)));
       } else if (f.enum) input = el("select", {}, f.enum.map((v) => el("option", { value: v, selected: v === f.default ? true : null }, v)));
       else if (f["x-widget"] === "textarea") input = el("textarea", { rows: 3, maxlength: f.maxLength, placeholder: f.description || "" });
       else input = el("input", { type: "text", maxlength: f.maxLength });
@@ -153,16 +153,16 @@ export function createOkx(ctx) {
     if (job.service === "match-analysis") {
       return el("div", { class: "ag-card ag-deliverable", style: "--c:#3ddc84" }, el("b", {}, t("okx.delivered")),
         el("div", { class: "ag-pick" }, el("small", { class: "muted" }, `${d.fixture.match} · ${d.fixture.league}`), el("div", { class: "big" }, `${d.picks.outcome === "HOME" ? d.fixture.match.split(" vs ")[0] : d.picks.outcome === "AWAY" ? d.fixture.match.split(" vs ")[1] : t("okx.draw")} · ${d.picks.score}`),
-          el("div", { class: "bar", style: "--c:#3ddc84" }, el("i", { style: `width:${Math.round(d.probability * 100)}%` })), el("small", {}, `${Math.round(d.probability * 100)}% · ${d.confidence}`)),
+          el("div", { class: "bar", style: "--c:#3ddc84" }, el("i", { style: `width:${Math.round(d.agreement * 100)}%` })), el("small", {}, t("okx.agreement", { n: Math.round(d.agreement * 100), c: d.confidence }))),
         el("div", { class: "ag-kv" }, el("span", {}, t("okx.corners")), el("span", {}, d.picks.corners), el("span", {}, t("okx.cards")), el("span", {}, d.picks.cards), el("span", {}, t("okx.scorer")), el("span", {}, d.picks.scorer)),
         el("p", { class: "small" }, el("b", {}, `${d.ceo.name} (CEO): `), d.ceo.call),
-        el("div", { class: "ag-concepts" }, d.analysts.map((a) => el("div", { class: "ag-card" }, el("b", {}, a.name), el("small", { class: "muted" }, a.specialty), el("p", { class: "tiny" }, a.read)))),
+        el("div", { class: "ag-concepts" }, d.analysts.map((a) => el("div", { class: "ag-card" }, el("b", {}, a.name), el("small", { class: "muted" }, a.lean ? `${a.specialty} · ${a.lean}` : a.specialty), el("p", { class: "tiny" }, a.read || "—")))),
         el("p", { class: "tiny muted" }, d.notAdvice));
     }
     return el("div", { class: "ag-card ag-deliverable", style: "--c:#ff7eb6" }, el("b", {}, t("okx.delivered")),
       el("div", { class: "ag-game" }, el("iframe", { src: d.playUrl, title: d.title, allow: "autoplay; fullscreen" }),
         el("div", {}, el("h3", {}, d.title), el("p", { class: "small" }, `${d.studio} · ${d.genre}`),
-          el("div", { class: "ag-kv" }, el("span", {}, "QA"), el("span", {}, d.qa.passed ? t("okx.qaPassed") : "—"), el("span", {}, t("okx.buildTime")), el("span", {}, `${d.buildSeconds}s`)),
+          el("div", { class: "ag-kv" }, el("span", {}, "QA"), el("span", {}, d.qa.passed ? t("okx.qaPassed") : t("okx.qaOpen")), el("span", {}, t("okx.buildTime")), el("span", {}, `${d.buildSeconds}s`)),
           el("a", { href: d.playUrl, target: "_blank", rel: "noopener" }, t("okx.openGame")))));
   }
   function receipt(job) {
@@ -184,9 +184,11 @@ export function createOkx(ctx) {
     root.replaceChildren(el("div", { class: "muted" }, t("okx.loading")));
     let me;
     try { me = await okxApi.me(); } catch (e) { root.replaceChildren(el("div", { class: "ag-error" }, el("b", {}, t("okx.offline")), el("small", { class: "muted" }, e.message))); return; }
-    if (!me.businesses.length) { root.replaceChildren(el("h2", { class: "place-title" }, t("okx.mineTitle")), el("p", { class: "muted" }, t("okx.noBusiness"))); return; }
+    const down = (me.unavailable ?? []).map((u) => el("div", { class: "ag-error" }, el("b", {}, t("okx.unavailable", { brand: KIND[u.business].brand })), el("small", { class: "muted" }, u.error)));
+    if (!me.businesses.length) { root.replaceChildren(el("h2", { class: "place-title" }, t("okx.mineTitle")), ...down, el("p", { class: "muted" }, t("okx.noBusiness"))); return; }
     root.replaceChildren(
       el("div", { class: "market-head" }, el("div", {}, el("h2", { class: "place-title" }, t("okx.mineTitle")), el("p", { class: "muted" }, t("okx.mineDesc")))),
+      ...down,
       ...me.businesses.map((b) => businessCard(root, b)));
     // Calls keep arriving while the panel is open: refresh the list and the counters.
     poll(root, async () => {
@@ -225,16 +227,18 @@ export function createOkx(ctx) {
       try {
         const ch = await okxApi.challenge({ okxAgentId: id.value.trim(), business: b.business, businessId: b.businessId, businessName: b.name });
         const sig = el("textarea", { rows: 2, placeholder: "0x…" });
+        const key = b.business === "SPORTS" ? directorKeyField() : null;
         box.replaceChildren(
           el("p", { class: "small" }, t("okx.found", { id: ch.okx.agentId, owner: short(ch.signer) })),
           el("small", { class: "muted" }, t("okx.signWith")),
           el("pre", { class: "okx-cmd" }, ch.command), copyBtn(ch.command),
           el("label", { class: "ag-field wide" }, el("span", {}, t("okx.pasteSig")), sig),
+          ...(key ? [key.field] : []),
           el("div", { class: "ag-actions" },
             el("button", { type: "button", class: "btn ghost small", title: t("okx.walletSignHint"), onclick: async () => { try { sig.value = await signMessage(ch.signer, ch.message); } catch (e) { if (!e.message.startsWith("closed")) toast(e.message, "bad"); } } }, t("okx.walletSign")),
             el("button", { type: "button", class: "btn gold small", onclick: async () => {
               try {
-                await okxApi.link({ business: b.business, businessId: b.businessId, okxAgentId: ch.okx.agentId, token: ch.token, signature: sig.value.trim() });
+                await okxApi.link({ business: b.business, businessId: b.businessId, okxAgentId: ch.okx.agentId, token: ch.token, signature: sig.value.trim(), ...(key ? { directorKey: key.input.value.trim() } : {}) });
                 sound.play("deal"); toast(t("okx.linked", { name: b.name, id: ch.okx.agentId }), "good");
                 ctx.onLinked?.(b);
                 owner(root);
@@ -258,8 +262,17 @@ export function createOkx(ctx) {
     const register = `onchainos agent update --agent-id ${p.okxAgentId} --service '[{"serviceName":"${sv.name}","serviceDescription":"${sv.summary.replace(/'/g, "")}","serviceType":"A2MCP","fee":${money(sv.price)},"endpoint":"${sv.endpoint}"}]'`;
     const jobs = el("div", { "data-jobs": p.id });
     if (p.enabled) fillJobs(jobs, p.id);
+    let keyBox = null;
+    if (b.business === "SPORTS" && !p.hasBusinessKey) {
+      const key = directorKeyField();
+      keyBox = el("div", { class: "ag-card" }, el("b", {}, t("okx.needKey")), key.field,
+        el("button", { type: "button", class: "btn small", onclick: async () => {
+          try { await okxApi.update(p.id, { directorKey: key.input.value.trim() }); toast(t("okx.keySaved"), "good"); owner(root); } catch (e) { toast(e.message, "bad"); }
+        } }, t("okx.save")));
+    }
     return el("div", { class: "okx-linked" },
       statsEl(p),
+      keyBox,
       el("div", { class: "ag-kv" },
         el("span", {}, t("okx.owner")), el("code", {}, short(p.okx.owner)),
         el("span", {}, t("okx.payTo")), el("code", {}, short(p.payTo)),
@@ -275,6 +288,12 @@ export function createOkx(ctx) {
       el("details", { class: "ag-audit" }, el("summary", {}, t("okx.registerTitle")), el("p", { class: "tiny muted" }, t("okx.registerDesc")), el("pre", { class: "okx-cmd" }, register), copyBtn(register)),
       p.enabled ? el("h4", { class: "a2a-h" }, t("okx.incoming")) : el("p", { class: "tiny muted" }, t("okx.goLiveHint")),
       jobs);
+  }
+
+  // Kult Sports runs paid analyses with a director key from the owner's agency.
+  function directorKeyField() {
+    const input = el("input", { type: "password", autocomplete: "off", spellcheck: "false", placeholder: t("okx.directorKeyPh") });
+    return { input, field: el("label", { class: "ag-field wide" }, el("span", {}, t("okx.directorKey")), input, el("small", { class: "muted" }, t("okx.directorKeyHint"))) };
   }
 
   async function fillJobs(box, providerId) {

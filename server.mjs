@@ -19,12 +19,6 @@ const trim = (u) => String(u).replace(/\/+$/, "");
 const ARENA_API = trim(process.env.AI_ARENA_API_URL || "https://aiarena-gateway.kult.games");
 const KULT_API = trim(process.env.KULT_API_URL || "https://api-backend-v2.kult.games/api");
 const CONFIG = JSON.stringify({
-  // DEMO_MODE=1: the page runs on its in-browser simulation of the backends
-  // (public/js/demo/), same screens and API calls, for showcases.
-  demo: process.env.DEMO_MODE === "1",
-  // BIZ_DEMO=local: in demo mode the businesses open their own running apps
-  // (KULT_CREATE_URL, KULT_SPORTS_URL) with ?demo=1, not the copies in public/biz/.
-  bizDemo: process.env.BIZ_DEMO === "local" ? "local" : "bundled",
   privyAppId: process.env.PRIVY_APP_ID || "cmhfx1cl20001l10d4l0w8u4j",
   privyClientId: process.env.PRIVY_CLIENT_ID || undefined,
   arenaApi: "/api/arena",
@@ -38,7 +32,7 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 
 // Request headers worth forwarding; everything else (cookies, origin, host)
 // stays here.
-const FORWARD = ["authorization", "content-type", "accept", "idempotency-key", "payment-signature", "x-payment", "x-kult-access-token", "x-payment-tx-hash", "x-payment-agent-id", "x-training-source"];
+const FORWARD = ["authorization", "content-type", "accept", "idempotency-key", "payment-signature", "x-payment", "x-kult-access-token", "x-payment-tx-hash", "x-payment-agent-id", "x-training-source", "x-kult-world"];
 const RETURN = ["content-type", "payment-required", "x-payment-response", "retry-after", "cache-control"];
 
 async function readBody(req) {
@@ -73,10 +67,6 @@ createServer(async (req, res) => {
   if (url.pathname.startsWith("/api/arena/")) return proxy(req, res, ARENA_API, url.pathname.slice("/api/arena".length) + url.search);
   if (url.pathname.startsWith("/api/kult/")) return proxy(req, res, KULT_API, url.pathname.slice("/api/kult".length) + url.search);
   let rel = decodeURIComponent(url.pathname);
-  // The business demos (public/biz/, scripts/sync-business-demos.mjs) draw
-  // the same archetype characters Kult World ships in public/models/.
-  const bizModel = rel.match(/^\/biz\/(?:create|sports)\/models\/(agent-[a-z]+\.glb)$/);
-  if (bizModel) rel = `/models/${bizModel[1]}`;
   if (rel.endsWith("/")) rel += "index.html";
   const file = normalize(join(ROOT, rel));
   if (!file.startsWith(ROOT + sep)) { res.writeHead(403); return res.end("Forbidden"); }

@@ -2,7 +2,7 @@
 // drawer and every place: the Business Park (four businesses), the Game Hub,
 // the Deal Room and the Agentic Marketplace. The player, their agent, the
 // city's agents, battles, businesses and the marketplace are live KULT data
-// (js/kult.js); the Deal Room is still a scripted demo. All text is
+// (js/kult.js); the Deal Room is a labeled preview. All text is
 // English / 中文 (js/i18n.js).
 
 import { World, BUILDINGS, MAP } from "./world3d.js";
@@ -18,7 +18,7 @@ import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES, DEALS, DEAL_LINES,
   agentFromApi, loadProgress, saveProgress
 } from "./data.js";
-import { config, privyClient, session, arenaApi, kultApi, a2aApi, okxApi, isDemo } from "./kult.js";
+import { config, privyClient, session, arenaApi, kultApi, a2aApi, okxApi } from "./kult.js";
 import { findMatch, challenge as directChallenge, loadBattle, playUnity, playLauncher, report, Cancelled, LAUNCHER_DOWNLOAD } from "./battle.js";
 
 const $ = (id) => document.getElementById(id);
@@ -444,13 +444,7 @@ $("hud-player").addEventListener("click", () => togglePassport());
 for (const b of document.querySelectorAll("[data-act]")) b.addEventListener("click", () => { if (b.dataset.act === "passport") togglePassport(); else world.recenter(); });
 $("menu-btn").addEventListener("click", () => show("menu", $("menu").hidden));
 for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("click", () => { show("menu", false); goTo(b.dataset.goto); });
-// Demo mode: the menu restarts the demo as a new or a returning player.
-async function resetDemo(fresh) {
-  window.kultDemo?.reset({ fresh });
-  const q = new URLSearchParams(location.search); q.delete("fresh"); q.delete("continue");
-  location.href = `${location.pathname}${q.toString() ? `?${q}` : ""}`;
-}
-$("reset-demo").addEventListener("click", () => (isDemo() ? resetDemo(true) : signOut()));
+$("sign-out").addEventListener("click", () => signOut());
 addEventListener("keydown", (e) => {
   if (!state.inWorld || e.target.closest("input, textarea, select")) return;
   if (e.key === "Escape") { if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
@@ -526,19 +520,6 @@ function loadScriptOnce(src) {
 async function openApp(b) {
   const c = await config();
   stamp(b.id); quest("open-business");
-  // Demo mode: both businesses run their own offline demos (?demo=1), bundled
-  // in public/biz/ so they open without their services, or served by their
-  // own apps when those run alongside (BIZ_DEMO=local).
-  if (c.demo) {
-    const url = c.bizDemo === "local"
-      ? `${b.id === "create" ? `${c.kultCreateUrl}/office` : c.kultSportsUrl}/?demo=1`
-      : new URL(`biz/${b.id}/?demo=1`, location.href).href;
-    $("app-title").textContent = `${b.brand} · ${t(`biz.${b.id}.name`)}`;
-    $("app-newtab").href = url; $("app-iframe").src = url;
-    show("app-frame");
-    addActivity(t("act.entered", { brand: b.brand })); commit();
-    return;
-  }
   if (b.id === "create") {
     try {
       await loadScriptOnce(`${c.kultCreateUrl}/embed.js`);
@@ -640,7 +621,7 @@ async function startMatch(gm, opponent = null) {
       const wait2 = el("div", { class: "scan-names" }, t("match.launcherWait", { n: 0 }));
       setScreen(el("div", { class: "scan" }, el("div", { class: "scan-t" }, t("match.launcher")), el("p", { class: "launcher-note" }, t("match.launcherNote")),
         el("a", { class: "btn small", href: LAUNCHER_DOWNLOAD, target: "_blank", rel: "noopener" }, t("match.launcherGet")), wait2));
-      result = await playLauncher({ battleId, me, them, isAlive: alive, monitor: $("game-canvas"), onStart: () => setScreen(), onTick: (ms) => { wait2.textContent = t("match.launcherWait", { n: Math.round(ms / 1000) }); } });
+      result = await playLauncher({ battleId, me, them, isAlive: alive, onTick: (ms) => { wait2.textContent = t("match.launcherWait", { n: Math.round(ms / 1000) }); } });
     }
     if (!alive()) return;
 
@@ -730,7 +711,7 @@ async function negotiate(d) {
     else if (!(await say("them", "walk", m2, 1400))) return;
   }
   if (final) {
-    // The Deal Room is still a scripted demo, so it pays out Kult World XP
+    // The Deal Room is a labeled preview (no backend), so it pays out Kult World XP
     // only; it never touches the player's real $ARENA or KP.
     const saved = d.ask - final;
     gainXp(70); quest("close-deal");
@@ -851,13 +832,6 @@ async function feedEvent() {
 
 // ------------------------------------------------------------------ boot
 await loadArt();
-$("reset-demo").removeAttribute("data-i18n");
-$("reset-demo").textContent = t("pp.signout");
-if ((await config()).demo) {
-  document.body.append(el("div", { class: "demo-badge glass", title: t("demo.badgeHint") }, t("demo.badge")));
-  $("reset-demo").textContent = t("demo.resetNew");
-  $("reset-demo").after(el("button", { type: "button", class: $("reset-demo").className, onclick: () => resetDemo(false) }, t("demo.resetReturning")));
-}
 void loadLandingStats();
 void populateCity();
 // ?debug: enter with an existing AI Arena session, without the Privy modal.

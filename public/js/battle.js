@@ -12,33 +12,7 @@
 //   → POST /v1/battles/:id/end, then trait evolution, training, 0G commentary
 //     and 0G memory, exactly as the browser does.
 
-import { arenaApi, isDemo } from "./kult.js";
-import { createGame, SW, SH } from "./minigames.js";
-import { archetype } from "./data.js";
-
-// Demo mode plays the real Unity builds too. Kult World's own arena games
-// stand in for the Robowars launcher, and for a Unity build that cannot load
-// (offline); they run on the same stage and report the result the same way.
-const SIM = { warzone: "warzone", "warzone-wave": "wave", "highway-hustle": "highway", robowar: "robowars" };
-async function runSim(canvas, gameId, me, them, isAlive = () => true) {
-  const side = (a, fallback) => ({ name: a.name, archetype: String(a.archetype).toLowerCase(), clan: a.clan, elo: a.eloRating ?? 1000, color: archetype(a.archetype).color || fallback });
-  const game = createGame(SIM[gameId] || "warzone", { me: side(me, "#4fd8ff"), them: side(them, "#ff4fa3") });
-  canvas.width = SW; canvas.height = SH;
-  Object.assign(canvas.style, { imageRendering: "pixelated", objectFit: "contain", background: "#05020f" });
-  const g = canvas.getContext("2d"); g.imageSmoothingEnabled = false;
-  const started = performance.now();
-  await new Promise((resolve) => {
-    let last = started;
-    const frame = (t) => {
-      if (!isAlive()) return resolve();
-      game.update(Math.min(0.05, (t - last) / 1000)); last = t; game.draw(g);
-      if (game.done) return resolve();
-      requestAnimationFrame(frame);
-    };
-    requestAnimationFrame(frame);
-  });
-  return { winner: game.winner === 0 ? me : them, loser: game.winner === 0 ? them : me, seconds: Math.round((performance.now() - started) / 1000) };
-}
+import { arenaApi } from "./kult.js";
 
 const UNITY = {
   warzone: { dir: "Warzone2", file: "WarzoneV4", payloadKey: "arenaBattlePayload", event: "arenaBattleEnd" },
@@ -102,29 +76,7 @@ function loadScript(src) {
 export async function playUnity(opts) {
   const spec = UNITY[opts.gameId];
   if (!spec) throw new Error(`No Unity build for ${opts.gameId}`);
-  if (!isDemo()) return playBuild(spec, opts);
-  try {
-    return await playBuild(spec, opts);
-  } catch (e) {
-    if (!e.buildMissing) throw e;
-    console.warn("[battle] Unity build unavailable, playing the arena game instead", e);
-    return playSim(opts);
-  }
-}
-
-async function playSim({ gameId, battleId, me, them, canvas, ui }) {
-  let exited = false;
-  ui.onExit(() => { exited = true; });
-  for (let p = 0; p <= 1; p += 0.2) { ui.progress(p); await wait(180); }
-  ui.loaded();
-  const r = await runSim(canvas, gameId, me, them, () => !exited);
-  if (exited) throw new Cancelled();
-  const stat = () => ({ jumps: 4 + Math.floor(Math.random() * 12), shotsAttempted: 30 + Math.floor(Math.random() * 60), shotsConnected: 10 + Math.floor(Math.random() * 25), timesHit: 5 + Math.floor(Math.random() * 20), distanceCovered: 80 + Math.floor(Math.random() * 300) });
-  return normalise(gameId, battleId, gameId === "warzone-wave"
-    ? { battleId, winnerAgentId: r.winner.id, loserAgentId: r.loser.id, winnerName: r.winner.name, loserName: r.loser.name, winnerCoins: 40 + Math.floor(Math.random() * 60), loserCoins: 10 + Math.floor(Math.random() * 30), durationSeconds: r.seconds, endReason: "waves" }
-    : gameId === "highway-hustle"
-      ? { battleId, winnerId: r.winner.id, loserId: r.loser.id, winnerName: r.winner.name, loserName: r.loser.name, winnerDistance: 1800 + Math.floor(Math.random() * 900), loserDistance: 600 + Math.floor(Math.random() * 900), durationSeconds: r.seconds }
-      : { battleId, winnerId: r.winner.id, loserId: r.loser.id, winnerName: r.winner.name, loserName: r.loser.name, winnerHpPercent: 20 + Math.floor(Math.random() * 60), loserHpPercent: 0, durationSeconds: r.seconds, endReason: "KO", playerStats: { [r.winner.id]: stat(), [r.loser.id]: stat() } });
+  return playBuild(spec, opts);
 }
 
 async function playBuild(spec, { unityBase, gameId, battleId, me, them, mode, canvas, ui }) {
@@ -153,13 +105,8 @@ async function playBuild(spec, { unityBase, gameId, battleId, me, them, mode, ca
   });
 
   try {
-    try {
-      script = await loadScript(`${build}/${spec.file}.loader.js`);
-      if (typeof window.createUnityInstance !== "function") throw new Error("The game build did not load");
-    } catch (e) {
-      throw Object.assign(e, { buildMissing: true });
-    }
-    Object.assign(canvas.style, { imageRendering: "", objectFit: "", background: "" });
+    script = await loadScript(`${build}/${spec.file}.loader.js`);
+    if (typeof window.createUnityInstance !== "function") throw new Error("The game build did not load");
     const r = canvas.getBoundingClientRect();
     canvas.width = Math.round(r.width); canvas.height = Math.round(r.height);
     instance = await window.createUnityInstance(canvas, {
@@ -194,19 +141,8 @@ const stats = (o = {}) => ({ jumps: 0, shotsAttempted: 0, shotsConnected: 0, tim
 
 // ------------------------------------------------------------------ Robowars
 /** Hands the battle to the desktop launcher and waits for its result. */
-export async function playLauncher({ battleId, me, them, isAlive, onTick, monitor, onStart }) {
-  if (isDemo()) {
-    // The launcher's match, shown on the monitor; it reports the result as the launcher would.
-    await new Promise((r) => setTimeout(r, 2500));
-    onStart?.();
-    if (monitor) monitor.hidden = false;
-    const r = await runSim(monitor || document.createElement("canvas"), "robowar", me, them, isAlive);
-    if (monitor) monitor.hidden = true;
-    if (!isAlive()) throw new Cancelled();
-    await arenaApi.endBattle(battleId, { winnerId: r.winner.id, loserId: r.loser.id });
-  } else {
-    location.href = `aiarena://launch?matchId=${encodeURIComponent(battleId)}&agentA=${encodeURIComponent(me.id)}&agentB=${encodeURIComponent(them.id)}`;
-  }
+export async function playLauncher({ battleId, me, them, isAlive, onTick }) {
+  location.href = `aiarena://launch?matchId=${encodeURIComponent(battleId)}&agentA=${encodeURIComponent(me.id)}&agentB=${encodeURIComponent(them.id)}`;
   const started = Date.now();
   for (;;) {
     await wait(2000);

@@ -15,29 +15,17 @@ const KEYS = { arena: "kw.arena.session.v1", kult: "kw.kult.session.v1" };
 const read = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
 const write = (k, v) => { try { v ? localStorage.setItem(k, JSON.stringify(v)) : localStorage.removeItem(k); } catch { /* private mode */ } };
 
-// Demo mode (DEMO_MODE=1 on the server, or ?demo in the address) answers
-// every backend call in the browser with the same shapes the real backends
-// return (js/demo/), and swaps Privy for a look-alike sign-in. Nothing else
-// in Kult World knows the difference.
-let CFG = null, cfgLoading = null;
+let cfgLoading = null;
 export function config() {
-  cfgLoading ||= (async () => {
-    const c = await fetch("config.json", { cache: "no-store" }).then((r) => r.json());
-    if (new URLSearchParams(location.search).has("demo")) c.demo = true;
-    if (c.demo) await (await import("./demo/mock-api.js")).install(c);
-    CFG = c;
-    return c;
-  })();
+  cfgLoading ||= fetch("config.json", { cache: "no-store" }).then((r) => r.json());
   return cfgLoading;
 }
-export const isDemo = () => Boolean(CFG?.demo);
 
 // ------------------------------------------------------------------ Privy
 let privy = null, privyLoading = null;
 export function privyClient() {
   privyLoading ||= (async () => {
     const c = await config();
-    if (c.demo) return (privy = await (await import("./demo/mock-privy.js")).init());
     const { init } = await import(new URL("../privy/kult-privy.js", import.meta.url).href);
     privy = await init({ appId: c.privyAppId, clientId: c.privyClientId });
     return privy;
@@ -245,7 +233,7 @@ export const okxApi = {
   providers: (business) => arena(`${OKX}/providers${q({ business })}`, { auth: false }),
   provider: (id) => arena(`${OKX}/providers/${enc(id)}`, { auth: false }),
   jobs: (id) => arena(`${OKX}/providers/${enc(id)}/jobs`),
-  fixtures: async () => (await arena(`${OKX}/fixtures`, { auth: false }))?.fixtures ?? [],
+  fixtures: async (providerId) => (await arena(`${OKX}/fixtures${q({ provider: providerId })}`, { auth: false }))?.fixtures ?? [],
   job: async (id) => (await arena(`${OKX}/jobs/${enc(id)}`, { auth: false }))?.job,
   /**
    * One raw call to a provider's A2MCP endpoint, exactly as an OKX user's
@@ -256,7 +244,7 @@ export const okxApi = {
     const c = await config();
     const res = await fetch(`${c.arenaApi}${OKX}/p/${enc(providerId)}/${enc(service)}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...(paymentHeader ? { "PAYMENT-SIGNATURE": paymentHeader } : {}) },
+      headers: { "Content-Type": "application/json", "X-Kult-World": "1", ...(paymentHeader ? { "PAYMENT-SIGNATURE": paymentHeader } : {}) },
       body: JSON.stringify(input)
     });
     const text = await res.text();

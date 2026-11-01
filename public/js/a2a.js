@@ -14,7 +14,7 @@
 // Every value shown comes from the gateway or the chain; transaction hashes
 // link to BaseScan.
 
-import { a2aApi, usdc, toBaseUnits, isDemo } from "./kult.js";
+import { a2aApi, usdc, toBaseUnits } from "./kult.js";
 
 const STAGES = ["POST", "DISCOVER", "NEGOTIATE", "ESCROW", "TRAIN", "DELIVER", "SETTLE"];
 const STAGE_OF = { DRAFT: 0, POSTING: 0, POSTED: 1, NEGOTIATING: 2, ESCROWED: 3, EXECUTING: 4, DELIVERED: 5, SETTLED: 6, REFUNDED: 5, DISPUTED: 5, CANCELLED: 1, FAILED: 1 };
@@ -192,7 +192,7 @@ export function createA2A(ctx) {
     const mine = myIds(), isCreator = mine.has(job.creatorAgentId);
     const at = STAGE_OF[job.status] ?? 0;
     const rail = el("ol", { class: "ag-steps" }, STAGES.map((k, i) => el("li", { class: BAD.has(job.status) && i === at ? "bad" : i < at || job.status === "SETTLED" ? "done" : i === at ? "now" : "todo" }, el("i", {}, String(i + 1)), t(`a2a.stage.${k}`))));
-    const txRows = Object.entries(job.tx || {}).filter(([, h]) => h).flatMap(([k, h]) => [el("span", {}, t(`a2a.tx.${k}`)), (isDemo() ? el("code", {}, shortHash(h)) : el("a", { href: tx(h), target: "_blank", rel: "noopener" }, shortHash(h)))]);
+    const txRows = Object.entries(job.tx || {}).filter(([, h]) => h).flatMap(([k, h]) => [el("span", {}, t(`a2a.tx.${k}`)), el("a", { href: tx(h), target: "_blank", rel: "noopener" }, shortHash(h))]);
     const facts = el("div", { class: "ag-card" }, el("b", {}, t("a2a.terms")),
       el("div", { class: "ag-kv" },
         el("span", {}, t("a2a.status")), el("span", {}, t(`a2a.status.${job.status}`)),
