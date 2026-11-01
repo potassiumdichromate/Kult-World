@@ -868,3 +868,22 @@ img.ph { background: color-mix(in srgb, var(--ac, #a98bff) 35%, #140c2c); }
   .cs-panel { align-self: stretch; padding: 18px; }
   .cs-tag { font-size: 13px; }
 }
+
+/* ---------------------------------------------------------------- log out */
+.logout-btn { position: relative; gap: 6px; width: auto; min-width: 42px; padding: 0 11px; grid-auto-flow: column; transition: border-color 0.2s, color 0.2s, background 0.2s, padding 0.2s; }
+.logout-btn span { display: none; font: 700 12px var(--display); letter-spacing: 0.06em; white-space: nowrap; }
+.logout-btn:hover { border-color: var(--red); color: var(--red); }
+.logout-btn.confirm { color: #fff; border-color: var(--red); background: color-mix(in srgb, var(--red) 30%, var(--glass)); box-shadow: 0 0 18px color-mix(in srgb, var(--red) 40%, transparent); padding: 0 14px 0 11px; }
+.logout-btn.confirm span { display: inline; }
+.landing-session { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.landing-session i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+.landing-session b { color: var(--text); font-weight: 600; }
+.logout-link { display: inline-flex; align-items: center; gap: 6px; margin-left: 6px; padding: 5px 11px; border-radius: 999px; cursor: pointer; font: 700 11px var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: #ffb3bd; background: rgba(255, 107, 125, 0.08); border: 1px solid rgba(255, 107, 125, 0.35); transition: background 0.2s, color 0.2s; }
+.logout-link:hover { color: #fff; background: rgba(255, 107, 125, 0.25); }
+.logout-link svg, .cs-logout svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.cs-tools { display: flex; align-items: center; gap: 10px; }
+.cs-logout { gap: 6px; }
+.cs-logout:hover { border-color: var(--red); color: #ffb3bd; }
+@media (max-width: 900px) { .landing-session { justify-content: center; } }
+@media (max-width: 520px) { .logout-btn.confirm { padding: 0 11px; } .logout-btn.confirm span { display: none; } }
+@media (max-width: 860px) { .cs-head { grid-template-columns: auto minmax(0, 1fr); } .cs-tools { grid-column: 1 / -1; justify-content: flex-end; } }

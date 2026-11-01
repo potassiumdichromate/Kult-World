@@ -85,6 +85,7 @@
         <button type="button" data-goto="market" data-i18n="bld.market">Kult Agentic Marketplace</button>
         <button type="button" id="sign-out" data-i18n="pp.signout">Sign out</button>
       </div>
+      <button type="button" id="logout-btn" class="icon-btn glass logout-btn" data-i18n-attr="aria-label:logout;title:logout"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" /></svg><span data-i18n="logout.confirm">Log out?</span></button>
     </div>
   </header>
   <div id="quest-tracker" class="quest-tracker glass" hidden></div>
@@ -130,6 +131,7 @@
           <div class="landing-cta">
             <button type="button" id="enter-btn" class="btn primary big enter-btn"><span id="enter-label" data-i18n="landing.enter">Enter Kult World</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" /></svg></button>
             <p class="signin-note"><span class="signin-icons" aria-hidden="true"><img src="art/world/icon-google.png" alt=""><img src="art/world/icon-email.png" alt=""><img src="art/world/icon-wallet.png" alt=""></span><span data-i18n="landing.signinNote">Continue with Google, email or wallet.</span></p>
+            <p id="landing-session" class="landing-session" hidden><i aria-hidden="true"></i><span data-i18n="logout.as">Signed in as</span> <b id="landing-who"></b><button type="button" class="logout-link" data-logout><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" /></svg><span data-i18n="logout">Log out</span></button></p>
           </div>
         </div>
         <div class="landing-emblem" aria-hidden="true">
@@ -153,7 +155,7 @@
       <header class="cs-head">
         <button type="button" id="cs-back" class="btn ghost small" data-i18n="mint.back">‹ Back</button>
         <div class="cs-title"><p class="eyebrow" data-i18n="mint.eyebrow">Create your agent</p><h2 data-i18n="mint.title">Choose your archetype</h2></div>
-        <span class="cs-chip" data-i18n="mint.chip">INFT · 0G</span>
+        <span class="cs-tools"><span class="cs-chip" data-i18n="mint.chip">INFT · 0G</span><button type="button" class="btn ghost small cs-logout" data-logout><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" /></svg><span data-i18n="logout">Log out</span></button></span>
       </header>
       <div class="cs-roster" id="mint-archetypes" role="radiogroup" data-i18n-attr="aria-label:mint.archetype"></div>
       <div class="cs-stage" id="cs-stage">

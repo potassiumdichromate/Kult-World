@@ -222,6 +222,7 @@ async function signInAndEnter() {
   btn.disabled = true; enterLabel("login.connecting2");
   try {
     if (!(await session.restore())) await session.signIn();
+    showSession((await privyClient()).user());
     enterLabel("login.checking");
     await loadPlayer();
     if (!state.player) return openMint();
@@ -504,6 +505,20 @@ for (const b of document.querySelectorAll("[data-act]")) b.addEventListener("cli
 $("menu-btn").addEventListener("click", () => show("menu", $("menu").hidden));
 for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("click", () => { show("menu", false); goTo(b.dataset.goto); });
 $("sign-out").addEventListener("click", () => signOut());
+// Log out: the HUD button asks first (a second click within 3 s); the
+// labelled buttons on the sign-in and mint screens log out straight away.
+{
+  const b = $("logout-btn");
+  let armed = null;
+  b.addEventListener("click", () => {
+    if (armed) { clearTimeout(armed); return void signOut(); }
+    b.classList.add("confirm"); sound.play("pop");
+    // Phones show the icon only, so say it.
+    if (matchMedia("(max-width: 520px)").matches) toast(t("logout.again"));
+    armed = setTimeout(() => { armed = null; b.classList.remove("confirm"); }, 3000);
+  });
+}
+for (const b of document.querySelectorAll("[data-logout]")) b.addEventListener("click", () => { b.disabled = true; void signOut(); });
 addEventListener("keydown", (e) => {
   if (!state.inWorld || e.target.closest("input, textarea, select")) return;
   if (e.key === "Escape") { if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
@@ -889,6 +904,13 @@ async function feedEvent() {
   }
 }
 
+// The sign-in page names the signed-in account, with a way to log out.
+function showSession(user) {
+  $("landing-who").textContent = user?.email || short(session.wallet);
+  show("landing-session");
+  document.querySelector(".signin-note").hidden = true;
+}
+
 // ------------------------------------------------------------------ boot
 introReady(Promise.all([worldReady, framesReady]));
 await loadArt();
@@ -903,6 +925,7 @@ void introDone.then(() => { if (!state.inWorld && $("mint").hidden) show("landin
     if (params.has("reset")) await session.signOut();
     else if (privy.authenticated && session.signedIn && (await session.restore())) {
       enterLabel("landing.continue");
+      showSession(privy.user());
       if (params.has("continue")) { await loadPlayer(); if (state.player) enterWorld(false); }
     }
   } catch (e) {

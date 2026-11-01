@@ -64,8 +64,10 @@ async function proxy(req, res, upstream, path) {
 // The page links its stylesheet and scripts under /v/<build>/, so each deploy
 // has new URLs and no cache in front (Cloudflare's browser TTL included) can
 // keep an old Kult World; the scripts' relative imports follow the prefix.
-// The page itself is never cached.
+// The page itself is never cached. Locally (no commit id) they revalidate
+// instead, so edits show on reload without restarting the server.
 const BUILD = (process.env.RENDER_GIT_COMMIT || "").slice(0, 12) || Date.now().toString(36);
+const IMMUTABLE = Boolean(process.env.RENDER_GIT_COMMIT);
 const PAGE = readFileSync(join(ROOT, "index.html"), "utf8")
   .replace(/(<link rel="stylesheet" href="|<script type="module" src=")(?![a-z]+:|\/)([^"]+")/g, `$1v/${BUILD}/$2`);
 function sendPage(res) {
@@ -89,7 +91,7 @@ createServer(async (req, res) => {
   try {
     const info = await stat(file);
     if (!info.isFile()) throw new Error("not a file");
-    const cache = v?.[1] === BUILD ? "public, max-age=31536000, immutable" : "no-cache";
+    const cache = IMMUTABLE && v?.[1] === BUILD ? "public, max-age=31536000, immutable" : "no-cache";
     res.writeHead(200, { "Content-Type": TYPES[extname(file).toLowerCase()] || "application/octet-stream", "Cache-Control": cache, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" });
     res.end(await readFile(file));
   } catch {
