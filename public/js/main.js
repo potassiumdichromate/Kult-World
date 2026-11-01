@@ -1,4 +1,5 @@
-// Kult World: landing, Privy sign-in, minting, the 3D city, the passport
+// Kult World: the intro, landing, Privy sign-in, minting (a 3D character
+// select), the 3D city, the passport
 // drawer and every place: the Business Park (four businesses), the Game Hub,
 // the Deal Room and the Agentic Marketplace. The player, their agent, the
 // city's agents, battles, businesses and the marketplace are live KULT data
@@ -12,6 +13,8 @@ import { drawThumb } from "./minigames.js";
 import { t, setLang, getLang, applyI18n, onLang } from "./i18n.js";
 import { sound } from "./audio.js";
 import { AgentViewer } from "./agentview.js";
+import { CharacterStage } from "./charselect.js";
+import { introDone, introReady } from "./intro.js";
 import { createOkx } from "./okx.js";
 import { createA2A } from "./a2a.js";
 import {
@@ -48,6 +51,8 @@ const placeName = (b) => t(`bld.${b.id}`);
 // passport (Kult World progression), quests, activity }.
 const state = { player: null, agents: [], inWorld: false, manifest: null, urlOf: (f) => `art/${f}`, wart: null };
 const world = new World($("world"));
+let firstFrames;
+const framesReady = new Promise((r) => { firstFrames = r; });
 if (new URLSearchParams(location.search).has("debug")) window.kw = { world, state, sound, session };
 { const q = { low: 0, medium: 1, high: 2 }[new URLSearchParams(location.search).get("quality")]; if (q !== undefined) { world.setQuality(q); world.qualityLocked = true; } }
 
@@ -62,9 +67,21 @@ async function loadArt() {
   catch (e) { console.warn("[kult-world] world art not loaded", e); }
 }
 const wart = (key) => { const f = state.wart?.files?.[key]; return f ? `art/${f.file}?v=${state.wart.rev}` : null; };
-const portraitUrl = (arch) => { const m = state.manifest?.ceo?.[String(arch).toLowerCase()]; return m?.portrait ? state.urlOf(m.portrait) : null; };
+// Portraits follow one file pattern, so they show even if the art manifest is
+// missing; one that fails to load becomes the archetype's coloured initial.
+const portraitUrl = (arch) => {
+  const id = String(arch).toLowerCase(), m = state.manifest?.ceo?.[id];
+  return m?.portrait ? state.urlOf(m.portrait) : ARCHETYPES.some((a) => a.id === id) ? `art/ceo-${id}-portrait.png` : null;
+};
 const rankBadge = (r) => `art/${r.badge}`;
-const portrait = (arch, cls = "") => (portraitUrl(arch) ? el("img", { class: cls, src: portraitUrl(arch), alt: "" }) : el("span", { class: `${cls} ph` }));
+function portrait(arch, cls = "") {
+  const a = archetype(arch), ph = () => el("span", { class: `${cls} ph`, style: `--c:${a.color}` }, a.name[0]);
+  const src = portraitUrl(arch);
+  if (!src) return ph();
+  const img = el("img", { class: `${cls} face`, src, alt: "", decoding: "async" });
+  img.addEventListener("error", () => img.replaceWith(ph()), { once: true });
+  return img;
+}
 
 // ------------------------------------------------------------------ language
 const signTr = (k, en) => t(k) || en;
@@ -116,7 +133,7 @@ function tick(now) {
     const p = world.player;
     sound.update(world.t, { walking: p?.walking, fountainDist: p && world.fountainPos ? p.group.position.distanceTo(world.fountainPos) : 99 });
   }
-  if (++frames === 3) $("boot").classList.add("done");
+  if (++frames === 3) firstFrames();
   if (state.inWorld && now - slowAt > 100) { slowAt = now; updateLocation(); updatePrompt(); world.minimap($("minimap")); }
   requestAnimationFrame(tick);
 }
@@ -196,30 +213,22 @@ function updatePrompt() {
 document.addEventListener("click", (e) => { if (e.target.closest(".door-prompt")) { const b = world.nearDoor(2.2); if (b) openPlace(b); } });
 
 // ------------------------------------------------------------------ landing & sign-in
-// Live counts only: AI Arena's agents and the A2A job board. A number with no
-// source is hidden rather than invented.
-async function loadLandingStats() {
-  const set = (id, v) => { const n = $(id); n.parentElement.hidden = !Number.isFinite(v); if (Number.isFinite(v)) n.textContent = fmt(v); };
-  const [agents, jobs] = await Promise.allSettled([arenaApi.agents(1, 1), a2aApi.listJobs("open")]);
-  set("st-online", agents.status === "fulfilled" ? Number(agents.value?.total) : NaN);
-  set("st-deals", jobs.status === "fulfilled" ? Number(jobs.value?.counts?.open) : NaN);
-  set("st-battles", jobs.status === "fulfilled" ? Number(jobs.value?.counts?.completed) : NaN);
-}
-
 // Sign in with Privy (the shared KULT account), then into the world with the
 // player's agent, or to minting when they have none.
+// The button's label is a text key, so a language switch keeps the right text.
+function enterLabel(key) { const n = $("enter-label"); n.dataset.i18n = key; n.textContent = t(key); }
 async function signInAndEnter() {
-  const btn = $("enter-btn"), label = btn.textContent;
-  btn.disabled = true; btn.textContent = t("login.connecting2");
+  const btn = $("enter-btn"), key = $("enter-label").dataset.i18n;
+  btn.disabled = true; enterLabel("login.connecting2");
   try {
     if (!(await session.restore())) await session.signIn();
-    btn.textContent = t("login.checking");
+    enterLabel("login.checking");
     await loadPlayer();
     if (!state.player) return openMint();
     enterWorld(false);
   } catch (e) {
     if (!/closed|exited|cancel/i.test(e.message)) toast(e.message, "bad");
-  } finally { btn.disabled = false; btn.textContent = label; }
+  } finally { btn.disabled = false; enterLabel(key); }
 }
 $("enter-btn").addEventListener("click", signInAndEnter);
 
@@ -268,34 +277,79 @@ async function switchAgent(id) {
 for (const b of document.querySelectorAll("[data-close]")) b.addEventListener("click", () => { sound.play("close"); show(b.dataset.close, false); if (b.dataset.close === "deal") negotiation = null; });
 
 // ------------------------------------------------------------------ mint
-// AI Arena's Create Agent (POST /v1/agents): the agent, its personality and
-// its INFT are made by AI Arena; the steps animate while it works.
+// A character select: pick an archetype on the 3D stage (js/charselect.js),
+// a clan and a name. AI Arena's Create Agent (POST /v1/agents) makes the agent,
+// its personality and its INFT; the stage charges up while it works.
 const mintSel = { clan: "ZEROG", archetype: "support" };
+let stage = null, minting = false;
+const NAME_A = ["Neon", "Vex", "Nova", "Rift", "Echo", "Pixel", "Volt", "Onyx", "Zero", "Halo", "Glitch", "Cipher"];
+const NAME_B = ["Runner", "Fang", "Warden", "Spark", "Shade", "Pilot", "Rogue", "Sage", "Drift", "Byte", "Nomad", "Saint"];
+const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
+const randomName = () => `${pickOne(NAME_A)}${pickOne(NAME_B)}${Math.floor(Math.random() * 90) + 10}`;
 function openMint() {
-  $("mint-name").value = `kult-player_${Math.random().toString(16).slice(2, 10)}`;
+  $("mint-name").value = randomName();
   $("mint-story").value = t("mint.storyDefault");
-  renderMint();
+  setMinting(false);
   show("mint");
+  stage ||= new CharacterStage($("cs-stage"));
+  stage.setMode("idle"); stage.start();
+  renderMint(true);
 }
-function renderMint() {
+function closeMint() {
+  if (minting) return;
+  sound.play("close"); stage?.stop(); show("mint", false);
+}
+function setMinting(on) {
+  minting = on;
+  $("cs-form").hidden = on; $("cs-progress").hidden = !on;
+  $("mint").classList.toggle("is-minting", on);
+  $("cs-back").disabled = on;
+  for (const b of document.querySelectorAll("#mint-archetypes button, .cs-nav")) b.disabled = on;
+}
+// spawn: also beam the archetype's model onto the stage.
+function renderMint(spawn = false) {
   const a = archetype(mintSel.archetype);
-  const rgb = [1, 3, 5].map((i) => parseInt(a.color.slice(i, i + 2), 16)).join(",");
-  const sel = $("mint-selected");
-  sel.style.setProperty("--a-rgb", rgb); sel.style.setProperty("--ac", a.color);
-  sel.replaceChildren(portrait(a.id),
-    el("div", {}, el("span", { class: "sel-k" }, t("mint.selected")), el("div", { class: "sel-name" }, a.name.toUpperCase()), el("div", { class: "sel-tag" }, a.tagline), el("div", { class: "role-chips" }, a.role.map((r) => el("span", {}, r)))));
-  $("mint-clans").replaceChildren(...CLANS.map((c) => el("button", { type: "button", style: `--c:${c.color}`, "aria-pressed": mintSel.clan === c.id ? "true" : "false", onclick: () => { mintSel.clan = c.id; renderMint(); } }, el("i"), c.name)));
-  $("mint-archetypes").replaceChildren(...ARCHETYPES.map((x) => el("button", { type: "button", style: `--c:${x.color}`, "aria-pressed": mintSel.archetype === x.id ? "true" : "false", onclick: () => { mintSel.archetype = x.id; renderMint(); } }, portrait(x.id), x.name.toUpperCase())));
+  $("mint").style.setProperty("--ac", a.color);
+  $("mint-selected").replaceChildren(
+    el("b", { class: "cs-name" }, a.name.toUpperCase()),
+    el("span", { class: "cs-tag" }, a.tagline),
+    el("span", { class: "role-chips" }, a.role.map((r) => el("span", {}, r))));
+  $("mint-clans").replaceChildren(...CLANS.map((c) => el("button", { type: "button", style: `--c:${c.color}`, "aria-pressed": mintSel.clan === c.id ? "true" : "false", onclick: () => { mintSel.clan = c.id; sound.play("pop"); renderMint(); } }, el("i"), c.name)));
+  $("mint-archetypes").replaceChildren(...ARCHETYPES.map((x, i) => el("button", {
+    type: "button", role: "radio", "aria-checked": mintSel.archetype === x.id ? "true" : "false", style: `--c:${x.color}`, disabled: minting,
+    onclick: () => pickArchetype(x.id)
+  }, portrait(x.id, "cs-face"), el("span", { class: "cs-rn" }, x.name.toUpperCase()), el("kbd", {}, i + 1))));
+  if (spawn) {
+    void stage?.select(a.id, a.color);
+    // On a phone the roster is a strip: keep the picked one in view.
+    $("mint-archetypes").querySelector('[aria-checked="true"]')?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }
 }
+function pickArchetype(id) {
+  if (minting || id === mintSel.archetype) return;
+  mintSel.archetype = id; sound.play("whoosh");
+  renderMint(true);
+}
+const stepArchetype = (d) => { const i = ARCHETYPES.findIndex((a) => a.id === mintSel.archetype); pickArchetype(ARCHETYPES[(i + d + ARCHETYPES.length) % ARCHETYPES.length].id); };
+for (const b of document.querySelectorAll(".cs-nav")) b.addEventListener("click", () => stepArchetype(Number(b.dataset.step)));
+$("cs-back").addEventListener("click", closeMint);
+$("mint-dice").addEventListener("click", () => { $("mint-name").value = randomName(); sound.play("type"); });
+addEventListener("keydown", (e) => {
+  if ($("mint").hidden || minting || e.target.closest("input, textarea, select")) return;
+  if (e.key === "ArrowLeft") stepArchetype(-1);
+  else if (e.key === "ArrowRight") stepArchetype(1);
+  else if (e.key === "Escape") closeMint();
+  else if (ARCHETYPES[Number(e.key) - 1]) pickArchetype(ARCHETYPES[Number(e.key) - 1].id);
+});
 $("mint-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (minting) return;
   const name = $("mint-name").value.trim(), backstory = $("mint-story").value.trim();
   if (name.length < 2) return toast(t("mint.nameShort"), "bad");
-  show("mint", false);
-  $("minting-portrait").replaceChildren(portrait(mintSel.archetype));
   const list = $("minting-steps");
   list.replaceChildren(...["mint.s1", "mint.s2", "mint.s3", "mint.s4", "mint.s5"].map((k) => el("li", {}, el("span", { class: "s" }), t(k))));
-  show("minting");
+  setMinting(true);
+  stage?.setMode("charging"); sound.play("spawn");
   let created = null, failure = null;
   const job = arenaApi.createAgent({ name, clan: mintSel.clan, archetype: mintSel.archetype.toUpperCase(), backstory })
     .then((a) => { created = a; }, (err) => { failure = err; });
@@ -308,12 +362,14 @@ $("mint-form").addEventListener("submit", async (e) => {
     steps[i].className = "ok";
   }
   if (failure || !created?.id) {
-    show("minting", false); show("mint");
+    setMinting(false); stage?.setMode("idle");
     return toast(failure?.message || t("mint.failed"), "bad");
   }
-  await wait(300);
-  show("minting", false);
-  try { await loadPlayer(created.id); } catch (err) { return toast(err.message, "bad"); }
+  stage?.setMode("done"); sound.play("level");
+  $("mint").classList.add("minted");
+  await wait(1500);
+  try { await loadPlayer(created.id); } catch (err) { $("mint").classList.remove("minted"); setMinting(false); stage?.setMode("idle"); return toast(err.message, "bad"); }
+  $("mint").classList.remove("minted"); minting = false; stage?.stop();
   addActivity(t("act.minted", { name: state.player.agent.name }));
   enterWorld(true);
 });
@@ -321,7 +377,8 @@ $("mint-form").addEventListener("submit", async (e) => {
 // ------------------------------------------------------------------ the world
 let feedTimer = null, liveTimer = null;
 function enterWorld(fresh) {
-  for (const id of ["landing", "mint", "minting"]) show(id, false);
+  for (const id of ["landing", "mint"]) show(id, false);
+  stage?.stop();
   for (const id of ["passport", "topbar", "hint", "dock", "minimap-wrap", "feed"]) show(id, true);
   state.inWorld = true;
   const a = state.player.agent;
@@ -351,7 +408,9 @@ function renderPassport() {
   $("hp-name").textContent = a.name; $("hp-level").textContent = p.passport.level;
   $("hp-rank").textContent = r.name; $("hp-elo").textContent = t("agent.elo", { n: fmt(a.elo) }); $("hp-badge").src = rankBadge(r);
   $("hp-xp").style.width = `${Math.round((p.passport.xp / p.passport.xpToNext) * 100)}%`;
-  if (portraitUrl(a.archetype)) $("hp-img").src = portraitUrl(a.archetype);
+  const face = $("hp-img");
+  face.onerror = () => { face.onerror = null; face.removeAttribute("src"); face.classList.add("ph"); };
+  if (portraitUrl(a.archetype) && face.getAttribute("src") !== portraitUrl(a.archetype)) { face.classList.remove("ph"); face.src = portraitUrl(a.archetype); }
   $("hud-player").style.setProperty("--ac", arch.color);
   $("hud-player").title = t("passport");
   const section = (title, small, ...kids) => el("section", { class: "pp-section" }, el("h3", {}, title, small ? el("small", {}, small) : null), ...kids);
@@ -831,18 +890,19 @@ async function feedEvent() {
 }
 
 // ------------------------------------------------------------------ boot
+introReady(Promise.all([worldReady, framesReady]));
 await loadArt();
-void loadLandingStats();
 void populateCity();
 // ?debug: enter with an existing AI Arena session, without the Privy modal.
-if (window.kw) window.kw.enter = async () => { await loadPlayer(); if (state.player) enterWorld(false); else openMint(); };
+if (window.kw) { window.kw.enter = async () => { await loadPlayer(); if (state.player) enterWorld(false); else openMint(); }; window.kw.openMint = openMint; window.kw.stage = () => stage; }
+void introDone.then(() => { if (!state.inWorld && $("mint").hidden) show("landing"); });
 {
   const params = new URLSearchParams(location.search);
   try {
     const privy = await privyClient();
     if (params.has("reset")) await session.signOut();
     else if (privy.authenticated && session.signedIn && (await session.restore())) {
-      $("enter-btn").textContent = t("landing.continue");
+      enterLabel("landing.continue");
       if (params.has("continue")) { await loadPlayer(); if (state.player) enterWorld(false); }
     }
   } catch (e) {

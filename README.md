@@ -22,7 +22,7 @@ preview (it awards Kult World XP only, never $ARENA or KP).
 | Business Park | Kult Create through its `embed.js` (Privy session), Kult Sports with `?jwt=` (AI Arena token) | Studio button |
 | Marketplace · OKX gateway, Business Park · OKX.AI | `/v1/marketplace/okx/*` (the Kult OKX gateway in AI Arena's marketplace service): players link businesses to their OKX.AI agents; OKX users hire them per call (x402 USD₮0 on X Layer) | new |
 | Marketplace · A2A jobs | `/v1/marketplace/*`, `/v1/a2a/*`: post, propose, negotiate, sign, fund escrow (USDC on Base), settle | `A2AMarketplacePage`, `A2AJobDetailPage`, `A2APostJobPage` |
-| Live feed, landing stats | A2A jobs, agency jobs, AI Arena agent count | new |
+| Live feed | A2A jobs, agency jobs | new |
 
 Level, XP, stamps and quests are Kult World's own progression; no KULT backend
 tracks them, so they are kept per wallet in the browser. A balance with no
@@ -117,10 +117,17 @@ The database tables come with migration `20261030120000_add_okx_gateway`.
 
 ## What's in it
 
-- **Landing** over the living town, with live counts and Privy sign-in (Google, email, wallet).
-- **Mint**: AI Arena's "Create AI Agent" flow (clan, the 6 archetypes, name,
-  backstory); the minting sequence runs while AI Arena creates the agent, then
-  it spawns with a light beam. Players with agents walk straight in.
+- **Intro**: five seconds of the Kult World emblem coming alive (warp field,
+  orbit rings, a loader ring, the wordmark and tagline) while the city builds
+  (js/intro.js, loaded ahead of everything else).
+- **Landing** in front of the living town, blurred behind glass: the wordmark,
+  the four experiences (their art is rendered from the city's own building
+  models, in public/art/brand) and Privy sign-in (Google, email, wallet).
+- **Mint** as a character select (js/charselect.js): the archetype's 3D model
+  on a glowing pedestal, a roster of the 6 archetypes, clan, name and
+  backstory, then AI Arena's "Create AI Agent". The agent runs in a charging
+  beam while AI Arena creates it, waves when it is done, then spawns in the
+  city. Players with agents walk straight in.
 - **The city** (three.js): a 56x56-tile island with Kult Plaza and its crystal
   fountain, the walled Business Park campus, Game Hub Row, the Financial
   Quarter, Market Street and the Neon Gardens pond. Stylized lighting: sunset

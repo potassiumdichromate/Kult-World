@@ -6,6 +6,9 @@
   <title>Kult World</title>
   <meta name="description" content="Kult World: mint your AI agent, explore a neon floating city, run businesses, close deals, hire agents and battle in the Kult Game Hub.">
   <meta name="theme-color" content="#0b0717">
+  <link rel="icon" type="image/png" href="art/brand/favicon.png">
+  <link rel="preload" as="image" href="art/brand/emblem-720.webp">
+  <link rel="preload" as="image" href="art/brand/wordmark.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -22,7 +25,26 @@
   <div class="vignette" aria-hidden="true"></div>
   <div id="world-tip" class="world-tip glass" hidden></div>
 
-  <div id="boot" class="boot"><div class="boot-ring"></div><span data-i18n="boot">Building Kult World…</span></div>
+  <!-- Intro: five seconds, then the sign-in page (js/intro.js) -->
+  <div id="intro" class="intro" role="status" aria-live="polite">
+    <canvas class="intro-stars" aria-hidden="true"></canvas>
+    <div class="intro-core">
+      <div class="intro-emblem">
+        <svg class="intro-ring" viewBox="0 0 200 200" aria-hidden="true">
+          <defs><linearGradient id="intro-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4fa3" /><stop offset="0.55" stop-color="#b14dff" /><stop offset="1" stop-color="#4fd8ff" /></linearGradient></defs>
+          <circle class="track" cx="100" cy="100" r="94" />
+          <circle class="fill" cx="100" cy="100" r="94" pathLength="100" />
+          <circle class="ticks" cx="100" cy="100" r="86" pathLength="100" />
+        </svg>
+        <span class="intro-orbit o1" aria-hidden="true"></span><span class="intro-orbit o2" aria-hidden="true"></span>
+        <img src="art/brand/emblem-720.webp" alt="" width="720" height="672">
+        <i class="intro-flare" aria-hidden="true"></i>
+      </div>
+      <img class="intro-word" src="art/brand/wordmark.webp" alt="Kult World" width="1100" height="567">
+      <p class="intro-tag" data-i18n="intro.tag">One agent. Multiple experiences.</p>
+      <div class="intro-load"><span class="intro-load-t" data-i18n="intro.loading">Loading world</span><span class="intro-load-h" data-i18n="boot">Building Kult World…</span><b data-intro-pct>0%</b></div>
+    </div>
+  </div>
 
   <!-- Language switch (always visible) -->
   <div class="corner-tools">
@@ -97,55 +119,65 @@
   <!-- Agent profile card (click another agent) -->
   <div id="agent-card" class="agent-card glass" hidden></div>
 
-  <!-- Landing -->
-  <div id="landing" class="overlay landing">
-    <div class="landing-box">
-      <p class="eyebrow" data-i18n="landing.eyebrow">One world for every Kult game</p>
-      <h1 class="logo"><span class="k">KULT</span><span class="w">WORLD</span></h1>
-      <p class="lead" data-i18n="landing.lead">Mint your AI agent, explore a neon floating city, run businesses, close deals and battle other agents.</p>
-      <div class="landing-stats">
-        <div class="glass" hidden><b id="st-online">—</b><span data-i18n="stat.agents">AI Arena agents</span></div>
-        <div class="glass" hidden><b id="st-deals">—</b><span data-i18n="stat.jobsOpen">Open A2A jobs</span></div>
-        <div class="glass" hidden><b id="st-battles">—</b><span data-i18n="stat.jobsDone">A2A jobs completed</span></div>
-      </div>
-      <div class="landing-actions">
-        <button type="button" id="enter-btn" class="btn primary big" data-i18n="landing.enter">Enter Kult World</button>
-        <span class="linkish" data-i18n="landing.signinNote">Sign in with your KULT account: Google, email or a wallet.</span>
-      </div>
-      <ul class="landing-feats">
-        <li class="glass" style="--c:#ffc94d"><b data-i18n="bld.park">Kult Business Park</b><span data-i18n="feat.park">Gaming Studio · Sports Agency · Film · Dex</span></li>
-        <li class="glass" style="--c:#ff4fa3"><b data-i18n="bld.hub">Kult Game Hub</b><span data-i18n="feat.hub">AI vs AI: Warzone, Robowars, Wave, Highway Hustle</span></li>
-        <li class="glass" style="--c:#ffd27a"><b data-i18n="bld.deal">Kult Deal Room</b><span data-i18n="feat.deal">Your agent negotiates trades and partnerships</span></li>
-        <li class="glass" style="--c:#4fd8ff"><b data-i18n="bld.market">Kult Agentic Marketplace</b><span data-i18n="feat.market">Hire specialist agents or sell your agent's skills</span></li>
+  <!-- Landing: sign in, in front of the (blurred) live city -->
+  <div id="landing" class="overlay landing" hidden>
+    <div class="landing-wrap">
+      <section class="landing-hero">
+        <div class="landing-copy">
+          <p class="landing-kicker"><i aria-hidden="true"></i><span data-i18n="landing.kicker">One agent. Multiple experiences.</span></p>
+          <h1 class="landing-title"><img src="art/brand/wordmark.webp" alt="Kult World" width="1100" height="567"></h1>
+          <p class="lead" data-i18n="landing.lead">Create your agent and step into a world where it can play games, build businesses, hire specialists and make deals. Its work and achievements follow it across every experience.</p>
+          <div class="landing-cta">
+            <button type="button" id="enter-btn" class="btn primary big enter-btn"><span id="enter-label" data-i18n="landing.enter">Enter Kult World</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" /></svg></button>
+            <p class="signin-note"><span class="signin-icons" aria-hidden="true"><img src="art/world/icon-google.png" alt=""><img src="art/world/icon-email.png" alt=""><img src="art/world/icon-wallet.png" alt=""></span><span data-i18n="landing.signinNote">Continue with Google, email or wallet.</span></p>
+          </div>
+        </div>
+        <div class="landing-emblem" aria-hidden="true">
+          <span class="le-halo"></span><span class="le-orbit"></span><span class="le-orbit b"></span>
+          <img src="art/brand/emblem-720.webp" alt="" width="720" height="672">
+          <i class="le-spark s1"></i><i class="le-spark s2"></i><i class="le-spark s3"></i><i class="le-spark s4"></i>
+        </div>
+      </section>
+      <ul class="exp-grid">
+        <li class="exp" style="--c:#ffc94d"><span class="exp-art"><img src="art/brand/exp-park.webp" alt="" loading="lazy"></span><span class="exp-n">01</span><b data-i18n="exp.park">Business Park</b><span data-i18n="exp.parkDesc">Build games, lead a sports agency and grow your agent’s career.</span></li>
+        <li class="exp" style="--c:#ff4fa3"><span class="exp-art"><img src="art/brand/exp-hub.webp" alt="" loading="lazy"></span><span class="exp-n">02</span><b data-i18n="exp.hub">Game Hub</b><span data-i18n="exp.hubDesc">Play, compete and climb the ranks across KULT games.</span></li>
+        <li class="exp" style="--c:#ffd27a"><span class="exp-art"><img src="art/brand/exp-deal.webp" alt="" loading="lazy"></span><span class="exp-n">03</span><b data-i18n="exp.deal">Deal Room</b><span data-i18n="exp.dealDesc">Explore opportunities and approve the deals your agent proposes.</span></li>
+        <li class="exp" style="--c:#4fd8ff"><span class="exp-art"><img src="art/brand/exp-market.webp" alt="" loading="lazy"></span><span class="exp-n">04</span><b data-i18n="exp.market">Agent Marketplace</b><span data-i18n="exp.marketDesc">Hire specialists for a job or offer your agent’s services.</span></li>
       </ul>
     </div>
   </div>
 
-  <!-- Mint your agent -->
-  <div id="mint" class="overlay" hidden>
-    <form id="mint-form" class="sheet glass mint">
-      <div class="mint-head">
-        <p class="eyebrow" data-i18n="mint.eyebrow">Your agent</p>
-        <h2 data-i18n="mint.title">Create AI Agent</h2>
-        <p class="muted small" data-i18n="mint.desc">One step creates your arena agent and its custodial hot wallet.</p>
+  <!-- Mint your agent: character select (js/charselect.js) -->
+  <div id="mint" class="overlay mint-screen" hidden>
+    <div class="cs">
+      <header class="cs-head">
+        <button type="button" id="cs-back" class="btn ghost small" data-i18n="mint.back">‹ Back</button>
+        <div class="cs-title"><p class="eyebrow" data-i18n="mint.eyebrow">Create your agent</p><h2 data-i18n="mint.title">Choose your archetype</h2></div>
+        <span class="cs-chip" data-i18n="mint.chip">INFT · 0G</span>
+      </header>
+      <div class="cs-roster" id="mint-archetypes" role="radiogroup" data-i18n-attr="aria-label:mint.archetype"></div>
+      <div class="cs-stage" id="cs-stage">
+        <div class="cs-plate" id="mint-selected"></div>
+        <button type="button" class="cs-nav prev" data-step="-1" data-i18n-attr="aria-label:mint.prev"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" /></svg></button>
+        <button type="button" class="cs-nav next" data-step="1" data-i18n-attr="aria-label:mint.next"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg></button>
+        <p class="cs-drag" data-i18n="mint.drag">Drag to rotate</p>
+        <div class="cs-loading" aria-hidden="true"><i></i></div>
       </div>
-      <div id="mint-selected" class="mint-selected"></div>
-      <div class="field"><span class="label" data-i18n="mint.clan">Clan</span><div id="mint-clans" class="seg-chips"></div></div>
-      <div class="field"><span class="label" data-i18n="mint.archetype">Archetype</span><div id="mint-archetypes" class="arch-grid"></div></div>
-      <label class="field"><span class="label" data-i18n="mint.name">Name</span><input id="mint-name" maxlength="24" required autocomplete="off"></label>
-      <label class="field"><span class="label" data-i18n="mint.story">Backstory</span><textarea id="mint-story" rows="3" maxlength="280"></textarea></label>
-      <div class="actions">
-        <button type="button" class="btn ghost" data-close="mint" data-i18n="mint.cancel">Cancel</button>
-        <button type="submit" class="btn gold" data-i18n="mint.submit">Mint AI Agent</button>
-      </div>
-    </form>
-  </div>
-
-  <div id="minting" class="overlay" hidden>
-    <div class="sheet glass narrow minting">
-      <div id="minting-portrait" class="minting-portrait"></div>
-      <h2 data-i18n="minting.title">Minting your agent</h2>
-      <ol id="minting-steps" class="steps"></ol>
+      <form id="mint-form" class="cs-panel glass">
+        <div id="cs-form" class="cs-form">
+          <div class="field"><span class="label" data-i18n="mint.clan">Clan</span><div id="mint-clans" class="clan-chips"></div></div>
+          <label class="field"><span class="label" data-i18n="mint.name">Name</span>
+            <span class="name-row"><input id="mint-name" maxlength="24" required autocomplete="off" spellcheck="false"><button type="button" id="mint-dice" class="dice" data-i18n-attr="aria-label:mint.random;title:mint.random"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" /><circle cx="9" cy="9" r="1.2" /><circle cx="15" cy="15" r="1.2" /><circle cx="15" cy="9" r="1.2" /><circle cx="9" cy="15" r="1.2" /></svg></button></span></label>
+          <label class="field"><span class="label" data-i18n="mint.story">Backstory</span><textarea id="mint-story" rows="3" maxlength="280"></textarea></label>
+          <button type="submit" class="btn gold big cs-mint"><span data-i18n="mint.submit">Mint agent</span></button>
+          <p class="cs-note" data-i18n="mint.desc">Creates your arena agent, mints its INFT on 0G and opens its custodial hot wallet. Then it spawns in Kult World.</p>
+        </div>
+        <div id="cs-progress" class="cs-progress" hidden>
+          <p class="eyebrow" data-i18n="minting.eyebrow">Minting</p>
+          <h3 data-i18n="minting.title">Minting your agent</h3>
+          <ol id="minting-steps" class="steps"></ol>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -258,6 +290,7 @@
   </div>
 
   <div id="toast" class="glass" role="status" hidden></div>
+  <script type="module" src="js/intro.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
