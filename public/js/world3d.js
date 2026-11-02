@@ -277,7 +277,7 @@ export class World {
     const group = new THREE.Group(); this.scene.add(group);
     const tag = document.createElement("div");
     tag.className = `agent-tag${isPlayer ? " me" : ""}`; tag.style.setProperty("--c", color);
-    tag.innerHTML = `<i></i><span></span>`; tag.querySelector("span").textContent = name;
+    tag.innerHTML = `<i></i><span></span><q class="say"></q>`; tag.querySelector("span").textContent = name;
     const label = new CSS2DObject(tag); label.position.y = 2.9; group.add(label);
     const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2.6, 8), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 1.3; group.add(hit);
     if (!isPlayer) { const blob = new THREE.Mesh(BLOB.geo, BLOB.mat()); blob.rotation.x = -Math.PI / 2; blob.position.y = 0.03; group.add(blob); }
@@ -332,6 +332,22 @@ export class World {
     a.current = name;
   }
   emote(a, name) { this.play(a, name, true); }
+  // A speech bubble over the agent's head for `ms`.
+  say(a, text, ms = 4200) {
+    const b = a.label.element.querySelector(".say");
+    clearTimeout(a.sayT);
+    b.textContent = text; b.classList.add("on");
+    a.saying = true;
+    a.sayT = setTimeout(() => { b.classList.remove("on"); a.saying = false; }, ms);
+  }
+  // Where the agent's head is on screen, in pixels; null when it is off
+  // screen or too close to the edges.
+  screenAt(a, margin = 0.85) {
+    const v = a.group.position.clone(); v.y += 2.4; v.project(this.camera);
+    if (v.z >= 1 || Math.abs(v.x) >= margin || Math.abs(v.y) >= margin) return null;
+    const r = this.canvas.getBoundingClientRect();
+    return { x: (v.x + 1) / 2 * r.width, y: (1 - v.y) / 2 * r.height };
+  }
   agentClips(a) { return (a.ownGLB || this.agentGLB)?.animations || []; }
   get player() { return this.agents.get("me"); }
 

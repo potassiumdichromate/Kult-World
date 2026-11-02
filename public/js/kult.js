@@ -15,17 +15,33 @@ const KEYS = { arena: "kw.arena.session.v1", kult: "kw.kult.session.v1" };
 const read = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
 const write = (k, v) => { try { v ? localStorage.setItem(k, JSON.stringify(v)) : localStorage.removeItem(k); } catch { /* private mode */ } };
 
-let cfgLoading = null;
+// Demo mode (js/demo.js) answers every call below in the browser: DEMO_MODE
+// on the server ("1" or "fresh"), or ?demo=1 / ?demo=fresh in the address;
+// ?demo=0 turns it off.
+let cfg = null, cfgLoading = null, demo = null;
 export function config() {
-  cfgLoading ||= fetch("config.json", { cache: "no-store" }).then((r) => r.json());
+  cfgLoading ||= fetch("config.json", { cache: "no-store" }).then((r) => r.json()).then(async (c) => {
+    const params = new URLSearchParams(location.search), asked = params.get("demo");
+    const mode = asked ?? c.demo;
+    c.demo = mode && mode !== "0" ? mode : false;
+    if (c.demo) {
+      demo = (await import("./demo.js")).createDemo({ fresh: c.demo === "fresh", reset: asked === "fresh" });
+      // A reload keeps what was just set up rather than starting over.
+      if (asked === "fresh") { params.set("demo", "1"); history.replaceState(null, "", `${location.pathname}?${params}${location.hash}`); }
+    }
+    cfg = c;
+    return c;
+  });
   return cfgLoading;
 }
+export const isDemo = () => Boolean(demo);
 
 // ------------------------------------------------------------------ Privy
 let privy = null, privyLoading = null;
 export function privyClient() {
   privyLoading ||= (async () => {
     const c = await config();
+    if (demo) return (privy = demo.privy);
     const { init } = await import(new URL("../privy/kult-privy.js", import.meta.url).href);
     privy = await init({ appId: c.privyAppId, clientId: c.privyClientId });
     return privy;
@@ -40,6 +56,11 @@ export class ApiError extends Error {
 const errorText = (body, status) => body?.error?.message || body?.error || body?.message || `Request failed (${status})`;
 
 async function call(base, path, { method = "GET", body, headers = {}, token } = {}) {
+  if (demo) {
+    const { status, data } = await demo.call(base === cfg.kultApi ? "kult" : "arena", path, { method, body });
+    if (status >= 400) throw new ApiError(errorText(data, status), status, data);
+    return data;
+  }
   const res = await fetch(`${base}${path}`, {
     method,
     headers: { ...(body !== undefined ? { "Content-Type": "application/json" } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...headers },
@@ -242,6 +263,7 @@ export const okxApi = {
    */
   call: async (providerId, service, input, paymentHeader) => {
     const c = await config();
+    if (demo) return demo.a2mcp(providerId, service, input, paymentHeader);
     const res = await fetch(`${c.arenaApi}${OKX}/p/${enc(providerId)}/${enc(service)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Kult-World": "1", ...(paymentHeader ? { "PAYMENT-SIGNATURE": paymentHeader } : {}) },

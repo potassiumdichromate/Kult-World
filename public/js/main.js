@@ -17,6 +17,7 @@ import { CharacterStage } from "./charselect.js";
 import { introDone, introReady } from "./intro.js";
 import { createOkx } from "./okx.js";
 import { createA2A } from "./a2a.js";
+import { createChatter } from "./chatter.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES, DEALS, DEAL_LINES,
   agentFromApi, loadProgress, saveProgress
@@ -155,6 +156,9 @@ async function populateCity() {
     if (!world.agents.has(a.id)) world.addAgent(a.id, { id: a.id, name: a.name, archetype: a.archetype, clan: a.clan, elo: a.elo, x: x + 0.5, y: y + 0.5 });
   }
 }
+
+// Speech bubbles over the agents walking the map (js/chatter.js).
+const chatter = createChatter(world, { lang: getLang, active: () => state.inWorld && !anyOpen(), place: (a) => t(`district.${world.districtAt(a.x, a.y)}`) });
 
 // ------------------------------------------------------------------ pointer
 const canvas = $("world");
@@ -496,7 +500,8 @@ function quest(id, by = 1) {
 }
 function gainXp(n) { const pp = state.player.passport; pp.xp += n; while (pp.xp >= pp.xpToNext) { pp.xp -= pp.xpToNext; pp.level += 1; pp.xpToNext = Math.round(pp.xpToNext * 1.35); toast(t("toast.level", { n: pp.level }), "good"); sound.play("level"); } }
 function commit() { if (!state.player) return; saveProgress(state.player.wallet, state.player.passport); renderPassport(); renderQuests(); }
-async function signOut() { await session.signOut(); location.href = location.pathname; }
+// A demo stays a demo after logging out.
+async function signOut() { await session.signOut(); const d = new URLSearchParams(location.search).get("demo"); location.href = location.pathname + (d ? `?demo=${encodeURIComponent(d)}` : ""); }
 
 function togglePassport(force) { const o = $("passport").classList.toggle("open", force); $("passport-toggle").setAttribute("aria-expanded", String(o)); }
 $("passport-toggle").addEventListener("click", () => togglePassport());
@@ -599,6 +604,7 @@ async function openApp(b) {
       await loadScriptOnce(`${c.kultCreateUrl}/embed.js`);
       const privy = await privyClient();
       window.KultCreate.open({
+        demo: Boolean(c.demo),
         getSession: async () => (privy.authenticated ? privy.tokens() : null),
         login: async () => { await privy.login(); },
         onExit: () => toast(t("toast.back"))
@@ -607,9 +613,10 @@ async function openApp(b) {
     } catch (e) { toast(e.message, "bad"); }
   } else if (b.id === "sports") {
     const url = new URL(`${c.kultSportsUrl}/`);
-    if (session.arena?.accessToken) { url.searchParams.set("jwt", session.arena.accessToken); url.searchParams.set("source", "kult-world"); }
+    if (c.demo) url.searchParams.set("demo", "1");
+    else if (session.arena?.accessToken) { url.searchParams.set("jwt", session.arena.accessToken); url.searchParams.set("source", "kult-world"); }
     $("app-title").textContent = `${b.brand} · ${t(`biz.${b.id}.name`)}`;
-    $("app-newtab").href = `${c.kultSportsUrl}/`;
+    $("app-newtab").href = `${c.kultSportsUrl}/${c.demo ? "?demo=1" : ""}`;
     $("app-iframe").src = url.href;
     show("app-frame");
     addActivity(t("act.entered", { brand: b.brand }));
@@ -846,7 +853,7 @@ let viewer = null;
 function closeAgentCard() { if ($("agent-card").hidden) return; show("agent-card", false); viewer?.hide(); }
 async function showAgentCard(a) {
   const card = $("agent-card");
-  a.paused = true; a.path = []; world.emote(a, "Wave");
+  a.paused = true; a.path = []; world.emote(a, "Wave"); chatter.hello(a);
   setTimeout(() => { a.paused = false; }, 4000);
   sound.play("open");
   let raw = null;

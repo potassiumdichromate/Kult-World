@@ -12,7 +12,7 @@
 //   → POST /v1/battles/:id/end, then trait evolution, training, 0G commentary
 //     and 0G memory, exactly as the browser does.
 
-import { arenaApi } from "./kult.js";
+import { arenaApi, isDemo } from "./kult.js";
 
 const UNITY = {
   warzone: { dir: "Warzone2", file: "WarzoneV4", payloadKey: "arenaBattlePayload", event: "arenaBattleEnd" },
@@ -142,7 +142,8 @@ const stats = (o = {}) => ({ jumps: 0, shotsAttempted: 0, shotsConnected: 0, tim
 // ------------------------------------------------------------------ Robowars
 /** Hands the battle to the desktop launcher and waits for its result. */
 export async function playLauncher({ battleId, me, them, isAlive, onTick }) {
-  location.href = `aiarena://launch?matchId=${encodeURIComponent(battleId)}&agentA=${encodeURIComponent(me.id)}&agentB=${encodeURIComponent(them.id)}`;
+  // In demo mode the battle reports itself (js/demo.js), without the launcher.
+  if (!isDemo()) location.href = `aiarena://launch?matchId=${encodeURIComponent(battleId)}&agentA=${encodeURIComponent(me.id)}&agentB=${encodeURIComponent(them.id)}`;
   const started = Date.now();
   for (;;) {
     await wait(2000);

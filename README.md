@@ -41,6 +41,15 @@ only accepts browser calls from its own site). Settings come from
 | `UNITY_BUILD_URL` | the Warzone/Wave/Highway WebGL builds on R2 |
 | `KULT_CREATE_URL`, `KULT_SPORTS_URL` | the two businesses |
 | `AGENCY_API_URL` | `/api/arena/v1/marketplace/agencies` |
+| `DEMO_MODE` | unset. `1` runs the demo (below) for every visitor; `fresh` does too, starting with no agent so minting is shown |
+
+**Demo mode** (`js/demo.js`): every backend call is answered in the browser by
+a lived-in KULT: a signed-in player with a seasoned agent, 30 city agents,
+battles that report themselves, an A2A board with jobs at every stage, and
+businesses on the OKX gateway taking paid calls while you watch. Nothing reaches
+a backend, wallet or chain. Turn it on per visit with `?demo=1` (or
+`?demo=fresh`), or for everyone with `DEMO_MODE`; `?demo=0` turns it off. Kult
+Create and Kult Sports open in their own demos from it.
 
 Privy only signs in on origins its dashboard allows: production
 `world.kult.games` is allowed, and so are `localhost:5173` and `localhost:8080`

@@ -887,3 +887,12 @@ img.ph { background: color-mix(in srgb, var(--ac, #a98bff) 35%, #140c2c); }
 @media (max-width: 900px) { .landing-session { justify-content: center; } }
 @media (max-width: 520px) { .logout-btn.confirm { padding: 0 11px; } .logout-btn.confirm span { display: none; } }
 @media (max-width: 860px) { .cs-head { grid-template-columns: auto minmax(0, 1fr); } .cs-tools { grid-column: 1 / -1; justify-content: flex-end; } }
+
+/* ---------------------------------------------------------------- speech bubbles */
+.agent-tag { position: relative; }
+.agent-tag .say { position: absolute; left: 50%; bottom: calc(100% + 10px); width: max-content; max-width: 210px; padding: 7px 11px; border-radius: 12px; quotes: none; white-space: normal; text-align: center; font: 600 12px/1.35 var(--body, system-ui); letter-spacing: 0; color: #fff; background: rgba(18, 11, 40, 0.88); border: 1px solid color-mix(in srgb, var(--c) 70%, transparent); box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35), 0 0 16px color-mix(in srgb, var(--c) 35%, transparent); opacity: 0; transform: translate(-50%, 6px) scale(0.7); transform-origin: 50% 100%; transition: opacity 0.22s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); pointer-events: none; }
+.agent-tag .say::after { content: ""; position: absolute; left: 50%; top: 100%; width: 9px; height: 9px; background: inherit; border: inherit; border-top: 0; border-left: 0; transform: translate(-50%, -4px) rotate(45deg); }
+.agent-tag .say.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.agent-tag.me .say { color: #2b1700; background: linear-gradient(135deg, #fff1c4, #ffd46b); border-color: rgba(255, 240, 200, 0.9); }
+@media (max-width: 520px) { .agent-tag .say { max-width: 150px; font-size: 11px; padding: 6px 9px; } }
+@media (prefers-reduced-motion: reduce) { .agent-tag .say { transition: opacity 0.2s; transform: translate(-50%, 0); } }

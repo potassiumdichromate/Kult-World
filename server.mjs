@@ -27,8 +27,15 @@ const CONFIG = JSON.stringify({
   agencyApi: process.env.AGENCY_API_URL || "/api/arena/v1/marketplace/agencies",
   unityBuildUrl: trim(process.env.UNITY_BUILD_URL || "https://pub-2c48e58780b648b7a2a77316f7b0aa2c.r2.dev/v4/WarzoneV4"),
   kultCreateUrl: trim(process.env.KULT_CREATE_URL || "https://kult-create.onrender.com"),
-  kultSportsUrl: trim(process.env.KULT_SPORTS_URL || "https://kult-sports.onrender.com")
+  kultSportsUrl: trim(process.env.KULT_SPORTS_URL || "https://kult-sports.onrender.com"),
+  // DEMO_MODE=1 (or "fresh": no agent yet, so minting is shown) runs the page
+  // on js/demo.js instead of the KULT backends, for every visitor.
+  demo: demoMode(process.env.DEMO_MODE)
 });
+function demoMode(v) {
+  const s = String(v ?? "").trim().toLowerCase();
+  return s === "fresh" ? "fresh" : ["1", "true", "on", "yes"].includes(s) ? "1" : false;
+}
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp", ".ico": "image/x-icon", ".glb": "model/gltf-binary", ".gltf": "model/gltf+json", ".wasm": "application/wasm" };
 
 // Request headers worth forwarding; everything else (cookies, origin, host)
