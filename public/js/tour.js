@@ -260,8 +260,12 @@ function buildSteps(c) {
     { id: "w-okx", phase: "world", target: "#okx-owner-btn", next: true, lost: () => !open("park"), fallback: "w-park-go" },
     { id: "w-park-close", phase: "world", target: "#park .close", done: () => !open("park") },
     { id: "w-market-go", phase: "world", target: dock("market"), done: () => open("market"), doneDelay: 700, quiet: walking },
-    { id: "w-market", phase: "world", target: "#market-tabs", next: true, lost: () => !open("market"), fallback: "w-market-go" },
+    { id: "w-market", phase: "world", target: "#market-brand", next: true, lost: () => !open("market"), fallback: "w-market-go" },
     { id: "w-market-close", phase: "world", target: "#market .close", done: () => !open("market") },
+    // The Base A2A Marketplace shares the sheet; its job board shows instead.
+    { id: "w-a2a-go", phase: "world", target: dock("a2a"), done: () => open("market") && open("agent-home"), doneDelay: 700, quiet: walking },
+    { id: "w-a2a", phase: "world", target: "#market-brand", next: true, lost: () => !open("market"), fallback: "w-a2a-go" },
+    { id: "w-a2a-close", phase: "world", target: "#market .close", done: () => !open("market") },
     { id: "w-pass-go", phase: "world", target: '#dock [data-act="passport"]', done: () => $("passport").classList.contains("open"), doneDelay: 600 },
     { id: "w-pass", phase: "world", target: "#passport-body", pad: 0, next: true, lost: () => !$("passport").classList.contains("open"), fallback: "w-pass-go",
       leave: () => c.togglePassport(false) },

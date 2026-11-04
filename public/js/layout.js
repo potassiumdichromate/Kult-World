@@ -37,7 +37,7 @@ paint(12, 4, 15, 24, "p"); paint(4, 12, 24, 15, "p"); paint(4, 22, 24, 24, "p");
 paint(12, 24, 15, 27, "p"); paint(24, 12, 27, 15, "p");
 // Game Hub forecourt, Deal Room plaza and the path between them.
 paint(30, 16, 46, 19, "p"); paint(44, 11, 54, 14, "p"); paint(47, 14, 50, 19, "p");
-// Marketplace forecourt and its street.
+// Market Street: the OKX.AI and Base A2A marketplaces share one forecourt.
 paint(3, 44, 27, 47, "p"); paint(3, 30, 27, 32, "p");
 export const POND = { x: 43, y: 42, r: 4.2 };
 disc(POND.x, POND.y, POND.r, "w");
@@ -45,6 +45,7 @@ paint(41, 30, 44, 37, "p");                // garden path to the pond
 
 // ------------------------------------------------------------------ buildings
 // kind: biz (a business inside the park), park (the campus gate), hub, deal, market.
+// The two marketplaces share kind "market"; tab picks which one opens.
 // Footprint in tiles (x1/y1 exclusive); door = the walkable tile in front of the entrance.
 export const BUILDINGS = [
   { id: "dex", kind: "biz", slot: "bld-dex", x0: 4, y0: 4, x1: 11, y1: 12, h: 24, door: [7, 12], color: "#4fd8ff", status: "soon" },
@@ -52,9 +53,10 @@ export const BUILDINGS = [
   { id: "create", kind: "biz", slot: "bld-gaming-studio", x0: 4, y0: 16, x1: 11, y1: 22, h: 12, door: [7, 22], color: "#ff7eb6", status: "open" },
   { id: "production", kind: "biz", slot: "bld-film", x0: 16, y0: 16, x1: 23, y1: 22, h: 10, door: [19, 22], color: "#ffc94d", status: "soon" },
   { id: "park", kind: "park", slot: "campus-gate", x0: 12, y0: 24, x1: 15, y1: 25, h: 8, door: [13, 25], color: "#ffc94d" },
-  { id: "hub", kind: "hub", slot: "bld-game-hub", x0: 33, y0: 5, x1: 43, y1: 16, h: 12, door: [37, 16], color: "#ff4fa3" },
+  { id: "hub", kind: "hub", slot: "bld-game-hub", x0: 33, y0: 5, x1: 43, y1: 16, h: 14, door: [37, 16], color: "#a96bff" },
   { id: "deal", kind: "deal", slot: "bld-deal-room", x0: 46, y0: 3, x1: 53, y1: 11, h: 18, door: [49, 11], color: "#ffc94d" },
-  { id: "market", kind: "market", slot: "bld-marketplace", x0: 5, y0: 34, x1: 21, y1: 44, h: 10, door: [13, 44], color: "#4fd8ff" }
+  { id: "market", kind: "market", tab: "okx", slot: "bld-okx-market", x0: 4, y0: 34, x1: 14, y1: 44, h: 13, door: [9, 44], color: "#e8e8e8" },
+  { id: "a2a", kind: "market", tab: "jobs", slot: "bld-base-market", x0: 16, y0: 34, x1: 26, y1: 44, h: 11, door: [21, 44], color: "#3d7bff" }
 ];
 export const ENTERABLE = BUILDINGS;
 export const FOUNTAIN = { x: CENTER[0], y: CENTER[1], r: 2.2 };
@@ -193,7 +195,7 @@ for (const [x, y, rot] of [[38.6, 37.6, 0.8], [47.4, 37.6, -0.8], [38.6, 46.6, 2
 for (let i = 0; i < 26; i++) { const x = 31 + rnd() * 22, y = 31 + rnd() * 22; if (free(x, y)) put("flowers", x, y, { rot: rnd() * 6.28 }, false); }
 for (let i = 0; i < 12; i++) { const x = 3 + rnd() * 22, y = 33 + rnd() * 20; if (free(x, y)) put("flowers", x, y, { rot: rnd() * 6.28 }, false); }
 // Billboards.
-put("billboard", 45.5, 21.5, { ad: 0 }); put("billboard", 7, 28.4, { ad: 1 }); put("billboard", 23.5, 33, { ad: 2 }); put("billboard", 51.5, 27, { ad: 3 });
+put("billboard", 45.5, 21.5, { ad: 0 }); put("billboard", 7, 28.4, { ad: 1 }); put("billboard", 24.5, 49.5, { ad: 2 }); put("billboard", 51.5, 27, { ad: 3 });
 put("crane", 31.5, 9.5);
 
 export const walkable = (x, y) => x >= 0 && y >= 0 && x < MAP && y < MAP && !blocked[x][y];

@@ -6,6 +6,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { OG_LOGO } from "./og-logo.js";
 
 // 1 tile = T world units (metres).
 export const T = 2;
@@ -20,7 +21,8 @@ export const SLOTS = {
   "monument": { size: [2, 2], height: 6 },
   "bld-game-hub": { size: [10, 11], height: 14 },
   "bld-deal-room": { size: [7, 8], height: 20 },
-  "bld-marketplace": { size: [16, 10], height: 11 },
+  "bld-okx-market": { size: [10, 10], height: 13 },
+  "bld-base-market": { size: [10, 10], height: 11 },
   "fountain": { size: [4.4, 4.4], height: 6 },
   "spawn-pad": { size: [2.4, 2.4], height: 0.4 },
   "tree": { size: [1.6, 1.6], height: 4 },
@@ -90,19 +92,36 @@ const facadeMat = (cols, rows, o) => { const f = facade(cols, rows, o); return n
 
 // ------------------------------------------------------------------ signs (translatable)
 const FONT = `"Chakra Petch", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif`;
-export function signTexture(lines, { w = 1024, h = 256, colors = ["#ff7eb6", "#4fd8ff"], bg = null } = {}) {
+// With a logo (a loaded image), the logo takes the top of the sign and the
+// lines go underneath it in one smaller row each.
+export function signTexture(lines, { w = 1024, h = 256, colors = ["#ff7eb6", "#4fd8ff"], bg = null, logo = null, logoGlow = null } = {}) {
   return canvasTex(w, h, (g) => {
     if (bg) { g.fillStyle = bg; g.fillRect(0, 0, w, h); } else g.clearRect(0, 0, w, h);
     g.textAlign = "center"; g.textBaseline = "middle";
+    const hasLogo = logo?.complete && logo.naturalWidth > 0, top = hasLogo ? 0.56 : 0;
+    if (hasLogo) {
+      const lh = h * 0.46, lw = Math.min(w * 0.86, (logo.naturalWidth / logo.naturalHeight) * lh), lh2 = lw * (logo.naturalHeight / logo.naturalWidth);
+      g.shadowColor = logoGlow || colors[0]; g.shadowBlur = h * 0.06;
+      g.drawImage(logo, (w - lw) / 2, h * 0.04 + (lh - lh2) / 2, lw, lh2);
+    }
     lines.forEach((t, i) => {
-      let size = i === 0 ? h * 0.46 : h * 0.24;
+      let size = hasLogo ? h * (lines.length === 1 ? 0.26 : 0.17) : i === 0 ? h * 0.46 : h * 0.24;
       g.font = `700 ${size}px ${FONT}`;
       while (g.measureText(t).width > w * 0.94 && size > 10) { size *= 0.92; g.font = `700 ${size}px ${FONT}`; }
       g.shadowColor = colors[i % colors.length]; g.shadowBlur = h * 0.08;
       g.fillStyle = colors[i % colors.length];
-      g.fillText(t, w / 2, lines.length === 1 ? h / 2 : i === 0 ? h * 0.36 : h * 0.78);
+      const y = hasLogo ? (lines.length === 1 ? (top + 1) / 2 : top + (1 - top) * (i + 0.5) / lines.length) : lines.length === 1 ? 0.5 : i === 0 ? 0.36 : 0.78;
+      g.fillText(t, w / 2, h * y);
     });
   });
+}
+// Partner logos (public/art/partners), loaded once; signs redraw when one arrives.
+const logos = new Map();
+export function logoImage(name, onload) {
+  let l = logos.get(name);
+  if (!l) { const img = new Image(); l = { img, waiting: new Set() }; img.onload = () => { for (const f of l.waiting) f(); l.waiting.clear(); }; img.src = `art/partners/${name}.webp`; logos.set(name, l); }
+  if (!l.img.complete) l.waiting.add(onload);
+  return l.img;
 }
 // Lines are strings or [i18nKey, english]; signs re-render on language change.
 let tr = (k, en) => en;
@@ -111,7 +130,8 @@ export function setSignTranslator(fn) { tr = fn; for (const s of signs) s(); }
 export function sign(lines, width, height, opts = {}) {
   const m = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), m);
-  const refresh = () => { m.map?.dispose(); m.map = signTexture(lines.map((l) => (Array.isArray(l) ? tr(l[0], l[1]) : l)), { w: 1024, h: Math.round(1024 * (height / width)), ...opts }); m.needsUpdate = true; };
+  if (opts.dim) m.color.setScalar(opts.dim);
+  const refresh = () => { m.map?.dispose(); m.map = signTexture(lines.map((l) => (Array.isArray(l) ? tr(l[0], l[1]) : l)), { w: 1024, h: Math.round(1024 * (height / width)), ...opts, logo: opts.logo ? logoImage(opts.logo, refresh) : null }); m.needsUpdate = true; };
   refresh(); signs.add(refresh);
   return mesh;
 }
@@ -132,6 +152,16 @@ const cyl = (rt, rb, h, m, seg = 8, x = 0, y = 0, z = 0) => { const o = new THRE
 const ico = (r, m, x = 0, y = 0, z = 0, detail = 0) => { const o = new THREE.Mesh(new THREE.IcosahedronGeometry(r, detail), m); o.position.set(x, y, z); o.castShadow = true; o.receiveShadow = true; return o; };
 const edgeGlow = (g, w, d, y, color, x = 0, z = 0) => { g.add(box(w, 0.16, 0.16, M.glow(color, 2.6), x, y, z + d / 2)); g.add(box(0.16, 0.16, d, M.glow(color, 2.6), x + w / 2, y, z)); };
 const animate = (g, f) => { const prev = g.userData.anim; g.userData.anim = prev ? (t, dt) => { prev(t, dt); f(t, dt); } : f; };
+
+// ------------------------------------------------------------------ partner brands
+// Each partner place carries its partner's logo over a translated name.
+export const BRAND_SIGNS = {
+  "campus-gate": { logo: "minds", lines: [["sign.park", "ANIMOCA MINDS BUSINESS PARK"]], colors: ["#9fc2ff"], logoGlow: "#5b7cff", w: 12 },
+  "bld-game-hub": { logo: "solana", lines: [["sign.hub", "SOLANA GAMING HUB"]], colors: ["#14f195"], logoGlow: "#9945ff" },
+  "bld-okx-market": { logo: "okx", lines: [["sign.okx", "OKX.AI MARKETPLACE"]], colors: ["#ffffff"], logoGlow: "#ffffff" },
+  "bld-base-market": { logo: "base", lines: [["sign.a2a", "BASE A2A MARKETPLACE"]], colors: ["#8fb4ff"], logoGlow: "#0052ff" }
+};
+function brandSign(slot, width) { const b = BRAND_SIGNS[slot]; return sign(b.lines, width, width * 0.42, { colors: b.colors, logo: b.logo, logoGlow: b.logoGlow, dim: 0.62 }); }
 
 // ------------------------------------------------------------------ business park buildings
 // Builders get { W, D } (footprint in metres) and build centred on the origin,
@@ -243,7 +273,7 @@ function campusGate({ W }) {
   for (const sx of [-1, 1]) { g.add(box(1, 7, 1, M.frame(), sx * span / 2)); g.add(box(0.2, 6.6, 0.2, M.glow("#ffc94d", 2.6), sx * span / 2, 0.2, 0.52)); g.add(ico(0.35, M.glow("#ffc94d", 3), sx * span / 2, 7.4, 0)); }
   g.add(box(span + 1, 1.4, 0.8, M.frame(), 0, 6.2));
   g.add(box(span + 1, 0.14, 0.14, M.glow("#ffc94d", 3), 0, 6.2, 0.45));
-  const s = sign(["KULT", ["sign.park", "BUSINESS PARK"]], span + 2.4, (span + 2.4) * 0.26, { colors: ["#ffc94d", "#4fd8ff"] }); s.position.set(0, 9, 0.2); g.add(s);
+  const s = brandSign("campus-gate", span + 4); s.position.set(0, 9.6, 0.2); g.add(s);
   return g;
 }
 function monument() {
@@ -284,7 +314,7 @@ function gameHub({ W, D }) {
   g.add(cyl(0.24, 0.24, 3.4, M.metal(), 8, W * 0.28, 9.6, -D * 0.2));
   const knob = ico(1.15, M.glow("#ff4fa3", 2.2), W * 0.28, 13.4, -D * 0.2, 1); g.add(knob);
   g.add(box(W * 0.6, W * 0.17, 0.3, M.frame(), -W * 0.12, 11.6 - W * 0.085, D * 0.32 - 0.25));
-  const s = sign(["KULT", ["sign.hub", "GAME HUB"]], W * 0.66, W * 0.19, { colors: ["#4fd8ff", "#ff4fa3"] }); s.position.set(-W * 0.12, 11.6, D * 0.32); g.add(s);
+  const s = brandSign("bld-game-hub", W * 0.66); s.position.set(-W * 0.12, 12.4, D * 0.32); g.add(s);
   animate(g, (t) => {
     scr.tick(t);
     for (let i = 0; i < 80; i++) { cols[i].set((Math.floor(t * 8) + i) % 3 === 0 ? "#ffe27a" : "#6a4416"); bulbs.setColorAt(i, cols[i]); }
@@ -321,7 +351,7 @@ function dealRoom({ W, D }) {
 }
 
 const STALLS = ["ANALYST", "ARTIST", "TRADER", "CODER", "SCOUT", "EDITOR"];
-function marketplace({ W, D }) {
+function marketplace({ W, D, slot }) {
   const g = new THREE.Group();
   g.add(box(W, 0.6, D, M.stone()));
   g.add(box(W * 0.96, 0.08, D * 0.96, M.glow("#4fd8ff", 0.6), 0, 0.6));
@@ -346,7 +376,7 @@ function marketplace({ W, D }) {
   // Entrance arch with the sign.
   for (const sx of [-1, 1]) g.add(box(0.6, 6, 0.6, M.frame(), sx * 4, 0.6, D / 2 + 0.6));
   g.add(box(9, 0.8, 0.6, M.frame(), 0, 6.2, D / 2 + 0.6)); g.add(box(9, 0.12, 0.12, M.glow("#4fd8ff", 3), 0, 6.2, D / 2 + 0.95));
-  const s = sign(["KULT", ["sign.market", "AGENTIC MARKETPLACE"]], 14, 3.6, { colors: ["#4fd8ff", "#ff7eb6"] }); s.position.set(0, 8.8, D / 2 + 0.7); g.add(s);
+  const s = brandSign(slot, Math.min(14, W * 0.9)); s.position.set(0, 10.4, D / 2 + 0.7); g.add(s);
   animate(g, (t) => {
     globe.rotation.y = t * 0.4; globe.rotation.x = Math.sin(t * 0.3) * 0.3;
     cards.forEach((c, i) => { c.position.y = 3.4 + Math.sin(t * 1.6 + i) * 0.18; c.rotation.y = Math.sin(t * 0.5 + i) * 0.4; });
@@ -379,13 +409,40 @@ function fountain() {
   };
   return g;
 }
+// The 0G logo, extruded: agents are powered by 0G, so it floats over the pad
+// every agent spawns on.
+const OG_PURPLE = "#b46bff";
+export function ogEmblem(width = 3.4) {
+  const shapes = OG_LOGO.shapes.map(({ o, h }) => {
+    const sh = new THREE.Shape(o.map(([x, y]) => new THREE.Vector2(x, y)));
+    sh.holes = h.map((hole) => new THREE.Path(hole.map(([x, y]) => new THREE.Vector2(x, y))));
+    return sh;
+  });
+  const geo = new THREE.ExtrudeGeometry(shapes, { depth: 0.09, bevelEnabled: true, bevelThickness: 0.025, bevelSize: 0.012, bevelSegments: 2, curveSegments: 4 });
+  geo.translate(0, 0, -0.045); geo.scale(width, width, width); geo.computeVertexNormals();
+  const face = new THREE.MeshStandardMaterial({ color: "#c49bff", emissive: "#8a3dff", emissiveIntensity: 0.55, metalness: 0.45, roughness: 0.3 });
+  const side = new THREE.MeshStandardMaterial({ color: "#4a1f8c", emissive: "#5a22b8", emissiveIntensity: 0.35, metalness: 0.7, roughness: 0.35 });
+  const mesh = new THREE.Mesh(geo, [face, side]); mesh.castShadow = true;
+  const g = new THREE.Group(); g.add(mesh);
+  const halo = new THREE.Mesh(new THREE.PlaneGeometry(width * 1.5, width * 1.1), new THREE.MeshBasicMaterial({ map: glowTexture(), color: OG_PURPLE, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }));
+  halo.position.z = -0.12; g.add(halo);
+  return g;
+}
+function poweredBy(g, top) {
+  // Turned to face the isometric camera (azimuth 45°), swaying a little.
+  const face = Math.PI / 4, og = ogEmblem(3.6), y = top + 4.9; og.position.y = y; og.rotation.order = "YXZ"; og.rotation.x = -0.5; g.add(og);
+  const tag = sign([["sign.powered", "AGENTS POWERED BY"]], 4.4, 0.55, { colors: ["#e3ccff"] }); tag.position.y = y + 1.45; tag.rotation.order = "YXZ"; tag.rotation.y = face; tag.rotation.x = -0.5; g.add(tag);
+  const light = new THREE.PointLight(OG_PURPLE, 14, 9, 1.8); light.position.y = y; g.add(light);
+  return (t) => { og.rotation.y = face + Math.sin(t * 0.6) * 0.22; og.position.y = y + Math.sin(t * 1.3) * 0.12; tag.position.y = og.position.y + 1.45; };
+}
 function spawnPad() {
   const g = new THREE.Group();
   g.add(cyl(2.3, 2.5, 0.3, M.frame(), 6));
-  const tex = canvasTex(256, 256, (c) => { c.clearRect(0, 0, 256, 256); c.strokeStyle = "#4fd8ff"; c.lineWidth = 10; c.shadowColor = "#4fd8ff"; c.shadowBlur = 16; c.beginPath(); c.arc(128, 128, 96, 0, Math.PI * 2); c.stroke(); c.strokeStyle = "#ff7eb6"; c.lineWidth = 6; c.beginPath(); c.arc(128, 128, 62, 0, Math.PI * 2); c.stroke(); });
+  const tex = canvasTex(256, 256, (c) => { c.clearRect(0, 0, 256, 256); c.strokeStyle = OG_PURPLE; c.lineWidth = 10; c.shadowColor = OG_PURPLE; c.shadowBlur = 16; c.beginPath(); c.arc(128, 128, 96, 0, Math.PI * 2); c.stroke(); c.strokeStyle = "#4fd8ff"; c.lineWidth = 6; c.beginPath(); c.arc(128, 128, 62, 0, Math.PI * 2); c.stroke(); });
   const disc = new THREE.Mesh(new THREE.CircleGeometry(2.2, 32), new THREE.MeshBasicMaterial({ map: tex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
   disc.rotation.x = -Math.PI / 2; disc.position.y = 0.32; g.add(disc);
-  g.userData.anim = (t) => { disc.rotation.z = t * 0.5; disc.material.opacity = 0.7 + Math.sin(t * 3) * 0.3; };
+  const og = poweredBy(g, 0.3);
+  g.userData.anim = (t) => { disc.rotation.z = t * 0.5; disc.material.opacity = 0.7 + Math.sin(t * 3) * 0.3; og(t); };
   return g;
 }
 
@@ -436,12 +493,12 @@ function bench() {
   for (const x of [-0.6, 0.6]) g.add(box(0.1, 0.45, 0.45, M.frame(), x, 0));
   return g;
 }
-const ADS = [["AI ARENA", "BATTLE NOW"], ["KULT CREATE", "BUILD GAMES"], ["KULT SPORTS", "MATCHDAY LIVE"], ["DEAL ROOM", "TRADE · PARTNER"], ["MARKETPLACE", "HIRE AN AGENT"]];
+const ADS = [["SOLANA GAMING HUB", "BATTLE NOW"], ["OKX.AI", "HIRE A KULT AGENCY"], ["BASE A2A", "AGENTS HIRE AGENTS"], ["POWERED BY 0G", "AI AGENTS ON-CHAIN"], ["ANIMOCA MINDS", "BUSINESS PARK"]];
 function billboard(ad = 0) {
   const g = new THREE.Group();
   for (const x of [-1.6, 1.6]) g.add(cyl(0.12, 0.12, 4.2, M.metal(), 6, x, 0));
   g.add(box(4.4, 2.5, 0.25, M.frame(), 0, 4));
-  const tex = ADS.map((a, i) => signTexture(a, { colors: [["#ff4fa3", "#4fd8ff", "#7ef0a6", "#ffc94d", "#c79bff"][i], "#ffffff"], bg: "#0b0717" }));
+  const tex = ADS.map((a, i) => signTexture(a, { colors: [["#14f195", "#ffffff", "#5b8cff", "#b46bff", "#9fc2ff"][i], "#ffffff"], bg: "#0b0717" }));
   const screen = new THREE.Mesh(new THREE.PlaneGeometry(4.1, 2.2), new THREE.MeshBasicMaterial({ map: tex[ad % ADS.length], toneMapped: false }));
   screen.position.set(0, 5.25, 0.14); g.add(screen);
   let cur = ad % ADS.length;
@@ -484,7 +541,8 @@ export function capsuleAgent(color) {
 // ------------------------------------------------------------------ registry
 const BUILDERS = {
   "bld-gaming-studio": gamingStudio, "bld-sports": sportsAgency, "bld-dex": dexTower, "bld-film": filmStudio,
-  "campus-gate": campusGate, monument, "bld-game-hub": gameHub, "bld-deal-room": dealRoom, "bld-marketplace": marketplace,
+  "campus-gate": campusGate, monument, "bld-game-hub": gameHub, "bld-deal-room": dealRoom,
+  "bld-okx-market": (o) => marketplace({ ...o, slot: "bld-okx-market" }), "bld-base-market": (o) => marketplace({ ...o, slot: "bld-base-market" }),
   fountain, "spawn-pad": spawnPad, tree, pine, blossom, bush, flowers, lamp, bench, billboard, car: hoverCar, crane
 };
 
@@ -582,6 +640,11 @@ function nameSign(g, lines, colors, lift = 0) {
   const b = new THREE.Box3().setFromObject(g), w = Math.max(6, (b.max.x - b.min.x) * 0.85);
   const s = sign(lines, w, w * 0.25, { colors }); s.position.set(0, b.max.y + w * 0.16 + lift, b.max.z * 0.6); g.add(s);
 }
+// The partner sign (logo over the name) floating over the front of a model.
+function brandOver(g, slot, lift = 0) {
+  const b = new THREE.Box3().setFromObject(g), w = BRAND_SIGNS[slot].w || Math.max(7, (b.max.x - b.min.x) * 0.6);
+  const s = brandSign(slot, w); s.position.set(0, b.max.y + w * 0.26 + lift, b.max.z * 0.95); g.add(s);
+}
 // Trees sway like their placeholders did.
 const swayAnim = (g, k) => { const ph = Math.random() * 6; return (t) => { g.rotation.z = Math.sin(t * 0.9 + ph) * 0.025 * k; g.rotation.x = Math.cos(t * 0.7 + ph) * 0.02 * k; }; };
 // Lights, signs and effects a slot keeps when its placeholder is swapped for a
@@ -589,17 +652,22 @@ const swayAnim = (g, k) => { const ph = Math.random() * 6; return (t) => { g.rot
 const EXTRAS = {
   tree: (g) => swayAnim(g, 1), pine: (g) => swayAnim(g, 0.8), blossom: (g) => swayAnim(g, 1),
   lamp: (g, color = "#ffd27a") => { const b = new THREE.Box3().setFromObject(g), p = lightPool(color, 2.4, 0.55); p.position.set((b.min.x + b.max.x) / 2, 0.03, (b.min.z + b.max.z) / 2); g.add(p); },
-  "spawn-pad": (g) => { const p = spawnPad(), disc = p.children[1]; disc.position.y = new THREE.Box3().setFromObject(g).max.y + 0.03; g.add(disc); return p.userData.anim; },
+  "spawn-pad": (g) => {
+    const top = new THREE.Box3().setFromObject(g).max.y, p = spawnPad(), disc = p.children[1]; disc.position.y = top + 0.03; g.add(disc);
+    const og = poweredBy(g, top);
+    return (t) => { disc.rotation.z = t * 0.5; disc.material.opacity = 0.7 + Math.sin(t * 3) * 0.3; og(t); };
+  },
   monument: (g) => { const ring = new THREE.Mesh(new THREE.TorusGeometry(1.8, 0.06, 6, 40), M.glow("#ffc94d", 3)); ring.rotation.x = Math.PI / 2; ring.position.y = new THREE.Box3().setFromObject(g).max.y * 0.55; g.add(ring); return (t) => { ring.rotation.z = t * 0.6; ring.scale.setScalar(1 + Math.sin(t * 2) * 0.05); }; },
-  "campus-gate": (g) => nameSign(g, ["KULT", ["sign.park", "BUSINESS PARK"]], ["#ffc94d", "#4fd8ff"], 0.5),
+  "campus-gate": (g) => brandOver(g, "campus-gate", 0.5),
   fountain: (g) => { const l = new THREE.PointLight("#ff4fa3", 30, 16, 1.6); l.position.y = 4.6; g.add(l); },
   "bld-gaming-studio": (g) => nameSign(g, [["sign.create", "GAMING STUDIO"], "KULT CREATE"], ["#ff7eb6", "#ffffff"]),
   "bld-sports": (g) => nameSign(g, [["sign.sports", "SPORTS AGENCY"], "KULT SPORTS"], ["#7ef0a6", "#ffffff"]),
   "bld-dex": (g) => nameSign(g, [["sign.dex", "DEX TRADING"], "KULT DEX"], ["#4fd8ff", "#ffffff"]),
   "bld-film": (g) => nameSign(g, [["sign.production", "FILM PRODUCTION"], "KULT PRODUCTION"], ["#ffc94d", "#ffffff"]),
-  "bld-game-hub": (g) => nameSign(g, ["KULT", ["sign.hub", "GAME HUB"]], ["#4fd8ff", "#ff4fa3"]),
-  "bld-deal-room": (g) => nameSign(g, ["KULT", ["sign.deal", "DEAL ROOM"]], ["#ffc94d", "#ffffff"]),
-  "bld-marketplace": (g) => nameSign(g, ["KULT", ["sign.market", "AGENTIC MARKETPLACE"]], ["#4fd8ff", "#ff7eb6"], 3)
+  "bld-game-hub": (g) => brandOver(g, "bld-game-hub"),
+  "bld-okx-market": (g) => brandOver(g, "bld-okx-market"),
+  "bld-base-market": (g) => brandOver(g, "bld-base-market"),
+  "bld-deal-room": (g) => nameSign(g, ["KULT", ["sign.deal", "DEAL ROOM"]], ["#ffc94d", "#ffffff"])
 };
 
 // Props whose builder takes a size factor (opts) keep it when swapped for a model.

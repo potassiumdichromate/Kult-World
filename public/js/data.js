@@ -7,10 +7,10 @@
 // Shapes and wording follow the Kult browser (kult-games-v3) and AI Arena.
 
 export const CLANS = [
-  { id: "ZEROG", name: "ZeroG", color: "#b18cff" },
-  { id: "BASE", name: "Base", color: "#5ea0ff" },
-  { id: "SOLANA", name: "Solana", color: "#3ddc84" },
-  { id: "OKX", name: "OKX", color: "#e8e8e8" }
+  { id: "ZEROG", name: "0G", color: "#b18cff", logo: "0g-white" },
+  { id: "BASE", name: "Base", color: "#3d7bff", logo: "base-mark" },
+  { id: "SOLANA", name: "Solana", color: "#14f195", logo: "solana-mark" },
+  { id: "OKX", name: "OKX", color: "#e8e8e8", logo: "okx" }
 ];
 
 // AI Arena archetypes (kult-games-v3 src/constants/arenaAgentArchetypes.ts).

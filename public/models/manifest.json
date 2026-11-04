@@ -4,9 +4,8 @@
   "bld-sports": "bld-sports.glb",
   "bld-dex": "bld-dex.glb",
   "bld-film": "bld-film.glb",
-  "bld-game-hub": "bld-game-hub.glb",
+  "bld-game-hub": "bld-solana-hub.glb",
   "bld-deal-room": "bld-deal-room.glb",
-  "bld-marketplace": "bld-marketplace.glb",
   "campus-gate": "campus-gate.glb",
   "monument": "monument.glb",
   "spawn-pad": "spawn-pad.glb",
@@ -23,5 +22,7 @@
   "agent-berserker": "agent-berserker.glb",
   "agent-defender": "agent-defender.glb",
   "agent-hybrid": "agent-hybrid.glb",
-  "agent-support": "agent-support.glb"
+  "agent-support": "agent-support.glb",
+  "bld-okx-market": "bld-okx-market.glb",
+  "bld-base-market": "bld-base-market.glb"
 }

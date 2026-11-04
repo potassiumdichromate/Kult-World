@@ -689,7 +689,7 @@ function seedProgress(fresh) {
     if (fresh) { localStorage.removeItem(key); localStorage.removeItem(`kw.tour.v1.${WALLET}`); return; }
     const now = Date.now();
     localStorage.setItem(key, JSON.stringify({
-      citizenSince: iso(now - 62 * D), level: 12, xp: 8940, xpToNext: 13572, stamps: ["park", "hub", "create", "sports", "deal", "market"],
+      citizenSince: iso(now - 62 * D), level: 12, xp: 8940, xpToNext: 13572, stamps: ["park", "hub", "create", "sports", "deal", "market", "a2a"],
       quests: [
         { id: "visit-park", target: 1, reward: 50, progress: 1 }, { id: "arcade-win", target: 3, reward: 150, progress: 2 },
         { id: "open-business", target: 1, reward: 100, progress: 1 }, { id: "close-deal", target: 1, reward: 80, progress: 0 },

@@ -1,9 +1,24 @@
 # Kult World
 
 The landing page and hub of KULT: a 3D isometric floating city at neon dusk
-where players mint their AI agent, explore, run businesses in the **Kult
-Business Park**, battle in the **Kult Game Hub**, negotiate in the **Kult Deal
-Room** and hire agents in the **Kult Agentic Marketplace**. English and 中文.
+where players mint their AI agent, explore, run businesses in the **Animoca
+Minds Business Park**, battle in the **Solana Gaming Hub**, negotiate in the
+**Kult Deal Room** and hire agents in the **OKX.AI Marketplace** and the **Base
+A2A Marketplace**. English and 中文.
+
+## Partners
+
+| Partner | Role in Kult World | Where it shows |
+|---|---|---|
+| 0G | Powered by: the AI infrastructure. Agents are INFTs on 0G | Landing partner belt, mint screen ("INFT on 0G", "Powered by 0G"), the extruded 0G emblem over the spawn pad, the 0G clan |
+| OKX | The agentic marketplace (OKX.AI, A2MCP) | The OKX.AI Marketplace building, dock, OKX clan |
+| Base | The network for every A2A job | The Base A2A Marketplace building, dock, Base clan |
+| Solana | Gaming partner | The Solana Gaming Hub building, Solana clan |
+| Animoca Minds | The Minds SDK (Hello Minds) behind the Business Park | The Animoca Minds Business Park gate |
+
+Logos are in `public/art/partners/` (from the partner logo pack, cropped and
+converted to WebP). The 0G emblem is the official outline traced into
+`public/js/og-logo.js` and extruded in three.js.
 It replaces the Kult browser (kult-games-v3) and uses the same backends the
 same way.
 
@@ -67,7 +82,8 @@ PORT=5173 node server.mjs   # http://localhost:5173 (a Privy-allowed origin)
 - `/?reset` signs out.
 - `/?debug` exposes the world as `window.kw` in the console.
 - Controls: click to walk, click a building to enter, scroll to zoom,
-  `1` Business Park, `2` Game Hub, `3` Deal Room, `4` Marketplace, `E` enter
+  `1` Business Park, `2` Gaming Hub, `3` Deal Room, `4` OKX.AI Marketplace,
+  `5` Base A2A Marketplace, `E` enter
   the building you stand at, `P` passport, `C` recenter, `Esc` close. Click
   another agent to see its profile, wave or challenge it.
 - The globe button switches English / 中文 (remembered per browser).
@@ -140,12 +156,12 @@ The database tables come with migration `20261030120000_add_okx_gateway`.
 - **Tutorial** (js/tour.js): Nova, the city guide, takes a new player from
   minting through the city one step at a time: a spotlight on one thing (the
   rest dimmed and blocked), a bouncing arrow, and either a Next button or a
-  wait for the player to do it (walk, take the dock to the Game Hub, Business
-  Park and Marketplace, open the passport, tap an agent). It ends with 150 XP.
+  wait for the player to do it (walk, take the dock to the Gaming Hub, Business
+  Park and both marketplaces, open the passport, tap an agent). It ends with 150 XP.
   It runs once per wallet; the menu's **Replay tutorial** or `?tour` shows it
   again, and `?demo=fresh` resets it.
 - **The city** (three.js): a 56x56-tile island with Kult Plaza and its crystal
-  fountain, the walled Business Park campus, Game Hub Row, the Financial
+  fountain, the walled Business Park campus, Solana Hub Row, the Financial
   Quarter, Market Street and the Neon Gardens pond. Stylized lighting: sunset
   key light, neon rim light, soft shadows, fog and bloom; animated LED screens,
   searchlights, drones, floating rocks, grass
@@ -168,22 +184,23 @@ The database tables come with migration `20261030120000_add_okx_gateway`.
 - **Passport**: ID, wallet, level, 8 stamps, agent identity (archetype, clan,
   INFT, ELO and the 8-tier rank badge, W/L) with a switcher for players with
   several agents, traits, $ARENA and KP, businesses, quests and recent battles.
-- **Kult Business Park**: a campus with four buildings. Gaming Studio (Kult
+- **Animoca Minds Business Park**: a campus with four buildings. Gaming Studio (Kult
   Create) and Sports Agency (Kult Sports) open inside Kult World, signed in; Dex Trading
   and Film Production are "coming soon" (holographic scaffolds in the world).
-- **Kult Game Hub**: Warzone Warriors, Robowars, Warzone Warriors Wave and
+- **Solana Gaming Hub**: Warzone Warriors, Robowars, Warzone Warriors Wave and
   Highway Hustle, ranked or casual. Real matchmaking, face-off and countdown,
   then the battle: the Unity builds run full screen in Kult World, Robowars in
   the AI Arena launcher. The result shows the real ELO change and 0G Compute's
   commentary. Click another agent in the city to challenge it directly.
 - **Kult Deal Room** (preview, scripted): deals (OTC, sponsorship, partnership,
   IP licence); your agent negotiates in a chat and closes (or walks away).
-- **Kult Agentic Marketplace**: two live tabs, below.
-- **OKX gateway**, the first tab of the Marketplace: players' game studios and
+- **Two marketplaces** on Market Street, side by side, each opening its own
+  board under its partner's logo:
+- **OKX.AI Marketplace** (the Kult OKX gateway): players' game studios and
   sports agencies linked to their own OKX.AI agents, hired per call (A2MCP, x402
   USD₮0 on X Layer). Owners link and manage theirs from the Business Park
   (**Sell your businesses on OKX.AI**) or the passport.
-- **A2A jobs (Base)**, the second tab: agents hiring agents for training work.
+- **Base A2A Marketplace**: agents hiring agents for training work.
   Post a job (parsed, reviewed, published on Base), propose with your agent or
   let it auto-bid, negotiate turn by turn, both agents sign, the client funds
   escrow by signing a USDC authorization on Base, and an independent verifier
@@ -197,7 +214,9 @@ The database tables come with migration `20261030120000_add_okx_gateway`.
 | `public/js/tour.js` | The guided tutorial |
 | `public/js/world3d.js` | The 3D city: renderer, lighting, camera, agents, minimap |
 | `public/js/layout.js` | The map: tiles, districts, buildings, props, pathfinding |
-| `public/js/models.js` | Every 3D model slot and its placeholder |
+| `public/js/models.js` | Every 3D model slot and its placeholder, partner signs, the 0G emblem |
+| `public/js/og-logo.js` | The 0G logo outline (traced) for the 3D emblem |
+| `public/art/partners/` | Partner logos |
 | `docs/MODELS.md` | **3D model list and specs** (what to make next) |
 | `public/js/kult.js` | Sign-in and every KULT API call |
 | `public/js/battle.js` | AI Arena battles: matchmaking, Unity, launcher, results |

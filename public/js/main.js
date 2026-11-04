@@ -341,7 +341,7 @@ function renderMint(spawn = false) {
     el("b", { class: "cs-name" }, a.name.toUpperCase()),
     el("span", { class: "cs-tag" }, a.tagline),
     el("span", { class: "role-chips" }, a.role.map((r) => el("span", {}, r))));
-  $("mint-clans").replaceChildren(...CLANS.map((c) => el("button", { type: "button", style: `--c:${c.color}`, "aria-pressed": mintSel.clan === c.id ? "true" : "false", onclick: () => { mintSel.clan = c.id; sound.play("pop"); renderMint(); } }, el("i"), c.name)));
+  $("mint-clans").replaceChildren(...CLANS.map((c) => el("button", { type: "button", style: `--c:${c.color}`, "aria-pressed": mintSel.clan === c.id ? "true" : "false", onclick: () => { mintSel.clan = c.id; sound.play("pop"); renderMint(); } }, el("img", { src: `art/partners/${c.logo}.webp`, alt: "", draggable: "false" }), c.name)));
   $("mint-archetypes").replaceChildren(...ARCHETYPES.map((x, i) => el("button", {
     type: "button", role: "radio", "aria-checked": mintSel.archetype === x.id ? "true" : "false", style: `--c:${x.color}`, disabled: minting,
     onclick: () => pickArchetype(x.id)
@@ -422,7 +422,7 @@ function enterWorld(fresh) {
 }
 
 // ------------------------------------------------------------------ passport drawer
-const STAMPS = [["park", "PARK", "#ffc94d"], ["hub", "HUB", "#ff4fa3"], ["create", "CREATE", "#ff7eb6"], ["sports", "SPORTS", "#3ddc84"], ["deal", "DEAL", "#ffd27a"], ["market", "MARKET", "#4fd8ff"], ["dex", "DEX", "#5ec8f2"], ["production", "FILM", "#ffc94d"]];
+const STAMPS = [["park", "PARK", "#ffc94d"], ["hub", "HUB", "#ff4fa3"], ["create", "CREATE", "#ff7eb6"], ["sports", "SPORTS", "#3ddc84"], ["deal", "DEAL", "#ffd27a"], ["market", "OKX", "#e8e8e8"], ["a2a", "A2A", "#3d7bff"], ["dex", "DEX", "#5ec8f2"], ["production", "FILM", "#ffc94d"]];
 const STAMP_ART = { hub: "arcade" };
 const balText = (v) => (v === null || v === undefined ? "—" : fmt(v));
 function battleLine(b, me) {
@@ -553,7 +553,7 @@ addEventListener("keydown", (e) => {
   if (e.key === "Escape") { if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
   if (anyOpen()) return;
   const k = e.key.toLowerCase();
-  const go = { 1: "park", 2: "hub", 3: "deal", 4: "market" }[k];
+  const go = { 1: "park", 2: "hub", 3: "deal", 4: "market", 5: "a2a" }[k];
   if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter();
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
@@ -570,7 +570,7 @@ function openPlace(b, then) {
   else if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); quest("visit-park"); }
   if (b.kind === "hub") { renderGames(); show("hub-list"); show("hub-match", false); show("hub"); stamp("hub"); if (then?.challenge) startMatch(GAMES[0], then.challenge); }
   if (b.kind === "deal") { renderDeals(); show("deal-list"); show("deal-room", false); show("deal"); stamp("deal"); }
-  if (b.kind === "market") { renderMarket(); show("market"); stamp("market"); }
+  if (b.kind === "market") { marketTab = b.tab; renderMarket(); show("market"); stamp(b.id); }
   commit();
 }
 
@@ -855,9 +855,14 @@ const a2a = createA2A({
   signTypedData: async (address, chainId, typedData) => (await privyClient()).signTypedData(address, chainId, typedData),
   onSettled: (job) => { quest("hire-agent"); gainXp(80); addActivity(t("act.a2a", { status: job.status })); commit(); }
 });
+// Two buildings, one sheet: the OKX.AI Marketplace (tab okx) and the Base A2A
+// Marketplace (tab jobs), each under its partner's logo.
+const MARKETS = { okx: { id: "market", logo: "okx", accent: "#e8e8e8" }, jobs: { id: "a2a", logo: "base", accent: "#3d7bff" } };
 let marketTab = "okx";
 function renderMarket(focusProvider = null) {
-  $("market-tabs").replaceChildren(...[["okx", "#9fe8ff"], ["jobs", "#ff7eb6"]].map(([k, c]) => el("button", { type: "button", style: `--c:${c}`, "aria-pressed": marketTab === k ? "true" : "false", onclick: () => { if (marketTab !== k) { marketTab = k; renderMarket(); } } }, el("i"), t(`market.tab.${k}`))));
+  const m = MARKETS[marketTab];
+  $("market").querySelector(".place-sheet").style.setProperty("--accent", m.accent);
+  $("market-brand").replaceChildren(el("img", { src: `art/partners/${m.logo}.webp`, alt: "", draggable: "false" }), el("span", {}, t(`bld.${m.id}`)), el("small", {}, t(`market.tab.${marketTab}`)));
   show("agency-home", marketTab === "okx"); show("agent-home", marketTab === "jobs");
   if (marketTab === "okx") { a2a.stop(); okx.directory($("agency-home"), focusProvider); }
   else { okx.stop(); a2a.render($("agent-home")); }
