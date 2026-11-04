@@ -18,6 +18,7 @@ import { introDone, introReady } from "./intro.js";
 import { createOkx } from "./okx.js";
 import { createA2A } from "./a2a.js";
 import { createChatter } from "./chatter.js";
+import { createTour } from "./tour.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES, DEALS, DEAL_LINES,
   agentFromApi, loadProgress, saveProgress
@@ -101,6 +102,7 @@ onLang(() => {
   if (!$("deal").hidden && !$("deal-list").hidden) renderDeals();
   if (!$("market").hidden) renderMarket();
   closeAgentCard();
+  tour.relabel();
 });
 
 // ------------------------------------------------------------------ sound
@@ -159,6 +161,25 @@ async function populateCity() {
 
 // Speech bubbles over the agents walking the map (js/chatter.js).
 const chatter = createChatter(world, { lang: getLang, active: () => state.inWorld && !anyOpen(), place: (a) => t(`district.${world.districtAt(a.x, a.y)}`) });
+
+// The guided tutorial (js/tour.js), once per player; ?tour shows it again.
+const forceTour = new URLSearchParams(location.search).has("tour");
+const tour = createTour({
+  el, t, sound, world, $,
+  isOpen: (id) => !$(id).hidden,
+  inWorld: () => state.inWorld,
+  minting: () => minting || $("mint").classList.contains("minted"),
+  togglePassport: (o) => togglePassport(o),
+  closeAgentCard: () => closeAgentCard(),
+  reward: () => {
+    gainXp(150); addActivity(t("act.tour")); commit();
+    sound.play("level"); burst(innerWidth / 2, innerHeight / 2, "#ffc94d", 44);
+    setTimeout(() => burst(innerWidth / 2, innerHeight / 2 - 60, "#ff4fa3", 30), 280);
+  },
+  doneKey: () => `kw.tour.v1.${String(session.wallet || "anon").toLowerCase()}`
+});
+if (window.kw) window.kw.tour = tour;
+$("tour-btn").addEventListener("click",() => { show("menu", false); closeOverlays(); togglePassport(false); tour.start("w-arrive"); });
 
 // ------------------------------------------------------------------ pointer
 const canvas = $("world");
@@ -299,6 +320,7 @@ function openMint() {
   stage ||= new CharacterStage($("cs-stage"));
   stage.setMode("idle"); stage.start();
   renderMint(true);
+  tour.offer("mint-hello", forceTour);
 }
 function closeMint() {
   if (minting) return;
@@ -390,8 +412,10 @@ function enterWorld(fresh) {
   world.spawnPlayer({ name: a.name, archetype: a.archetype, clan: a.clan, elo: a.elo });
   sound.play("spawn");
   renderPassport(); renderQuests();
-  setTimeout(() => toast(t(fresh ? "toast.spawned" : "toast.welcome", { name: a.name }), "good"), 900);
-  setTimeout(() => show("hint", false), 14000);
+  // A player who minted mid-tour carries on with it; anyone else new gets it here.
+  if (!tour.running) setTimeout(() => { if (state.inWorld) tour.offer("w-arrive", forceTour); }, 1800);
+  if (!tour.running && !forceTour) setTimeout(() => toast(t(fresh ? "toast.spawned" : "toast.welcome", { name: a.name }), "good"), 900);
+  setTimeout(() => show("hint", false), tour.running ? 0 : 14000);
   void populateCity();
   clearInterval(feedTimer); feedTimer = setInterval(feedEvent, 30000); setTimeout(feedEvent, 2500);
   clearInterval(liveTimer); liveTimer = setInterval(() => { if (!document.hidden) void refreshLive(); }, 60000);

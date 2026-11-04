@@ -685,7 +685,8 @@ export function createDemo({ fresh = false, reset = false } = {}) {
 function seedProgress(fresh) {
   const key = `kw.progress.v2.${WALLET}`;
   try {
-    if (fresh) { localStorage.removeItem(key); return; }
+    // A fresh demo is a new player: no progress, and the tutorial again.
+    if (fresh) { localStorage.removeItem(key); localStorage.removeItem(`kw.tour.v1.${WALLET}`); return; }
     const now = Date.now();
     localStorage.setItem(key, JSON.stringify({
       citizenSince: iso(now - 62 * D), level: 12, xp: 8940, xpToNext: 13572, stamps: ["park", "hub", "create", "sports", "deal", "market"],

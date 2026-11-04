@@ -137,6 +137,13 @@ The database tables come with migration `20261030120000_add_okx_gateway`.
   backstory, then AI Arena's "Create AI Agent". The agent runs in a charging
   beam while AI Arena creates it, waves when it is done, then spawns in the
   city. Players with agents walk straight in.
+- **Tutorial** (js/tour.js): Nova, the city guide, takes a new player from
+  minting through the city one step at a time: a spotlight on one thing (the
+  rest dimmed and blocked), a bouncing arrow, and either a Next button or a
+  wait for the player to do it (walk, take the dock to the Game Hub, Business
+  Park and Marketplace, open the passport, tap an agent). It ends with 150 XP.
+  It runs once per wallet; the menu's **Replay tutorial** or `?tour` shows it
+  again, and `?demo=fresh` resets it.
 - **The city** (three.js): a 56x56-tile island with Kult Plaza and its crystal
   fountain, the walled Business Park campus, Game Hub Row, the Financial
   Quarter, Market Street and the Neon Gardens pond. Stylized lighting: sunset
@@ -187,6 +194,7 @@ The database tables come with migration `20261030120000_add_okx_gateway`.
 | File | |
 |---|---|
 | `public/js/main.js` | Screens and flows |
+| `public/js/tour.js` | The guided tutorial |
 | `public/js/world3d.js` | The 3D city: renderer, lighting, camera, agents, minimap |
 | `public/js/layout.js` | The map: tiles, districts, buildings, props, pathfinding |
 | `public/js/models.js` | Every 3D model slot and its placeholder |
