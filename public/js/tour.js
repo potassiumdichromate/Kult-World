@@ -14,8 +14,12 @@ const ARROW = '<svg viewBox="0 0 48 60" aria-hidden="true"><path d="M17 2h14v30h
 export function createTour(ctx) {
   const { el, t, sound, world, $ } = ctx;
   const steps = buildSteps(ctx);
+  // The dimmed screen is four plain panels around the spotlight (a huge
+  // box-shadow over the live 3D city and the glass HUD made Chrome flicker);
+  // the cover blocks the spotlight itself on steps that only explain it.
   const hole = el("div", { class: "tour-hole" });
-  const blocks = ["t", "l", "r", "b"].map((s) => el("div", { class: `tour-block ${s}`, onclick: nudge }));
+  const shades = ["t", "l", "r", "b"].map((s) => el("div", { class: `tour-shade ${s}`, onclick: nudge }));
+  const cover = el("div", { class: "tour-cover", onclick: nudge });
   const arrow = el("div", { class: "tour-arrow" });
   arrow.innerHTML = ARROW;
   const text = el("p", { class: "tour-text", onclick: () => finishTyping() });
@@ -25,10 +29,10 @@ export function createTour(ctx) {
   const guide = el("div", { class: "tour-guide glass" },
     el("div", { class: "tour-face" }, el("img", { src: GUIDE, alt: "" }), el("span", { class: "tour-name" }, "NOVA")),
     el("div", { class: "tour-say" }, el("div", { class: "tour-top" }, el("b", {}, ""), count), text, el("div", { class: "tour-btns" }, skip, next)));
-  const root = el("div", { id: "tour", class: "tour", hidden: true }, hole, ...blocks, arrow, guide);
+  const root = el("div", { id: "tour", class: "tour", hidden: true }, ...shades, cover, hole, arrow, guide);
   document.body.append(root);
 
-  let i = -1, step = null, enteredAt = 0, doneAt = 0, raf = 0, typing = null, full = "", scrolled = false;
+  let i = -1, step = null, enteredAt = 0, doneAt = 0, raf = 0, typing = null, full = "", scrolled = false, lastR = null;
 
   function start(fromId = steps[0].id) {
     i = Math.max(0, steps.findIndex((s) => s.id === fromId));
@@ -47,7 +51,7 @@ export function createTour(ctx) {
   function enter() {
     step = steps[i];
     if (step.skip?.()) return advance();
-    enteredAt = performance.now(); doneAt = 0; scrolled = false;
+    enteredAt = performance.now(); doneAt = 0; scrolled = false; lastR = null;
     root.className = `tour${step.target || step.free ? "" : " center"}${step.free ? " free" : ""}`;
     guide.querySelector(".tour-top b").textContent = t(step.title || "tour.guide");
     const phase = steps.filter((s) => s.phase === step.phase);
@@ -106,54 +110,64 @@ export function createTour(ctx) {
       if (now - doneAt >= (s.doneDelay ?? 250)) { sound.play("coin"); return advance(); }
     }
     const quiet = Boolean(s.quiet?.());
-    root.classList.toggle("quiet", quiet);
+    setClass(root, "quiet", quiet);
     if (quiet) return;
     // A target below the fold (a phone's mint form) scrolls into view once.
     if (typeof s.target === "string" && !scrolled) {
       const n = document.querySelector(s.target), b = n?.getBoundingClientRect();
       if (b?.height && (b.top < 60 || b.bottom > innerHeight - 20)) { n.scrollIntoView({ block: "center", behavior: "smooth" }); scrolled = true; }
     }
-    const r = s.target ? rectOf(s.target) : null;
+    let r = s.target ? rectOf(s.target) : null;
+    // A target that only bobs (an idle agent) keeps the spotlight still.
+    if (r && lastR && ["left", "top", "width", "height"].every((k) => Math.abs(r[k] - lastR[k]) <= 2)) r = lastR;
+    lastR = r;
     layout(r, s);
   }
 
   function layout(r, s) {
     const W = innerWidth, H = innerHeight;
     const pad = s.pad ?? 8;
-    // The spotlight (and, for steps the player acts on, a hole in the blockers).
+    // The spotlight, the shades around it and, for steps that only explain, a cover on it.
     if (r) {
-      const x = r.left - pad, y = r.top - pad, w = r.width + pad * 2, h = r.height + pad * 2;
-      Object.assign(hole.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`, borderRadius: s.round ? "50%" : "18px" });
-      hole.hidden = false;
-      const open = !s.next || s.interactive;
-      place(blocks[0], 0, 0, W, open ? y : H);
-      place(blocks[1], 0, y, x, h); place(blocks[2], x + w, y, W - x - w, h);
-      place(blocks[3], 0, y + h, W, H - y - h);
-      for (const b of blocks.slice(1)) b.hidden = !open;
+      const x = Math.round(r.left - pad), y = Math.round(r.top - pad), w = Math.round(r.width + pad * 2), h = Math.round(r.height + pad * 2);
+      place(hole, x, y, w, h); set(hole, "hidden", false); setClass(hole, "round", Boolean(s.round));
+      place(shades[0], 0, 0, W, y); place(shades[1], 0, y, x, h); place(shades[2], x + w, y, W - x - w, h); place(shades[3], 0, y + h, W, H - y - h);
+      for (const n of shades) set(n, "hidden", false);
+      const passive = s.next && !s.interactive;
+      if (passive) place(cover, x, y, w, h);
+      set(cover, "hidden", !passive);
       // The arrow points at it from the roomier side; at a tall target, from beside it.
+      let ax, ay, dir;
       if (h > H * 0.55) {
         const fromRight = x + w + 64 < W;
-        arrow.style.left = `${fromRight ? x + w + 4 : x - 52}px`; arrow.style.top = `${y + h / 2 - 30}px`;
-        arrow.dataset.dir = fromRight ? "left" : "right";
+        ax = fromRight ? x + w + 4 : x - 52; ay = y + h / 2 - 30; dir = fromRight ? "left" : "right";
       } else {
         const below = r.top + r.height / 2 < H * 0.45;
-        arrow.style.left = `${Math.min(W - 40, Math.max(16, r.left + r.width / 2 - 24))}px`;
-        arrow.style.top = below ? `${y + h + 6}px` : `${y - 66}px`;
-        arrow.dataset.dir = below ? "up" : "down";
+        ax = Math.min(W - 40, Math.max(16, r.left + r.width / 2 - 24)); ay = below ? y + h + 6 : y - 66; dir = below ? "up" : "down";
       }
-      arrow.hidden = Boolean(s.noArrow);
+      place(arrow, Math.round(ax), Math.round(ay));
+      if (arrow.dataset.dir !== dir) arrow.dataset.dir = dir;
+      set(arrow, "hidden", Boolean(s.noArrow));
       // Nova sits away from it.
-      guide.classList.toggle("top", r.top + r.height / 2 > H * 0.5 && !s.guideBottom);
-      guide.classList.toggle("right", r.left + r.width / 2 < W * 0.5);
+      setClass(guide, "top", r.top + r.height / 2 > H * 0.5 && !s.guideBottom);
+      setClass(guide, "right", r.left + r.width / 2 < W * 0.5);
     } else {
-      hole.hidden = true; arrow.hidden = true;
-      place(blocks[0], 0, 0, W, H);
-      for (const b of blocks.slice(1)) b.hidden = true;
-      guide.classList.remove("top", "right");
+      set(hole, "hidden", true); set(arrow, "hidden", true); set(cover, "hidden", true);
+      place(shades[0], 0, 0, W, H); set(shades[0], "hidden", false);
+      for (const n of shades.slice(1)) set(n, "hidden", true);
+      setClass(guide, "top", false); setClass(guide, "right", false);
     }
-    blocks[0].hidden = false;
   }
-  const place = (n, x, y, w, h) => Object.assign(n.style, { left: `${x}px`, top: `${y}px`, width: `${Math.max(0, w)}px`, height: `${Math.max(0, h)}px` });
+  // This runs every frame: touch the DOM only when something changed.
+  function place(n, x, y, w, h) {
+    const key = `${x},${y},${w},${h}`;
+    if (n._at === key) return;
+    n._at = key;
+    n.style.left = `${x}px`; n.style.top = `${y}px`;
+    if (w !== undefined) { n.style.width = `${Math.max(0, w)}px`; n.style.height = `${Math.max(0, h)}px`; }
+  }
+  const set = (n, k, v) => { if (n[k] !== v) n[k] = v; };
+  const setClass = (n, c, on) => { if (n.classList.contains(c) !== on) n.classList.toggle(c, on); };
 
   addEventListener("keydown", (e) => {
     if (!step || root.classList.contains("quiet")) return;
@@ -232,7 +246,7 @@ function buildSteps(c) {
     { id: "mint-go", phase: "mint", target: "#mint-form .cs-mint", done: c.inWorld, doneDelay: 1800, quiet: mintQuiet },
 
     // The city.
-    { id: "w-arrive", phase: "world", target: playerRect, round: true, next: true, guideBottom: true },
+    { id: "w-arrive", phase: "world", target: playerRect, next: true, guideBottom: true },
     { id: "w-card", phase: "world", target: "#hud-player", next: true },
     { id: "w-money", phase: "world", target: "#topbar .pill", next: true },
     { id: "w-walk", phase: "world", target: groundRect, round: true, free: true,
