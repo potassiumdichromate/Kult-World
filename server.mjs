@@ -9,6 +9,8 @@
 // The gateway only accepts browser calls from its own site, so Kult World
 // calls it server to server, as Kult Sports does for its Privy exchange.
 import { createServer } from "node:http";
+import { createHash } from "node:crypto";
+import { brotliCompressSync, gzipSync, constants as Z } from "node:zlib";
 import { readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, sep } from "node:path";
@@ -82,6 +84,23 @@ function sendPage(res) {
   res.end(PAGE);
 }
 
+// Files are read and compressed once, then served from memory with an ETag,
+// so repeat visits revalidate with a tiny 304 instead of downloading again.
+const COMPRESSIBLE = new Set([".html", ".js", ".css", ".json", ".svg", ".gltf", ".wasm"]);
+const fileCache = new Map();
+async function cached(file, info, ext) {
+  const hit = fileCache.get(file);
+  if (hit && hit.mtime === info.mtimeMs && hit.size === info.size) return hit;
+  const raw = await readFile(file);
+  const entry = { mtime: info.mtimeMs, size: info.size, raw, etag: `"${createHash("sha1").update(raw).digest("base64url")}"` };
+  if (COMPRESSIBLE.has(ext) && raw.length > 1024) {
+    entry.br = brotliCompressSync(raw, { params: { [Z.BROTLI_PARAM_QUALITY]: 9, [Z.BROTLI_PARAM_SIZE_HINT]: raw.length } });
+    entry.gz = gzipSync(raw, { level: 9 });
+  }
+  fileCache.set(file, entry);
+  return entry;
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   if (url.pathname === "/health") { res.writeHead(200, { "Content-Type": "application/json" }); return res.end('{"ok":true,"service":"kult-world"}'); }
@@ -98,9 +117,18 @@ createServer(async (req, res) => {
   try {
     const info = await stat(file);
     if (!info.isFile()) throw new Error("not a file");
-    const cache = IMMUTABLE && v?.[1] === BUILD ? "public, max-age=31536000, immutable" : "no-cache";
-    res.writeHead(200, { "Content-Type": TYPES[extname(file).toLowerCase()] || "application/octet-stream", "Cache-Control": cache, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" });
-    res.end(await readFile(file));
+    // Privy's chunks carry a content hash in their name, so they never change.
+    const hashed = rel.startsWith("/privy/chunks/");
+    const cache = hashed || (IMMUTABLE && v?.[1] === BUILD) ? "public, max-age=31536000, immutable" : "no-cache";
+    const ext = extname(file).toLowerCase();
+    const entry = await cached(file, info, ext);
+    const headers = { "Content-Type": TYPES[ext] || "application/octet-stream", "Cache-Control": cache, "ETag": entry.etag, "Vary": "Accept-Encoding", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
+    if (req.headers["if-none-match"] === entry.etag) { res.writeHead(304, headers); return res.end(); }
+    const accept = String(req.headers["accept-encoding"] || "");
+    const enc = entry.br && /\bbr\b/.test(accept) ? "br" : entry.gz && /\bgzip\b/.test(accept) ? "gzip" : null;
+    if (enc) headers["Content-Encoding"] = enc;
+    res.writeHead(200, headers);
+    res.end(enc === "br" ? entry.br : enc === "gzip" ? entry.gz : entry.raw);
   } catch {
     if (!extname(rel)) return sendPage(res);
     res.writeHead(404); res.end("Not found");

@@ -42,6 +42,8 @@ export function privyClient() {
   privyLoading ||= (async () => {
     const c = await config();
     if (demo) return (privy = demo.privy);
+    // Privy needs a secure page (HTTPS or localhost); a phone on http://<LAN IP> hangs.
+    if (!window.isSecureContext) throw new Error("Sign-in needs HTTPS. Open Kult World over https:// (or localhost) to log in.");
     const { init } = await import(new URL("../privy/kult-privy.js", import.meta.url).href);
     privy = await init({ appId: c.privyAppId, clientId: c.privyClientId });
     return privy;
