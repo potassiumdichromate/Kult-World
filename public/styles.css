@@ -1296,3 +1296,51 @@ a.ext:hover { text-decoration: underline; }
   .dr-rec li > :nth-child(3), .dr-rec li > :nth-child(5) { display: none; }
   .zp-line small { display: none; }
 }
+
+/* ------------------------------------------------------------------ dock: solid icon tiles */
+.dock.glass {
+  gap: 4px; padding: 8px 10px 7px; border-radius: 24px;
+  background: linear-gradient(180deg, rgba(30, 20, 64, 0.94), rgba(10, 6, 24, 0.96));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(155, 92, 255, 0.22), 0 0 34px rgba(155, 92, 255, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.dock button { width: 86px; gap: 6px; padding: 4px 4px 4px; border: 0; border-radius: 16px; color: rgba(241, 237, 255, 0.86); }
+.dock button:hover { background: rgba(255, 255, 255, 0.06); border-color: transparent; box-shadow: none; color: #fff; }
+.dk-ico {
+  position: relative; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 15px;
+  background: linear-gradient(150deg, color-mix(in srgb, var(--c) 92%, #fff) 0%, var(--c) 45%, color-mix(in srgb, var(--c) 62%, #0b0717) 100%);
+  border: 1px solid color-mix(in srgb, var(--c) 55%, #fff);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--c) 45%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -3px 0 rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.dk-ico.logo { padding: 0 6px; }
+.dock .dk-ico svg { width: 25px; height: 25px; color: #fff; stroke-width: 2.3; filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.45)); transition: none; }
+.dock .dk-ico .dock-logo { width: 36px; height: 18px; filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.4)); transition: none; }
+.dock button:hover .dk-ico { transform: translateY(-4px) scale(1.06); box-shadow: 0 10px 26px color-mix(in srgb, var(--c) 60%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -3px 0 rgba(0, 0, 0, 0.22); }
+.dock button:hover svg, .dock button:hover .dock-logo { transform: none; }
+.dock button:active .dk-ico { transform: translateY(-1px) scale(0.97); }
+.dock button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.dock .dl { font: 700 11px var(--display); letter-spacing: 0.04em; white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
+.dock kbd {
+  position: absolute; top: -6px; right: -7px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 7px;
+  display: grid; place-items: center; font: 700 10px var(--display); color: #fff;
+  background: #0b0717; border: 1px solid rgba(255, 255, 255, 0.35); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+/* Mid-size screens: centre the dock in the space left of the minimap. */
+@media (min-width: 901px) and (max-width: 1400px) { .dock { left: calc((100vw - 230px) / 2); } .dock button { width: 80px; } }
+@media (max-width: 900px) {
+  .dock.glass { padding: 7px 6px 6px; border-radius: 20px; }
+  .dock button { width: 62px; gap: 4px; }
+  .dk-ico { width: 40px; height: 40px; border-radius: 13px; }
+  .dock .dk-ico svg { width: 21px; height: 21px; }
+  .dock .dk-ico .dock-logo { width: 30px; height: 15px; }
+  .dock .dl { font-size: 9px; }
+  .dock kbd { display: none; }
+}
+@media (max-width: 520px) {
+  .dock button { width: auto; flex: 1; min-width: 0; padding: 2px 1px; }
+  .dock.glass { padding: 8px 6px; }
+  .dk-ico { width: 40px; height: 40px; border-radius: 13px; }
+  /* Tiles only on phones; the label stays for screen readers. */
+  .dock .dl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
