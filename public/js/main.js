@@ -19,11 +19,12 @@ import { createOkx } from "./okx.js";
 import { createA2A } from "./a2a.js";
 import { createChatter } from "./chatter.js";
 import { createTour } from "./tour.js";
+import { createArena, arenaAmount } from "./arena.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES, DEALS, DEAL_LINES,
   agentFromApi, loadProgress, saveProgress
 } from "./data.js";
-import { config, privyClient, session, arenaApi, kultApi, a2aApi, okxApi } from "./kult.js";
+import { config, privyClient, session, arenaApi, kultApi, a2aApi, okxApi, chainApi } from "./kult.js";
 import { findMatch, challenge as directChallenge, loadBattle, playUnity, playLauncher, report, Cancelled, LAUNCHER_DOWNLOAD } from "./battle.js";
 
 const $ = (id) => document.getElementById(id);
@@ -280,17 +281,40 @@ async function loadPlayer(preferId) {
   return state.player;
 }
 
-/** Balances, KP, the latest agent stats and recent battles, each on its own. */
+/**
+ * Balances, KP, the latest agent stats and recent battles, each on its own.
+ * $ARENA is the player's own wallet on 0G Chain (the token contract's
+ * balanceOf), as in the Kult browser; a rise since the last read is a reward
+ * that just landed, so it is announced.
+ */
 async function refreshLive() {
   const p = state.player;
   if (!p) return;
-  const [wallet, profile, battles, agent] = await Promise.allSettled([arenaApi.wallet(p.agent.id), kultApi.profile(), arenaApi.battles(p.agent.id, 6), arenaApi.agent(p.agent.id)]);
+  const [wallet, profile, battles, agent] = await Promise.allSettled([p.wallet ? chainApi.balance(p.wallet) : Promise.reject(new Error("no wallet")), kultApi.profile(), arenaApi.battles(p.agent.id, 6), arenaApi.agent(p.agent.id)]);
   if (state.player !== p) return;
-  if (wallet.status === "fulfilled" && wallet.value) p.balances.arena = Number(wallet.value.balanceArena ?? 0);
+  if (wallet.status === "fulfilled" && wallet.value !== null) setArena(Number(wallet.value));
   if (profile.status === "fulfilled") { p.profile = profile.value; p.balances.kp = profile.value.kultPoints; if (profile.value.username) p.passport.username = profile.value.username; }
   if (battles.status === "fulfilled") p.battles = battles.value;
   if (agent.status === "fulfilled" && agent.value?.id) { p.raw = agent.value; p.agent = agentFromApi(agent.value); }
   if (state.inWorld) { renderPassport(); renderQuests(); }
+}
+
+function setArena(v) {
+  const p = state.player, was = p.balances.arena;
+  if (!Number.isFinite(v)) return;
+  p.balances.arena = v;
+  if (was !== null && v - was >= 0.005) {
+    const n = arenaAmount(v - was);
+    toast(t("toast.arenaGain", { n }), "good"); sound.play("coin");
+    addActivity(t("act.arenaGain", { n })); saveProgress(p.wallet, p.passport);
+    const r = $("bal-arena-btn").getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, "#ffc94d", 22);
+  }
+}
+/** Rewards are paid on-chain a few seconds after the action: look again. */
+let arenaWatch = [];
+function watchArena(delays = [6000, 18000, 40000]) {
+  for (const id of arenaWatch) clearTimeout(id);
+  arenaWatch = delays.map((ms) => setTimeout(async () => { await refreshLive(); }, ms));
 }
 
 async function switchAgent(id) {
@@ -399,6 +423,8 @@ $("mint-form").addEventListener("submit", async (e) => {
   $("mint").classList.remove("minted"); minting = false; stage?.stop();
   addActivity(t("act.minted", { name: state.player.agent.name }));
   enterWorld(true);
+  // Minting an agent earns the on-chain agent-mint reward.
+  watchArena([8000, 20000, 45000]);
 });
 
 // ------------------------------------------------------------------ the world
@@ -483,9 +509,12 @@ function renderPassport() {
       el("div", { class: "traits" }, TRAITS.map((tr) => el("div", { class: "trait" }, el("span", {}, t(`trait.${tr}`)), el("div", { class: "bar" }, el("i", { style: `--c:${arch.color};width:${a.traits[tr] ?? 0}%` })), el("b", {}, a.traits[tr] ?? "—"))))),
     section(t("pp.balances"), null,
       el("div", { class: "bal-grid two" },
-        el("div", { class: "bal arena", style: "--c:var(--pink)", title: t("pp.arenaSrc") }, el("b", {}, balText(p.balances.arena)), el("span", {}, "$ARENA")),
+        el("button", { type: "button", class: "bal arena", style: "--c:var(--gold)", title: t("pp.arenaSrc"), onclick: openWallet }, el("b", {}, p.balances.arena === null ? "—" : arenaAmount(p.balances.arena)), el("span", {}, t("pp.arenaChain"))),
         el("div", { class: "bal kp", style: "--c:var(--gold)", title: t("pp.kpSrc") }, el("b", {}, balText(p.balances.kp)), el("span", {}, t("pp.kp")))),
-      p.balances.kp === null && session.signedIn ? el("button", { type: "button", class: "btn ghost small", onclick: async () => { try { await session.retryKult(); await refreshLive(); } catch (e) { toast(e.message, "bad"); } } }, t("pp.kpConnect")) : null),
+      p.balances.kp === null && session.signedIn ? el("button", { type: "button", class: "btn ghost small", onclick: async () => { try { await session.retryKult(); await refreshLive(); } catch (e) { toast(e.message, "bad"); } } }, t("pp.kpConnect")) : null,
+      el("div", { class: "pp-links" },
+        el("button", { type: "button", class: "btn ghost small", onclick: openWallet }, t("aw.open")),
+        el("button", { type: "button", class: "btn ghost small", onclick: openBoard }, t("lb.open")))),
     section(t("pp.businesses"), null,
       el("div", { class: "biz-list" }, BUSINESSES.map((b) => el("div", { class: "biz-row", style: `--c:${b.color}` }, el("span", { class: "dot" }),
         el("div", { style: "min-width:0" }, el("div", { class: "bn" }, t(`biz.${b.id}.name`)), el("div", { class: "bs" }, t(b.status === "open" ? "biz.openIt" : "biz.soonSub", { brand: b.brand }))),
@@ -507,7 +536,7 @@ function renderQuests() {
 }
 function setBalance(id, v) {
   const n = $(id), old = n.dataset.v;
-  n.textContent = balText(v); n.dataset.v = v ?? "";
+  n.textContent = id === "bal-arena" && v !== null && v !== undefined ? Number(v).toLocaleString(undefined, { maximumFractionDigits: v >= 1000 ? 0 : 2 }) : balText(v); n.dataset.v = v ?? "";
   if (old !== undefined && old !== "" && v !== null && Number(old) !== v) { const pill = n.closest(".pill"); pill.classList.remove("bump"); void pill.offsetWidth; pill.classList.add("bump"); }
 }
 function addActivity(text) { state.player.activity.unshift({ at: new Date().toISOString(), text }); state.player.activity.splice(20); }
@@ -530,7 +559,11 @@ async function signOut() { await session.signOut(); const d = new URLSearchParam
 function togglePassport(force) { const o = $("passport").classList.toggle("open", force); $("passport-toggle").setAttribute("aria-expanded", String(o)); }
 $("passport-toggle").addEventListener("click", () => togglePassport());
 $("hud-player").addEventListener("click", () => togglePassport());
-for (const b of document.querySelectorAll("[data-act]")) b.addEventListener("click", () => { if (b.dataset.act === "passport") togglePassport(); else world.recenter(); });
+for (const b of document.querySelectorAll("[data-act]")) b.addEventListener("click", () => {
+  const act = b.dataset.act;
+  show("menu", false);
+  if (act === "passport") togglePassport(); else if (act === "board") openBoard(); else if (act === "wallet") openWallet(); else world.recenter();
+});
 $("menu-btn").addEventListener("click", () => show("menu", $("menu").hidden));
 for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("click", () => { show("menu", false); goTo(b.dataset.goto); });
 $("sign-out").addEventListener("click", () => signOut());
@@ -554,10 +587,10 @@ addEventListener("keydown", (e) => {
   if (anyOpen()) return;
   const k = e.key.toLowerCase();
   const go = { 1: "park", 2: "hub", 3: "deal", 4: "market", 5: "a2a" }[k];
-  if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter();
+  if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter(); else if (k === "l") openBoard();
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
-function closeOverlays() { sound.play("close"); cancelMatch(); negotiation = null; okx.stop(); a2a.stop(); for (const id of ["park", "hub", "deal", "market", "okx"]) show(id, false); }
+function closeOverlays() { sound.play("close"); cancelMatch(); negotiation = null; okx.stop(); a2a.stop(); for (const id of ["park", "hub", "deal", "market", "okx", "wallet", "board"]) show(id, false); }
 
 // ------------------------------------------------------------------ places
 function openPlace(b, then) {
@@ -735,6 +768,7 @@ async function startMatch(gm, opponent = null) {
     const { commentary } = await report(result, { me, them });
     const win = result.winnerId === me.id;
     await refreshLive();
+    arena.refresh(); watchArena();
     const after = state.player.agent, dElo = after.elo - startElo, before = rankOf(startElo), now = rankOf(after.elo);
     if (win) quest("arcade-win");
     gainXp(win ? 80 : 30);
@@ -766,6 +800,27 @@ async function startMatch(gm, opponent = null) {
 function backToGames() { cancelMatch(); show("hub-match", false); show("hub-list"); renderGames(); $("monitor-led").className = "led"; }
 $("match-back").addEventListener("click", backToGames);
 $("hub-close").addEventListener("click", () => { sound.play("close"); cancelMatch(); show("hub", false); });
+
+// ------------------------------------------------------------------ $ARENA and the leaderboard
+const arena = createArena({
+  el, t, toast, sound, ago, portrait,
+  player: () => state.player,
+  myAgents: () => state.agents,
+  onBalance: (v) => { if (state.player && v !== null) { setArena(v); setBalance("bal-arena", state.player.balances.arena); } },
+  goHub: (challenge) => goTo("hub", challenge ? { challenge } : undefined),
+  closeAll: () => { for (const id of ["wallet", "board"]) show(id, false); }
+});
+function openWallet() {
+  if (!state.player) return;
+  closeAgentCard(); togglePassport(false); sound.play("open");
+  show("wallet"); void arena.wallet($("wallet-body"));
+}
+function openBoard() {
+  if (!state.inWorld) return;
+  closeAgentCard(); togglePassport(false); sound.play("open");
+  show("board"); void arena.board($("board-body"));
+}
+$("bal-arena-btn").addEventListener("click", openWallet);
 
 // ------------------------------------------------------------------ deal room
 let negotiation = null;

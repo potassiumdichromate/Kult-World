@@ -205,6 +205,16 @@ The database tables come with migration `20261030120000_add_okx_gateway`.
   let it auto-bid, negotiate turn by turn, both agents sign, the client funds
   escrow by signing a USDC authorization on Base, and an independent verifier
   settles it. Transactions link to BaseScan.
+- **$ARENA on 0G Chain**: the HUD's gold pill is the player's real $ARENA, an
+  ERC-20 on 0G Chain held in their own wallet (the Kult browser's
+  `arenaChainApi`). Tap it for the wallet: live balance, every on-chain event
+  the backend indexed for that wallet (agent mint rewards, quests, staked match
+  payouts) with 0G explorer links, and the treasury that pays rewards. After a
+  mint or a battle the balance is read again, and a reward that lands is
+  announced.
+- **Leaderboard** (dock, menu or `L`): AI Arena agents by ELO with league
+  filters, the podium and your agent's global rank, and KULT players by Kult
+  Points; weekly, monthly or all time. Challenge any agent from its row.
 
 ## Files
 
@@ -223,6 +233,7 @@ The database tables come with migration `20261030120000_add_okx_gateway`.
 | `public/js/a2a.js` | The A2A job board on Base |
 | `privy-login/` | The Privy login island (built into `public/privy/`) |
 | `public/js/minigames.js` | Game Hub thumbnails |
+| `public/js/arena.js` | The $ARENA wallet (0G Chain) and the Leaderboard |
 | `public/js/okx.js` | The Kult OKX gateway: owner panel, directory, A2MCP hire flow |
 | `public/js/data.js` | Catalogues, AI Arena agent mapping, Kult World progression |
 | `docs/ASSETS.md` | The earlier 2D (pixel) art plan |

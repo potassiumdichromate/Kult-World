@@ -452,12 +452,43 @@ export function createDemo({ fresh = false, reset = false } = {}) {
   }
   setInterval(() => { if (!document.hidden) ambient(); }, 25 * S);
 
+  // ---------------------------------------------------------------- $ARENA
+  // The player's on-chain wallet: the agent-mint reward lands here, like the
+  // real RewardDistributor's AgentRewardGranted.
+  const ranked = () => agents().sort((a, b) => b.eloRating - a.eloRating);
+  function chain() {
+    if (!db.chain) {
+      const at = Date.now();
+      db.chain = { balance: 0, events: [] };
+      if (db.mine.length) {
+        db.chain.balance = 250 * db.mine.length + 40;
+        db.chain.events = [
+          { id: hex(8), eventName: "REWARD_GRANTED", txHash: hex(32), blockNumber: "4821930", args: { player: WALLET, amount: "40.0", category: "QUEST", reason: "Weekly quest" }, occurredAt: new Date(at - 26 * 3600e3).toISOString() },
+          ...db.mine.map((a, i) => ({ id: hex(8), eventName: "AGENT_REWARD_GRANTED", txHash: hex(32), blockNumber: String(4700000 - i * 9000), args: { player: WALLET, agentTokenId: a.inftTokenId ?? a.inft, amount: "250.0" }, occurredAt: new Date(at - (3 + i) * 86400e3).toISOString() }))
+        ];
+      }
+    }
+    return db.chain;
+  }
+  function chainEvent(eventName, args, amount) {
+    const c = chain();
+    c.balance += amount;
+    c.events.unshift({ id: hex(8), eventName, txHash: hex(32), blockNumber: String(4900000 + c.events.length), args, occurredAt: new Date().toISOString() });
+  }
+
   // ---------------------------------------------------------------- routes
   const ok = (data) => ({ status: 200, data });
   const fail = (status, message) => ({ status, data: { error: message } });
   const scopeOf = { POSTED: "open", NEGOTIATING: "open", ESCROWED: "active", EXECUTING: "active", DELIVERED: "active" };
 
-  function kult(method, path) {
+  function kult(method, path, q) {
+    if (path === "/leaderboard/global") {
+      const size = Number(q.get("limit") || 20), page = Number(q.get("page") || 1), total = 185377;
+      const me = { walletAddress: WALLET, kultPoints: db.profile.kultPoints, level: db.profile.level };
+      const top = Array.from({ length: 60 }, (_, i) => ({ walletAddress: `0x${(i * 2654435761 >>> 0).toString(16).padStart(8, "0")}${"a7c3e19b4d".repeat(3)}`.slice(0, 42), kultPoints: Math.round(2_000_000 / (1 + i * 0.35)), level: Math.max(1, 100 - i) }));
+      const all = [...top, me].sort((a, b) => b.kultPoints - a.kultPoints).map((e, i) => ({ rank: i + 1, ...e }));
+      return ok({ ok: true, data: { entries: all.slice((page - 1) * size, page * size), totalCount: total, page, pageSize: size, totalPages: Math.ceil(total / size) } });
+    }
     if (path.startsWith("/player/nonce")) return ok({ data: { nonce: hex(8).slice(2) } });
     if (path === "/player/login") return ok({ data: { token: "demo-kult" } });
     if (path === "/player/profile") return ok({ data: { profile: { ...db.profile, walletAddress: WALLET } } });
@@ -476,13 +507,20 @@ export function createDemo({ fresh = false, reset = false } = {}) {
       const arch = String(body?.archetype || "HYBRID").toUpperCase();
       const a = makeAgent(Math.random, { id: `agt_${(++db.seq).toString(36)}${Math.random().toString(36).slice(2, 6)}`, name: String(body?.name || "Agent"), archetype: STORY[arch] ? arch : "HYBRID", clan: String(body?.clan || "ZEROG"), elo: 1000, wins: 0, losses: 0, inft: String(db.nextInft++), owner: WALLET, story: body?.backstory || STORY[arch], created: Date.now() });
       db.mine.push(a); db.wallets[a.id] = 250;
+      chainEvent("AGENT_REWARD_GRANTED", { player: WALLET, agentTokenId: a.inftTokenId, amount: "250.0" }, 250);
       return ok({ agent: a });
     }
     if (R("GET", /^\/v1\/agents\/([^/]+)$/)) { const a = agentById(decodeURIComponent(m[1])); return a ? ok({ agent: a }) : fail(404, "Agent not found"); }
     if (R("POST", /^\/v1\/agents\/[^/]+\/(evolve-traits|train)$/)) return ok({ ok: true });
     if (R("POST", /^\/v1\/memory\//)) return ok({ ok: true });
     if (R("GET", /^\/v1\/wallets\/([^/]+)$/)) return ok({ wallet: { agentId: m[1], balanceArena: db.wallets[decodeURIComponent(m[1])] ?? 0 } });
-    if (R("GET", /^\/v1\/leaderboards\/global$/)) return ok({ entries: agents().sort((a, b) => b.eloRating - a.eloRating).slice(0, Number(q.get("limit") || 20)).map((a, i) => ({ rank: i + 1, agentId: a.id, name: a.name, archetype: a.archetype, clan: a.clan, eloRating: a.eloRating })) });
+    if (R("GET", /^\/v1\/leaderboards\/global$/)) return ok({ leaderboardId: "global", entries: ranked().slice(0, Number(q.get("limit") || 20)).map((a, i) => ({ rank: i + 1, agentId: a.id, score: a.eloRating, name: a.name, archetype: a.archetype, clan: a.clan, eloRating: a.eloRating, wins: a.wins ?? 0, losses: a.losses ?? 0, draws: a.draws ?? 0 })) });
+    if (R("GET", /^\/v1\/leaderboards\/global\/rank\/([^/]+)$/)) { const id = decodeURIComponent(m[1]), i = ranked().findIndex((a) => a.id === id); return i < 0 ? fail(404, "Agent not ranked") : ok({ agentId: id, rank: i + 1, score: ranked()[i].eloRating }); }
+    // $ARENA on 0G Chain
+    if (R("GET", /^\/v1\/arena\/wallet\/([^/]+)$/)) return ok({ address: decodeURIComponent(m[1]), balanceArena: chain().balance.toFixed(1) });
+    if (R("GET", /^\/v1\/arena\/transactions\/([^/]+)$/)) { const size = Number(q.get("limit") || 20), page = Number(q.get("page") || 1); return ok({ transactions: chain().events.slice((page - 1) * size, page * size), page, limit: size, total: chain().events.length }); }
+    if (R("GET", /^\/v1\/arena\/treasury$/)) return ok({ balance: "800783.0", distributed: "199217.0", remaining: "800783.0", totalCommissions: "0.0", totalRewardsPaid: "199217.0" });
+    if (R("GET", /^\/v1\/arena\/config$/)) return ok({ arenaTokenAddress: "0x988B94621Ef46e32d1a87b5483f693AC9C1Bef6A", treasuryAddress: "0x64b2746C8812BB5098b3533FF2d9A26198ba947C", escrowAddress: "0xdC841f0cdDB48e5f7CEe7c4DB1990cD737b82CD5", tournamentAddress: "0x1E505ad491674C488E60Aa2fF9d13722F677e009", rewardDistributorAddress: "0x9Fc91Bb2d35eB8c1442a8FDB158f2aCF1899346b" });
     // Battles and matchmaking
     if (R("GET", /^\/v1\/battles$/)) { const id = q.get("agentId"); return ok({ battles: db.battles.filter((b) => b.status === "COMPLETED" && (!id || b.agentIds.includes(id))).slice(0, Number(q.get("limit") || 10)) }); }
     if (R("GET", /^\/v1\/battles\/([^/]+)$/)) { const b = db.battles.find((x) => x.id === m[1]); return b ? ok({ battle: b }) : fail(404, "Battle not found"); }
@@ -660,7 +698,7 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     await wait(120 + Math.random() * 240);
     tick();
     const u = new URL(path, "http://demo");
-    const r = base === "kult" ? kult(method, u.pathname) : arena(method, u.pathname, u.searchParams, body);
+    const r = base === "kult" ? kult(method, u.pathname, u.searchParams) : arena(method, u.pathname, u.searchParams, body);
     save();
     // Callers get copies, as they would from the network.
     return { status: r.status, data: JSON.parse(JSON.stringify(r.data ?? null)) };

@@ -2,9 +2,11 @@
 //
 //   Privy (the shared KULT app)  → who the player is, and their wallets
 //   AI Arena gateway (/api/arena) → agents, battles, matchmaking, wallets,
-//                                   the A2A marketplace (same calls as the
+//                                   leaderboards, the A2A marketplace and
+//                                   $ARENA on 0G Chain (same calls as the
 //                                   Kult browser, kult-games-v3 src/api/)
-//   Kult backend (/api/kult)      → player profile and KP, via SIWE
+//   Kult backend (/api/kult)      → player profile, KP and the KP
+//                                   leaderboard, via SIWE
 //
 // Sign-in follows the Kult browser's AuthContext: Privy login, then the
 // Privy access token is exchanged for an AI Arena token (POST /v1/auth/privy),
@@ -174,8 +176,9 @@ async function arena(path, opts = {}) {
 }
 
 async function kult(path, opts = {}) {
-  if (!session.kult?.token) throw new ApiError("Not signed in to the Kult backend", 401);
   const c = await config();
+  if (opts.auth === false) return call(c.kultApi, path, opts);
+  if (!session.kult?.token) throw new ApiError("Not signed in to the Kult backend", 401);
   try {
     return await call(c.kultApi, path, { ...opts, token: session.kult.token });
   } catch (e) {
@@ -194,7 +197,10 @@ export const arenaApi = {
   agents: (page = 1, pageSize = 20) => arena(`/v1/agents${q({ page, pageSize })}`),
   createAgent: async (body) => { const d = await arena("/v1/agents", { method: "POST", body }); return d?.agent ?? d; },
   wallet: async (agentId) => (await arena(`/v1/wallets/${enc(agentId)}`))?.wallet ?? null,
-  leaderboard: async (limit = 20) => (await arena(`/v1/leaderboards/global${q({ limit, period: "all_time" })}`))?.entries ?? [],
+  leaderboard: async (limit = 20, period = "all_time") => (await arena(`/v1/leaderboards/global${q({ limit, period })}`, { auth: false }))?.entries ?? [],
+  /** An agent's place on the global ELO leaderboard: { rank, score }. */
+  rank: (agentId) => arena(`/v1/leaderboards/global/rank/${enc(agentId)}`, { auth: false }),
+  agentTotal: async () => Number((await arena(`/v1/agents${q({ page: 1, pageSize: 1 })}`, { auth: false }))?.total ?? 0),
   battles: async (agentId, limit = 10) => (await arena(`/v1/battles${q({ agentId, status: "COMPLETED", limit })}`))?.battles ?? [],
   battle: async (id) => { const d = await arena(`/v1/battles/${enc(id)}`); return d?.battle ?? d; },
   joinQueue: (body, headers) => arena("/v1/matchmaking", { method: "POST", body, headers }),
@@ -208,8 +214,45 @@ export const arenaApi = {
   storeMemory: (agentId, body) => arena(`/v1/memory/${enc(agentId)}/memory/episode`, { method: "POST", body })
 };
 
+// ------------------------------------------------------------------ $ARENA on 0G Chain
+// The player's own wallet holds $ARENA, an ERC-20 on 0G Chain: the backend's
+// RewardDistributor pays it out (agent mint, quests, League wins) and the
+// arena-chain service reads balances and indexes every event. Same calls as
+// kult-games-v3 src/api/arenaChainApi.ts. Amounts are decimal strings.
+export const chainApi = {
+  balance: async (address) => (await arena(`/v1/arena/wallet/${enc(address)}`, { auth: false }))?.balanceArena ?? null,
+  activity: async (address, page = 1, limit = 8) => {
+    const d = await arena(`/v1/arena/transactions/${enc(address)}${q({ page, limit })}`, { auth: false });
+    // The service answers { transactions }; older builds answered { events }.
+    return { events: d?.transactions ?? d?.events ?? [], total: Number(d?.total ?? 0) };
+  },
+  config: () => arena("/v1/arena/config", { auth: false }),
+  treasury: () => arena("/v1/arena/treasury", { auth: false })
+};
+export const explorer = {
+  tx: (hash) => `https://chainscan.0g.ai/tx/${hash}`,
+  address: (address) => `https://chainscan.0g.ai/address/${address}`
+};
+
 // ------------------------------------------------------------------ Kult backend
+const pickNum = (...v) => { for (const x of v) { const n = Number(x); if (x !== null && x !== undefined && x !== "" && Number.isFinite(n)) return n; } return null; };
 export const kultApi = {
+  /** The KP leaderboard (public). Same call as kult-games-v3 src/api/leaderboardApi.ts. */
+  leaderboard: async (page = 1, limit = 20, period = "all_time") => {
+    const d = await kult(`/leaderboard/global${q({ page, page_size: limit, limit, period })}`, { auth: false });
+    const raw = d?.data ?? d ?? {}, entries = Array.isArray(raw.entries) ? raw.entries : [];
+    const total = pickNum(raw.totalCount, raw.total, raw.count) ?? entries.length, size = pickNum(raw.pageSize, raw.page_size, raw.limit) ?? limit;
+    return {
+      entries: entries.map((e, i) => ({
+        rank: pickNum(e.rank) ?? (page - 1) * size + i + 1,
+        wallet: e.walletAddress ?? e.wallet_address ?? e.player ?? "",
+        name: e.username ?? e.name ?? null,
+        kultPoints: pickNum(e.kultPoints, e.kult_points, e.score) ?? 0,
+        level: pickNum(e.level)
+      })),
+      total, page: pickNum(raw.page) ?? page, totalPages: pickNum(raw.totalPages) ?? Math.max(1, Math.ceil(total / size))
+    };
+  },
   profile: async () => {
     const d = await kult("/player/profile");
     const raw = d?.data ?? d, p = raw?.profile ?? raw ?? {};
