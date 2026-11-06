@@ -955,14 +955,13 @@ body:has(#tour:not([hidden])) .hint { display: none; }
 .partners-row { display: flex; gap: 18px; margin: 0; padding: 4px 9px; list-style: none; }
 .partner { display: grid; justify-items: center; align-content: center; gap: 10px; width: 210px; height: 112px; padding: 14px 18px; border-radius: 18px; background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06); }
 .partner img { max-width: 100%; height: 40px; object-fit: contain; filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.12)); }
-.partner.p-solana img { height: 24px; }
 .partner.p-minds img { height: 50px; }
 .partner span { font: 600 11px var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); text-align: center; }
 .partner.p-0g { border-color: rgba(180, 107, 255, 0.45); background: linear-gradient(160deg, rgba(180, 107, 255, 0.18), rgba(180, 107, 255, 0.04)); box-shadow: 0 0 28px rgba(180, 107, 255, 0.18); }
 .partner.p-0g span { color: #e3ccff; }
 @keyframes partners { to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) { .partners-track { animation: none; } }
-@media (max-width: 520px) { .partners-title { letter-spacing: 0.16em; } .partners-title i { width: 20px; } .partner { width: 160px; height: 96px; } .partner img { height: 32px; } .partner.p-solana img { height: 19px; } .partner.p-minds img { height: 40px; } }
+@media (max-width: 520px) { .partners-title { letter-spacing: 0.16em; } .partners-title i { width: 20px; } .partner { width: 160px; height: 96px; } .partner img { height: 32px; } .partner.p-minds img { height: 40px; } }
 /* The 0G "powered by" lockup on the mint screen. */
 .powered-0g { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 14px 0 0; font: 600 11px var(--display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--dim); }
 .powered-0g img { height: 22px; width: auto; filter: drop-shadow(0 0 10px rgba(180, 107, 255, 0.55)); }

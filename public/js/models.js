@@ -157,7 +157,7 @@ const animate = (g, f) => { const prev = g.userData.anim; g.userData.anim = prev
 // Each partner place carries its partner's logo over a translated name.
 export const BRAND_SIGNS = {
   "campus-gate": { logo: "minds", lines: [["sign.park", "ANIMOCA MINDS BUSINESS PARK"]], colors: ["#9fc2ff"], logoGlow: "#5b7cff", w: 12 },
-  "bld-game-hub": { logo: "solana", lines: [["sign.hub", "SOLANA GAMING HUB"]], colors: ["#14f195"], logoGlow: "#9945ff" },
+  "bld-game-hub": { logo: "0g-white", lines: [["sign.hub", "0G GAMING HUB"]], colors: ["#c79bff"], logoGlow: "#9b5cff" },
   "bld-okx-market": { logo: "okx", lines: [["sign.okx", "OKX.AI MARKETPLACE"]], colors: ["#ffffff"], logoGlow: "#ffffff" },
   "bld-base-market": { logo: "base", lines: [["sign.a2a", "BASE A2A MARKETPLACE"]], colors: ["#8fb4ff"], logoGlow: "#0052ff" }
 };
@@ -493,7 +493,7 @@ function bench() {
   for (const x of [-0.6, 0.6]) g.add(box(0.1, 0.45, 0.45, M.frame(), x, 0));
   return g;
 }
-const ADS = [["SOLANA GAMING HUB", "BATTLE NOW"], ["OKX.AI", "HIRE A KULT AGENCY"], ["BASE A2A", "AGENTS HIRE AGENTS"], ["POWERED BY 0G", "AI AGENTS ON-CHAIN"], ["ANIMOCA MINDS", "BUSINESS PARK"]];
+const ADS = [["0G GAMING HUB", "BATTLE NOW"], ["OKX.AI", "HIRE A KULT AGENCY"], ["BASE A2A", "AGENTS HIRE AGENTS"], ["POWERED BY 0G", "AI AGENTS ON-CHAIN"], ["ANIMOCA MINDS", "BUSINESS PARK"]];
 function billboard(ad = 0) {
   const g = new THREE.Group();
   for (const x of [-1.6, 1.6]) g.add(cyl(0.12, 0.12, 4.2, M.metal(), 6, x, 0));

@@ -49,13 +49,13 @@ holding four business buildings; the other three are standalone landmarks.
 | 4 | `bld-film.glb` | **Film Production (Kult Production)**, inside the Business Park. A sound stage with an arched roof, a big "STAGE 1" hangar door, a marquee, searchlights and a clapperboard on the roof | 7 × 6 → 14 × 12 m | ~11 m | 10–25k |
 | 5 | `campus-gate.glb` | **Business Park gate**: two pillars and an arch beam with a sign panel and gold neon (the campus walls are generated in code) | 3 × 1 → 6 × 2 m | ~8 m | 2–5k |
 | 6 | `monument.glb` | **Courtyard monument**: a golden "K" emblem floating over a pedestal (bake a slow spin) | 2 × 2 | ~6 m | 2–5k |
-| 7 | `bld-game-hub.glb` (now `bld-solana-hub.glb`) | **Kult Game Hub** (was the Arcade). A retro-futurist games hall: marquee bulbs on the roofline, arched neon entrance (front, left of centre), a big VS screen beside it, a giant arcade joystick on the roof, a "KULT GAME HUB" sign | 10 × 11 → 20 × 22 m | ~14 m | 20–35k |
+| 7 | `bld-game-hub.glb` (now `bld-0g-gaming-hub.glb`) | **Kult Game Hub** (was the Arcade). A retro-futurist games hall: marquee bulbs on the roofline, arched neon entrance (front, left of centre), a big VS screen beside it, a giant arcade joystick on the roof, a "KULT GAME HUB" sign | 10 × 11 → 20 × 22 m | ~14 m | 20–35k |
 | 8 | `bld-deal-room.glb` | **Kult Deal Room**. An obsidian-glass tower with gold vertical fins, a gold portal entrance, a market-ticker band near the top and two interlocked gold rings floating above (bake the spin) | 7 × 8 → 14 × 16 m | ~20 m | 15–30k |
 | 9 | `bld-marketplace.glb` (replaced by the two below) | **Kult Agentic Marketplace**. An open bazaar: a stone platform, slender columns, a wavy canopy of pink and cyan translucent panels, six vendor stalls with floating holo cards, a wireframe globe in the middle and an entrance arch with the sign | 16 × 10 → 32 × 20 m | ~11 m | 20–40k |
 | 10–15 | `agent-berserker.glb`, `agent-tactician.glb`, `agent-defender.glb`, `agent-assassin.glb`, `agent-support.glb`, `agent-hybrid.glb` | **The six AI Arena archetypes as rigged 3D characters.** Stylized chibi or anime proportions matching the AI Arena portraits, each with its archetype colour | 0.9 × 0.9 tiles | ~2.3 m (auto-scaled) | 8–15k each |
 | 16 | `fountain.glb` | **KULT crystal fountain**, the centrepiece of the plaza: round stone basin with glowing water jets, a floating pink KULT crystal with orbiting shards (bake the spin and bob) | 4.4 × 4.4 → ~9 m across | ~6 m | 5–10k |
 
-**Partner buildings (done, 2026-11-04):** `bld-solana-hub.glb` (Solana Gaming
+**Partner buildings (done, 2026-11-04):** `bld-0g-gaming-hub.glb` (0G Gaming
 Hub, slot `bld-game-hub`, 10 × 11), `bld-okx-market.glb` (OKX.AI Marketplace,
 10 × 10) and `bld-base-market.glb` (Base A2A Marketplace, 10 × 10). Made with
 Meshy: nano-banana-pro concept (`art-src/meshy/*-concept.png`), Meshy 7.1

@@ -13,12 +13,12 @@ const EN = {
   "recenter": "Recenter",
 
   // places
-  "bld.park": "Animoca Minds Business Park", "bld.hub": "Solana Gaming Hub", "bld.deal": "Kult Deal Room", "bld.market": "OKX.AI Marketplace", "bld.a2a": "Base A2A Marketplace",
+  "bld.park": "Animoca Minds Business Park", "bld.hub": "0G Gaming Hub", "bld.deal": "Kult Deal Room", "bld.market": "OKX.AI Marketplace", "bld.a2a": "Base A2A Marketplace",
   "bld.create": "Gaming Studio", "bld.sports": "Sports Agency", "bld.dex": "Dex Trading", "bld.production": "Film Production",
   "dock.park": "Business Park", "dock.hub": "Gaming Hub", "dock.deal": "Deal Room", "dock.market": "OKX.AI", "dock.a2a": "A2A Market",
-  "blurb.park": "Built with the Minds SDK · four businesses", "blurb.hub": "AI vs AI battles · Solana", "blurb.deal": "Verified Arena · Negotiation", "blurb.market": "Hire Kult agencies · paid per call", "blurb.a2a": "Agents hire agents · escrow on Base",
+  "blurb.park": "Built with the Minds SDK · four businesses", "blurb.hub": "AI vs AI battles · 0G", "blurb.deal": "Verified Arena · Negotiation", "blurb.market": "Hire Kult agencies · paid per call", "blurb.a2a": "Agents hire agents · escrow on Base",
   "blurb.create": "Kult Create · open", "blurb.sports": "Kult Sports · open", "blurb.dex": "Kult Dex · coming soon", "blurb.production": "Kult Production · coming soon",
-  "district.plaza": "Kult Plaza", "district.park": "Animoca Minds Park", "district.hub": "Solana Hub Row", "district.deal": "Financial Quarter", "district.market": "Market Street", "district.garden": "Neon Gardens", "district.city": "Kult City",
+  "district.plaza": "Kult Plaza", "district.park": "Animoca Minds Park", "district.hub": "0G Hub Row", "district.deal": "Financial Quarter", "district.market": "Market Street", "district.garden": "Neon Gardens", "district.city": "Kult City",
   "tip.enter": "click to enter", "prompt.enter": "Enter", "walking": "Walking to {place}…",
 
   // landing
@@ -27,7 +27,7 @@ const EN = {
   "landing.lead": "Create your agent and step into a world where it can play games, build businesses, hire specialists and make deals. Its work and achievements follow it across every experience.",
   "landing.enter": "Enter Kult World",
   "exp.park": "Animoca Minds Business Park", "exp.parkDesc": "Build games, lead a sports agency and grow your agent’s career.",
-  "exp.hub": "Solana Gaming Hub", "exp.hubDesc": "Play, compete and climb the ranks across KULT games.",
+  "exp.hub": "0G Gaming Hub", "exp.hubDesc": "Play, compete and climb the ranks across KULT games.",
   "exp.deal": "Deal Room", "exp.dealDesc": "Your agent negotiates, gets scored, improves and proves it.",
   "exp.market": "OKX.AI & Base A2A", "exp.marketDesc": "Hire Kult agencies on OKX.AI, or post jobs that agents bid on over Base.",
 
@@ -39,7 +39,7 @@ const EN = {
   // mint
   "mint.eyebrow": "Create your agent", "mint.title": "Choose your archetype",
   "mint.desc": "Creates your arena agent, mints its INFT on 0G and opens its custodial hot wallet. Then it spawns in Kult World.",
-  "mint.back": "‹ Back", "mint.chip": "INFT on", "powered.by": "Powered by", "partners.title": "Built with our partners", "partners.0g": "Powered by · AI infrastructure", "partners.okx": "Agentic marketplace", "partners.base": "A2A marketplace network", "partners.solana": "Gaming partner", "partners.minds": "Minds SDK · Business Park", "mint.drag": "Drag to rotate", "mint.prev": "Previous archetype", "mint.next": "Next archetype", "mint.random": "Random name", "minting.eyebrow": "Minting",
+  "mint.back": "‹ Back", "mint.chip": "INFT on", "powered.by": "Powered by", "partners.title": "Built with our partners", "partners.0g": "Powered by · AI infrastructure", "partners.okx": "Agentic marketplace", "partners.base": "A2A marketplace network", "partners.minds": "Minds SDK · Business Park", "mint.drag": "Drag to rotate", "mint.prev": "Previous archetype", "mint.next": "Next archetype", "mint.random": "Random name", "minting.eyebrow": "Minting",
   "mint.clan": "Clan", "mint.archetype": "Archetype", "mint.name": "Name", "mint.story": "Backstory", "mint.storyDefault": "Built for smart plays, sharp banter, and a long climb up the arena ladder.",
   "mint.cancel": "Cancel", "mint.submit": "Mint agent", "mint.selected": "● Selected archetype", "minting.title": "Minting your agent",
   "mint.s1": "Creating your agent on AI Arena", "mint.s2": "Minting your INFT on 0G", "mint.s3": "Funding its custodial hot wallet", "mint.s4": "Issuing your Kult World passport", "mint.s5": "Spawning in Kult World",
@@ -54,7 +54,7 @@ const EN = {
   "st.owned": "OWNED", "st.open": "OPEN", "st.soon": "SOON",
   "biz.openIt": "{brand} · open it in the Business Park", "biz.soonSub": "{brand} · coming soon",
   "quest.tracker": "Quests", "toast.quest": "Quest complete: {title} (+{reward})", "toast.level": "Passport level {n}!",
-  "quest.visit-park": "Visit the Animoca Minds Business Park", "quest.arcade-win": "Win 3 battles in the Solana Gaming Hub", "quest.open-business": "Open your first business",
+  "quest.visit-park": "Visit the Animoca Minds Business Park", "quest.arcade-win": "Win 3 battles in the 0G Gaming Hub", "quest.open-business": "Open your first business",
   "quest.close-deal": "Close a deal in the Deal Room", "quest.hire-agent": "Hire an agent on a marketplace",
   "ago.m": "{n}m ago", "ago.h": "{n}h ago", "ago.d": "{n}d ago",
 
@@ -73,7 +73,7 @@ const EN = {
   "act.opened": "Opened {name} ({brand})",
 
   // game hub
-  "hub.eyebrow": "Solana Gaming Hub", "hub.title": "AI vs AI arena", "hub.desc": "Pick a game. Your agent is matched against another agent and plays it out live.",
+  "hub.eyebrow": "0G Gaming Hub", "hub.title": "AI vs AI arena", "hub.desc": "Pick a game. Your agent is matched against another agent and plays it out live.",
   "hub.back": "‹ Back to games", "hub.skip": "Skip to result", "hub.win": "Win", "hub.wave": "WAVE MODE",
   "game.warzone.genre": "Top-down shooter", "game.warzone.blurb": "Two agents, one arena, last one standing.", "game.warzone.mode": "1v1 duel", "game.warzone.players": "2,140 playing",
   "game.robowars.genre": "Mech brawler", "game.robowars.blurb": "Giant robots trade lasers and punches.", "game.robowars.mode": "1v1 duel", "game.robowars.players": "1,382 playing",
@@ -303,7 +303,7 @@ const EN = {
   "toast.arenaGain": "+{n} $ARENA landed in your wallet", "act.arenaGain": "Received {n} $ARENA on 0G Chain",
   "dock.board": "Leaderboard", "lb.open": "Leaderboard",
   "lb.eyebrow": "KULT rankings", "lb.title": "Leaderboard",
-  "lb.descArena": "Every AI Arena agent ranked by ELO. Win battles in the Solana Gaming Hub to climb the leagues.",
+  "lb.descArena": "Every AI Arena agent ranked by ELO. Win battles in the 0G Gaming Hub to climb the leagues.",
   "lb.descKp": "Every KULT player ranked by Kult Points earned across KULT games.",
   "lb.arena": "AI Arena · ELO", "lb.kp": "Kult Points", "lb.period": "Period", "lb.weekly": "Weekly", "lb.monthly": "Monthly", "lb.all_time": "All time",
   "lb.loading": "Loading the rankings…", "lb.offline": "The leaderboard can't be loaded right now.",
@@ -318,7 +318,7 @@ const EN = {
   "pp.kpSrc": "Kult Points from your Kult profile",
   "pp.kpConnect": "Connect Kult profile (sign a message)",
   "pp.questsLocal": "Kult World XP",
-  "pp.noActivity": "No battles yet. Visit the Solana Gaming Hub.",
+  "pp.noActivity": "No battles yet. Visit the 0G Gaming Hub.",
   "pp.signout": "Sign out",
   "logout": "Log out", "logout.confirm": "Log out?", "logout.as": "Signed in as", "logout.again": "Tap again to log out",
 
@@ -336,7 +336,7 @@ const EN = {
   "tour.w-walk": "Let’s move! Tap anywhere on the ground and your agent walks there.",
   "tour.w-map": "This is the city map. Tap a spot on it to walk there.",
   "tour.w-hub-go": "The dock takes you anywhere in the city. Tap Gaming Hub.",
-  "tour.w-hub": "The Solana Gaming Hub! Pick a game and your agent battles another agent live. Wins give ELO, $ARENA and XP.",
+  "tour.w-hub": "The 0G Gaming Hub! Pick a game and your agent battles another agent live. Wins give ELO, $ARENA and XP.",
   "tour.w-hub-close": "You can battle any time. Close this for now, there’s more to see.",
   "tour.w-park-go": "Next stop: the Animoca Minds Business Park. Tap it on the dock.",
   "tour.w-park": "Built with the Minds SDK from Animoca Brands. Your agent is the CEO here: Creator Studio builds games and Sport Agency analyses matches.",
@@ -643,7 +643,7 @@ const EN = {
   "agent.challenge": "Challenge to a battle", "agent.wave": "Wave", "agent.close": "Close", "toast.wave": "You waved at {name} 👋",
   "feed.title": "Live", "feed.won": "{a} beat {b} in {game}", "feed.deal": "{a} closed a {kind} with {b}", "feed.hire": "{a} hired {b}", "feed.ship": "{a}'s studio shipped a new game",
   "feed.level": "{a} reached {rank}",
-  "sign.park": "ANIMOCA MINDS BUSINESS PARK", "sign.hub": "SOLANA GAMING HUB", "sign.okx": "OKX.AI MARKETPLACE", "sign.a2a": "BASE A2A MARKETPLACE", "sign.powered": "AGENTS POWERED BY", "sign.deal": "DEAL ROOM", "sign.market": "AGENTIC MARKETPLACE", "sign.create": "GAMING STUDIO", "sign.sports": "SPORTS AGENCY", "sign.dex": "DEX TRADING", "sign.production": "FILM PRODUCTION", "sign.soon": "COMING SOON",
+  "sign.park": "ANIMOCA MINDS BUSINESS PARK", "sign.hub": "0G GAMING HUB", "sign.okx": "OKX.AI MARKETPLACE", "sign.a2a": "BASE A2A MARKETPLACE", "sign.powered": "AGENTS POWERED BY", "sign.deal": "DEAL ROOM", "sign.market": "AGENTIC MARKETPLACE", "sign.create": "GAMING STUDIO", "sign.sports": "SPORTS AGENCY", "sign.dex": "DEX TRADING", "sign.production": "FILM PRODUCTION", "sign.soon": "COMING SOON",
   "toast.soon": "{name} is coming soon", "deal.you": "You", "deal.rounds": "Round {n}", "agent.elo": "{n} ELO", "close": "Close",
   "sound.label": "Sound", "sound.on": "Turn sound on", "sound.off": "Mute sound"
 };
@@ -658,12 +658,12 @@ const ZH = {
   "minimap.tip": "点击前往",
   "recenter": "回到中心",
 
-  "bld.park": "Animoca Minds 商业园", "bld.hub": "Solana 游戏中心", "bld.deal": "Kult 交易室", "bld.market": "OKX.AI 市场", "bld.a2a": "Base A2A 市场",
+  "bld.park": "Animoca Minds 商业园", "bld.hub": "0G 游戏中心", "bld.deal": "Kult 交易室", "bld.market": "OKX.AI 市场", "bld.a2a": "Base A2A 市场",
   "bld.create": "游戏工作室", "bld.sports": "体育经纪公司", "bld.dex": "Dex 交易所", "bld.production": "影视制作",
   "dock.park": "商业园", "dock.hub": "游戏中心", "dock.deal": "交易室", "dock.market": "OKX.AI", "dock.a2a": "A2A 市场",
-  "blurb.park": "基于 Minds SDK · 四项业务", "blurb.hub": "AI 对战 AI · Solana", "blurb.deal": "认证竞技场 · 谈判", "blurb.market": "雇佣 Kult 机构 · 按次付费", "blurb.a2a": "智能体雇佣智能体 · Base 托管",
+  "blurb.park": "基于 Minds SDK · 四项业务", "blurb.hub": "AI 对战 AI · 0G", "blurb.deal": "认证竞技场 · 谈判", "blurb.market": "雇佣 Kult 机构 · 按次付费", "blurb.a2a": "智能体雇佣智能体 · Base 托管",
   "blurb.create": "Kult Create · 已开放", "blurb.sports": "Kult Sports · 已开放", "blurb.dex": "Kult Dex · 即将推出", "blurb.production": "Kult Production · 即将推出",
-  "district.plaza": "Kult 广场", "district.park": "Animoca Minds 园区", "district.hub": "Solana 游戏街", "district.deal": "金融区", "district.market": "市场街", "district.garden": "霓虹花园", "district.city": "Kult 城",
+  "district.plaza": "Kult 广场", "district.park": "Animoca Minds 园区", "district.hub": "0G 游戏街", "district.deal": "金融区", "district.market": "市场街", "district.garden": "霓虹花园", "district.city": "Kult 城",
   "tip.enter": "点击进入", "prompt.enter": "进入", "walking": "正在前往 {place}…",
 
   "intro.tag": "一个智能体，多重体验。", "intro.loading": "正在载入世界",
@@ -671,7 +671,7 @@ const ZH = {
   "landing.lead": "创建你的智能体，踏入一个它可以玩游戏、经营业务、雇佣专家、达成交易的世界。它的工作与成就将伴随它穿越每一种体验。",
   "landing.enter": "进入 Kult World",
   "exp.park": "Animoca Minds 商业园", "exp.parkDesc": "开发游戏、经营体育经纪公司，成就你的智能体的事业。",
-  "exp.hub": "Solana 游戏中心", "exp.hubDesc": "在 KULT 各款游戏中游玩、竞技、冲击排名。",
+  "exp.hub": "0G 游戏中心", "exp.hubDesc": "在 KULT 各款游戏中游玩、竞技、冲击排名。",
   "exp.deal": "交易室", "exp.dealDesc": "你的智能体谈判、评分、提升，并证明自己。",
   "exp.market": "OKX.AI 与 Base A2A", "exp.marketDesc": "在 OKX.AI 雇佣 Kult 机构，或在 Base 上发布任务让智能体竞标。",
 
@@ -681,7 +681,7 @@ const ZH = {
 
   "mint.eyebrow": "创建你的智能体", "mint.title": "选择你的原型",
   "mint.desc": "创建你的竞技场智能体，在 0G 上铸造它的 INFT 并开通托管热钱包，随后它将降临 Kult World。",
-  "mint.back": "‹ 返回", "mint.chip": "INFT 铸造于", "powered.by": "技术支持", "partners.title": "合作伙伴", "partners.0g": "技术支持 · AI 基础设施", "partners.okx": "智能体市场", "partners.base": "A2A 市场网络", "partners.solana": "游戏合作伙伴", "partners.minds": "Minds SDK · 商业园", "mint.drag": "拖动旋转", "mint.prev": "上一个原型", "mint.next": "下一个原型", "mint.random": "随机名称", "minting.eyebrow": "铸造中",
+  "mint.back": "‹ 返回", "mint.chip": "INFT 铸造于", "powered.by": "技术支持", "partners.title": "合作伙伴", "partners.0g": "技术支持 · AI 基础设施", "partners.okx": "智能体市场", "partners.base": "A2A 市场网络", "partners.minds": "Minds SDK · 商业园", "mint.drag": "拖动旋转", "mint.prev": "上一个原型", "mint.next": "下一个原型", "mint.random": "随机名称", "minting.eyebrow": "铸造中",
   "mint.clan": "阵营", "mint.archetype": "原型", "mint.name": "名称", "mint.story": "背景故事", "mint.storyDefault": "为妙招、犀利对话和攀登竞技场天梯而生。",
   "mint.cancel": "取消", "mint.submit": "铸造智能体", "mint.selected": "● 已选原型", "minting.title": "正在铸造你的智能体",
   "mint.s1": "在 AI Arena 创建智能体", "mint.s2": "在 0G 上铸造 INFT", "mint.s3": "为托管热钱包注资", "mint.s4": "签发 Kult World 护照", "mint.s5": "在 Kult World 中生成",
@@ -695,7 +695,7 @@ const ZH = {
   "st.owned": "已拥有", "st.open": "开放", "st.soon": "即将",
   "biz.openIt": "{brand} · 在商业园开启", "biz.soonSub": "{brand} · 即将推出",
   "quest.tracker": "任务", "toast.quest": "任务完成：{title}（+{reward}）", "toast.level": "护照升至 {n} 级！",
-  "quest.visit-park": "参观 Animoca Minds 商业园", "quest.arcade-win": "在 Solana 游戏中心赢得 3 场对战", "quest.open-business": "开启你的第一项业务",
+  "quest.visit-park": "参观 Animoca Minds 商业园", "quest.arcade-win": "在 0G 游戏中心赢得 3 场对战", "quest.open-business": "开启你的第一项业务",
   "quest.close-deal": "在交易室完成一笔交易", "quest.hire-agent": "在市场雇佣一个智能体",
   "ago.m": "{n} 分钟前", "ago.h": "{n} 小时前", "ago.d": "{n} 天前",
 
@@ -711,7 +711,7 @@ const ZH = {
   "app.back": "‹ 返回 Kult World", "app.newtab": "在新标签页打开", "toast.back": "已返回 Kult World",
   "act.opened": "开启了 {name}（{brand}）",
 
-  "hub.eyebrow": "Solana 游戏中心", "hub.title": "AI 对战 AI 竞技场", "hub.desc": "选择一款游戏。你的智能体将与另一智能体匹配并实时对战。",
+  "hub.eyebrow": "0G 游戏中心", "hub.title": "AI 对战 AI 竞技场", "hub.desc": "选择一款游戏。你的智能体将与另一智能体匹配并实时对战。",
   "hub.back": "‹ 返回游戏列表", "hub.skip": "跳到结果", "hub.win": "赢取", "hub.wave": "波次模式",
   "game.warzone.genre": "俯视射击", "game.warzone.blurb": "两个智能体，一个竞技场，最后站着的获胜。", "game.warzone.mode": "1v1 对决", "game.warzone.players": "2,140 人在玩",
   "game.robowars.genre": "机甲格斗", "game.robowars.blurb": "巨型机器人激光与重拳对轰。", "game.robowars.mode": "1v1 对决", "game.robowars.players": "1,382 人在玩",
@@ -939,7 +939,7 @@ const ZH = {
   "toast.arenaGain": "+{n} $ARENA 已到账", "act.arenaGain": "在 0G 链上收到 {n} $ARENA",
   "dock.board": "排行榜", "lb.open": "排行榜",
   "lb.eyebrow": "KULT 排名", "lb.title": "排行榜",
-  "lb.descArena": "所有 AI Arena 智能体按 ELO 排名。在 Solana 游戏中心赢得对战，晋升段位。",
+  "lb.descArena": "所有 AI Arena 智能体按 ELO 排名。在 0G 游戏中心赢得对战，晋升段位。",
   "lb.descKp": "所有 KULT 玩家按在 KULT 游戏中赚取的 Kult 积分排名。",
   "lb.arena": "AI Arena · ELO", "lb.kp": "Kult 积分", "lb.period": "周期", "lb.weekly": "本周", "lb.monthly": "本月", "lb.all_time": "总榜",
   "lb.loading": "正在加载排名…", "lb.offline": "暂时无法加载排行榜。",
@@ -954,7 +954,7 @@ const ZH = {
   "pp.kpSrc": "来自 Kult 个人资料的 Kult 积分",
   "pp.kpConnect": "连接 Kult 资料（签名一条消息）",
   "pp.questsLocal": "Kult World 经验",
-  "pp.noActivity": "还没有对战。去 Solana 游戏中心看看。",
+  "pp.noActivity": "还没有对战。去 0G 游戏中心看看。",
   "pp.signout": "退出登录",
   "logout": "退出登录", "logout.confirm": "确认退出？", "logout.as": "已登录：", "logout.again": "再点一次即可退出登录",
 
@@ -971,7 +971,7 @@ const ZH = {
   "tour.w-walk": "动起来！点击地面上任意位置，你的智能体就会走过去。",
   "tour.w-map": "这是城市地图。点击地图上的位置即可前往。",
   "tour.w-hub-go": "底部栏可以带你去城里任何地方。点击「游戏中心」。",
-  "tour.w-hub": "Solana 游戏中心！选一款游戏，你的智能体会与另一个智能体实时对战。获胜可得 ELO、$ARENA 和经验。",
+  "tour.w-hub": "0G 游戏中心！选一款游戏，你的智能体会与另一个智能体实时对战。获胜可得 ELO、$ARENA 和经验。",
   "tour.w-hub-close": "随时都可以来对战。先关掉，还有更多地方要看。",
   "tour.w-park-go": "下一站：Animoca Minds 商业园。在底部栏点击它。",
   "tour.w-park": "基于 Animoca Brands 的 Minds SDK 打造。你的智能体在这里担任 CEO：创作工作室开发游戏，体育经纪分析比赛。",
@@ -1277,7 +1277,7 @@ const ZH = {
   "agent.challenge": "发起对战", "agent.wave": "打招呼", "agent.close": "关闭", "toast.wave": "你向 {name} 挥手 👋",
   "feed.title": "实时", "feed.won": "{a} 在 {game} 中击败了 {b}", "feed.deal": "{a} 与 {b} 完成了一笔{kind}", "feed.hire": "{a} 雇佣了 {b}", "feed.ship": "{a} 的工作室发布了新游戏",
   "feed.level": "{a} 晋升为 {rank}",
-  "sign.park": "ANIMOCA MINDS 商业园", "sign.hub": "SOLANA 游戏中心", "sign.okx": "OKX.AI 市场", "sign.a2a": "BASE A2A 市场", "sign.powered": "智能体驱动", "sign.deal": "交易室", "sign.market": "智能体市场", "sign.create": "游戏工作室", "sign.sports": "体育经纪", "sign.dex": "DEX 交易所", "sign.production": "影视制作", "sign.soon": "即将推出",
+  "sign.park": "ANIMOCA MINDS 商业园", "sign.hub": "0G 游戏中心", "sign.okx": "OKX.AI 市场", "sign.a2a": "BASE A2A 市场", "sign.powered": "智能体驱动", "sign.deal": "交易室", "sign.market": "智能体市场", "sign.create": "游戏工作室", "sign.sports": "体育经纪", "sign.dex": "DEX 交易所", "sign.production": "影视制作", "sign.soon": "即将推出",
   "toast.soon": "{name} 即将推出", "deal.you": "你", "deal.rounds": "第 {n} 轮", "agent.elo": "{n} ELO", "close": "关闭",
   "sound.label": "声音", "sound.on": "打开声音", "sound.off": "静音"
 };
