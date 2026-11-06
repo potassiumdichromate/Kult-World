@@ -7,13 +7,21 @@
 //                                   Kult browser, kult-games-v3 src/api/)
 //   Kult backend (/api/kult)      → player profile, KP and the KP
 //                                   leaderboard, via SIWE
+//   Kult World referrals          → hardcoded in js/constants.js
+//                                   (https://api-backend-v2.kult.games/api/kult-world/referrals)
 //
 // Sign-in follows the Kult browser's AuthContext: Privy login, then the
 // Privy access token is exchanged for an AI Arena token (POST /v1/auth/privy),
-// then the player signs a SIWE message for the Kult backend. The Kult login is
-// optional: when it fails, KP is shown as unavailable, never invented.
+// then the player signs a SIWE message for the Kult backend. That sign-in
+// is sent to the hardcoded Kult World API so a referral code is credited
+// there. The Kult login is optional: when it fails, KP is shown as
+// unavailable, never invented.
+
+import { KULT_WORLD_REFERRALS_URL } from "./constants.js";
 
 const KEYS = { arena: "kw.arena.session.v1", kult: "kw.kult.session.v1" };
+// Same host as the Kult World referral list, without the /kult-world/referrals path.
+const KULT_WORLD_API = KULT_WORLD_REFERRALS_URL.replace(/\/kult-world\/referrals\/?$/, "");
 const read = (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } };
 const write = (k, v) => { try { v ? localStorage.setItem(k, JSON.stringify(v)) : localStorage.removeItem(k); } catch { /* private mode */ } };
 
@@ -64,7 +72,8 @@ async function call(base, path, { method = "GET", body, headers = {}, token } = 
   // Local development: demo mode can still run the Deal Room on a real service.
   if (demo && cfg.dealRoomDemoToken && base === cfg.arenaApi && path.startsWith(DR)) token = cfg.dealRoomDemoToken;
   else if (demo) {
-    const { status, data } = await demo.call(base === cfg.kultApi ? "kult" : "arena", path, { method, body });
+    const kultCall = base === cfg.kultApi || base === KULT_WORLD_API;
+    const { status, data } = await demo.call(kultCall ? "kult" : "arena", path, { method, body });
     if (status >= 400) throw new ApiError(errorText(data, status), status, data);
     return data;
   }
@@ -89,7 +98,7 @@ export const session = {
 };
 
 // Referral links: <site>?referral=<code>. The first code seen is kept until
-// the next sign-in sends it; the backend only credits it to a brand-new wallet.
+// the Kult backend sign-in sends it. Only a brand-new Kult player is credited.
 const REFERRAL_KEY = "kult.referral";
 (function captureReferral() {
   try {
@@ -107,10 +116,7 @@ async function exchangePrivy() {
   const p = await privyClient();
   const { accessToken } = await p.tokens();
   const c = await config();
-  const referralCode = readReferral();
-  const data = await call(c.arenaApi, "/v1/auth/privy", { method: "POST", body: { accessToken, referralCode } });
-  // Sent once: the wallet is either new (credited) or already existed (ignored)
-  if (referralCode) { try { localStorage.removeItem(REFERRAL_KEY); } catch { /* ignore */ } }
+  const data = await call(c.arenaApi, "/v1/auth/privy", { method: "POST", body: { accessToken } });
   session.arena = {
     accessToken: data.accessToken, refreshToken: data.refreshToken, expiresAt: Date.now() + (data.expiresIn || 900) * 1000,
     userId: data.userId, walletAddress: data.walletAddress, isNewUser: Boolean(data.isNewUser)
@@ -133,10 +139,10 @@ async function refreshArena() {
   }
 }
 
-/** The Kult backend's SIWE login (kult-games-v3 src/lib/siwe.ts). */
+/** The Kult backend's SIWE login (kult-games-v3 src/lib/siwe.ts). Referral credit goes to the hardcoded Kult World API. */
 async function kultLogin(address) {
-  const c = await config(), p = await privyClient();
-  const nonceRes = await call(c.kultApi, `/player/nonce?walletAddress=${encodeURIComponent(address)}`);
+  const p = await privyClient();
+  const nonceRes = await call(KULT_WORLD_API, `/player/nonce?walletAddress=${encodeURIComponent(address)}`);
   const nonce = (nonceRes?.data ?? nonceRes)?.nonce;
   if (!nonce) throw new Error("No sign-in nonce from the Kult backend");
   const message = [
@@ -145,9 +151,11 @@ async function kultLogin(address) {
     `URI: ${location.origin}`, "Version: 1", "Chain ID: 16661", `Nonce: ${nonce}`, `Issued At: ${new Date().toISOString()}`
   ].join("\n");
   const signature = await p.signMessage(address, message);
-  const res = await call(c.kultApi, "/player/login", { method: "POST", body: { walletAddress: address, message, signature } });
+  const kultWorldReferralCode = readReferral();
+  const res = await call(KULT_WORLD_API, "/player/login", { method: "POST", body: { walletAddress: address, message, signature, kultWorldReferralCode } });
   const token = (res?.data ?? res)?.token || res?.token;
   if (!token) throw new Error("The Kult backend returned no session");
+  if (kultWorldReferralCode) { try { localStorage.removeItem(REFERRAL_KEY); } catch { /* ignore */ } }
   session.kult = { token, walletAddress: address };
   write(KEYS.kult, session.kult);
 }
