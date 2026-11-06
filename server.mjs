@@ -21,6 +21,9 @@ const PORT = Number(process.env.PORT || 4500);
 const trim = (u) => String(u).replace(/\/+$/, "");
 const ARENA_API = trim(process.env.AI_ARENA_API_URL || "https://aiarena-gateway.kult.games");
 const KULT_API = trim(process.env.KULT_API_URL || "https://api-backend-v2.kult.games/api");
+// DEAL_ROOM_API_URL: send Deal Room calls straight to an a2a-marketplace-service
+// (for example a local one) instead of through the gateway.
+const DEAL_ROOM_API = process.env.DEAL_ROOM_API_URL ? trim(process.env.DEAL_ROOM_API_URL) : null;
 const CONFIG = JSON.stringify({
   privyAppId: process.env.PRIVY_APP_ID || "cmhfx1cl20001l10d4l0w8u4j",
   privyClientId: process.env.PRIVY_CLIENT_ID || undefined,
@@ -32,7 +35,10 @@ const CONFIG = JSON.stringify({
   kultSportsUrl: trim(process.env.KULT_SPORTS_URL || "https://kult-sports.onrender.com"),
   // DEMO_MODE=1 (or "fresh": no agent yet, so minting is shown) runs the page
   // on js/demo.js instead of the KULT backends, for every visitor.
-  demo: demoMode(process.env.DEMO_MODE)
+  demo: demoMode(process.env.DEMO_MODE),
+  // Local development only: in demo mode, Deal Room calls go to the real
+  // service (DEAL_ROOM_API_URL) signed with this token instead of js/demo.js.
+  dealRoomDemoToken: process.env.DEAL_ROOM_DEMO_TOKEN || undefined
 });
 function demoMode(v) {
   const s = String(v ?? "").trim().toLowerCase();
@@ -105,6 +111,7 @@ createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   if (url.pathname === "/health") { res.writeHead(200, { "Content-Type": "application/json" }); return res.end('{"ok":true,"service":"kult-world"}'); }
   if (url.pathname === "/config.json") { res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-cache" }); return res.end(CONFIG); }
+  if (DEAL_ROOM_API && url.pathname.startsWith("/api/arena/v1/marketplace/deal-room/")) return proxy(req, res, DEAL_ROOM_API, url.pathname.slice("/api/arena/v1/marketplace".length) + url.search);
   if (url.pathname.startsWith("/api/arena/")) return proxy(req, res, ARENA_API, url.pathname.slice("/api/arena".length) + url.search);
   if (url.pathname.startsWith("/api/kult/")) return proxy(req, res, KULT_API, url.pathname.slice("/api/kult".length) + url.search);
   let rel = decodeURIComponent(url.pathname);

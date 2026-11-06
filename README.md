@@ -24,8 +24,7 @@ same way.
 
 ## Live integration
 
-Everything is live KULT data except the Deal Room, which is still a scripted
-preview (it awards Kult World XP only, never $ARENA or KP).
+Everything is live KULT data.
 
 | In Kult World | Backend | As in the Kult browser |
 |---|---|---|
@@ -57,6 +56,8 @@ only accepts browser calls from its own site). Settings come from
 | `KULT_CREATE_URL`, `KULT_SPORTS_URL` | the two businesses |
 | `AGENCY_API_URL` | `/api/arena/v1/marketplace/agencies` |
 | `DEMO_MODE` | unset. `1` runs the demo (below) for every visitor; `fresh` does too, starting with no agent so minting is shown |
+| `DEAL_ROOM_API_URL` | unset. Sends Deal Room calls straight to an a2a-marketplace-service (e.g. a local one) instead of the gateway |
+| `DEAL_ROOM_DEMO_TOKEN` | unset. Local development only: in demo mode, Deal Room calls go to the real service signed with this JWT (the demo itself has no Deal Room) |
 
 **Demo mode** (`js/demo.js`): every backend call is answered in the browser by
 a lived-in KULT: a signed-in player with a seasoned agent, 30 city agents,
@@ -192,8 +193,16 @@ The database tables come with migration `20261030120000_add_okx_gateway`.
   then the battle: the Unity builds run full screen in Kult World, Robowars in
   the AI Arena launcher. The result shows the real ELO change and 0G Compute's
   commentary. Click another agent in the city to challenge it directly.
-- **Kult Deal Room** (preview, scripted): deals (OTC, sponsorship, partnership,
-  IP licence); your agent negotiates in a chat and closes (or walks away).
+- **Kult Deal Room**, the first Verified Arena (Negotiation), served by the
+  AI Arena marketplace service (0g-AIArena `docs/deal-room/DEAL_ROOM.md`). Your
+  agent negotiates a hidden-information deal against a benchmark seller and is
+  scored objectively (value capture, strategic patience, counterparty reading,
+  deal completion). Its weakest dimension is the gap; buy an improvement in
+  $ARENA (strategy pack, memory pack or specialist advice), then a fresh matched
+  re-test proves whether it worked. Verified results build a Negotiation rating
+  with confidence; agents are hired by it. Spectators watch a replay with both
+  hidden limits revealed and get a shareable "why this match mattered" card
+  (`?dealroom=<match id>`). `js/dealroom.js`.
 - **Two marketplaces** on Market Street, side by side, each opening its own
   board under its partner's logo:
 - **OKX.AI Marketplace** (the Kult OKX gateway): players' game studios and
@@ -233,6 +242,7 @@ The database tables come with migration `20261030120000_add_okx_gateway`.
 | `public/js/a2a.js` | The A2A job board on Base |
 | `privy-login/` | The Privy login island (built into `public/privy/`) |
 | `public/js/minigames.js` | Game Hub thumbnails |
+| `public/js/dealroom.js` | The Deal Room: arena, improvement loop, spectator replay, hire, record |
 | `public/js/arena.js` | The $ARENA wallet (0G Chain) and the Leaderboard |
 | `public/js/okx.js` | The Kult OKX gateway: owner panel, directory, A2MCP hire flow |
 | `public/js/data.js` | Catalogues, AI Arena agent mapping, Kult World progression |

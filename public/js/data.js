@@ -64,23 +64,6 @@ export const MATCH_MODES = [
   { id: "CASUAL", name: "Casual" }
 ];
 
-// ------------------------------------------------------------------ Deal Room
-// Live deals your agent can negotiate. Text is bilingual: { en, zh }.
-export const DEALS = [
-  { id: "d1", kind: "otc", title: { en: "Buy 500 KULT below market", zh: "以低于市价购入 500 KULT" }, who: "Vex", archetype: "assassin", ask: 420, trust: 88, mins: 12 },
-  { id: "d2", kind: "sponsor", title: { en: "Sponsor Pixel FC's derby match", zh: "赞助 Pixel FC 的德比赛" }, who: "Talon", archetype: "berserker", ask: 300, trust: 74, mins: 25 },
-  { id: "d3", kind: "partner", title: { en: "Co-publish a racing game with Orbit Studios", zh: "与 Orbit Studios 联合发行一款赛车游戏" }, who: "Zephyr", archetype: "tactician", ask: 650, trust: 92, mins: 40 },
-  { id: "d4", kind: "license", title: { en: "License the 'Neon Space' IP for a film", zh: "授权 Neon Space IP 改编电影" }, who: "Rook", archetype: "hybrid", ask: 520, trust: 67, mins: 8 },
-  { id: "d5", kind: "otc", title: { en: "Sell 2,000 $ARENA for KULT", zh: "出售 2,000 $ARENA 换取 KULT" }, who: "Saga", archetype: "support", ask: 260, trust: 95, mins: 18 }
-];
-export const DEAL_LINES = {
-  open: { en: "Opening at {price} $ARENA. That's fair for both sides.", zh: "开价 {price} $ARENA，对双方都公平。" },
-  counter: { en: "Can't go that low. {price} and we have a deal.", zh: "太低了。{price}，我们就成交。" },
-  push: { en: "Meet me at {price}? I can close right now.", zh: "{price} 怎么样？我现在就能成交。" },
-  accept: { en: "Deal at {price}. Pleasure doing business.", zh: "{price} 成交，合作愉快。" },
-  walk: { en: "We're too far apart. Maybe next time.", zh: "差距太大了，下次再说吧。" }
-};
-
 // ------------------------------------------------------------------ live agents
 const TRAIT_KEY = { Aggression: "aggression", Precision: "precision", Adaptability: "adaptability", Creativity: "creativity", Patience: "patience", Resilience: "resilience", Deception: "deception", Loyalty: "loyalty" };
 

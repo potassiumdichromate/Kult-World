@@ -19,9 +19,10 @@ import { createOkx } from "./okx.js";
 import { createA2A } from "./a2a.js";
 import { createChatter } from "./chatter.js";
 import { createTour } from "./tour.js";
+import { createDealRoom } from "./dealroom.js";
 import { createArena, arenaAmount } from "./arena.js";
 import {
-  CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES, DEALS, DEAL_LINES,
+  CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES,
   agentFromApi, loadProgress, saveProgress
 } from "./data.js";
 import { config, privyClient, session, arenaApi, kultApi, a2aApi, okxApi, chainApi } from "./kult.js";
@@ -43,7 +44,6 @@ const show = (id, on = true) => { $(id).hidden = !on; };
 let toastT = null;
 function toast(msg, kind = "") { sound.play(kind === "good" ? "pop" : kind === "bad" ? "error" : "pop"); const n = $("toast"); n.textContent = msg; n.className = `glass ${kind}`; n.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { n.hidden = true; }, 3400); }
 const fmt = (n) => Number(n || 0).toLocaleString();
-const pick = (o) => (o && typeof o === "object" ? o[getLang()] ?? o.en : o);
 const ago = (iso) => { const s = Math.max(1, (Date.now() - Date.parse(iso)) / 1000); return s < 3600 ? t("ago.m", { n: Math.max(1, Math.round(s / 60)) }) : s < 86400 ? t("ago.h", { n: Math.round(s / 3600) }) : t("ago.d", { n: Math.round(s / 86400) }); };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const placeName = (b) => t(`bld.${b.id}`);
@@ -100,7 +100,7 @@ onLang(() => {
   if (!$("mint").hidden) renderMint();
   if (!$("park").hidden) renderBiz();
   if (!$("hub").hidden && !$("hub-list").hidden) renderGames();
-  if (!$("deal").hidden && !$("deal-list").hidden) renderDeals();
+  if (!$("deal").hidden) void dealRoom.open($("deal-body"));
   if (!$("market").hidden) renderMarket();
   closeAgentCard();
   tour.relabel();
@@ -324,7 +324,7 @@ async function switchAgent(id) {
   renderPassport(); renderQuests();
   toast(t("toast.switched", { name: a.name }), "good");
 }
-for (const b of document.querySelectorAll("[data-close]")) b.addEventListener("click", () => { sound.play("close"); show(b.dataset.close, false); if (b.dataset.close === "deal") negotiation = null; });
+for (const b of document.querySelectorAll("[data-close]")) b.addEventListener("click", () => { sound.play("close"); show(b.dataset.close, false); if (b.dataset.close === "deal") dealRoom.stop(); });
 
 // ------------------------------------------------------------------ mint
 // A character select: pick an archetype on the 3D stage (js/charselect.js),
@@ -590,7 +590,7 @@ addEventListener("keydown", (e) => {
   if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter(); else if (k === "l") openBoard();
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
-function closeOverlays() { sound.play("close"); cancelMatch(); negotiation = null; okx.stop(); a2a.stop(); for (const id of ["park", "hub", "deal", "market", "okx", "wallet", "board"]) show(id, false); }
+function closeOverlays() { sound.play("close"); cancelMatch(); dealRoom.stop(); okx.stop(); a2a.stop(); for (const id of ["park", "hub", "deal", "market", "okx", "wallet", "board"]) show(id, false); }
 
 // ------------------------------------------------------------------ places
 function openPlace(b, then) {
@@ -602,7 +602,7 @@ function openPlace(b, then) {
   if (biz) { stamp("park"); quest("visit-park"); void openApp(biz); }
   else if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); quest("visit-park"); }
   if (b.kind === "hub") { renderGames(); show("hub-list"); show("hub-match", false); show("hub"); stamp("hub"); if (then?.challenge) startMatch(GAMES[0], then.challenge); }
-  if (b.kind === "deal") { renderDeals(); show("deal-list"); show("deal-room", false); show("deal"); stamp("deal"); }
+  if (b.kind === "deal") { show("deal"); stamp("deal"); void dealRoom.open($("deal-body")); }
   if (b.kind === "market") { marketTab = b.tab; renderMarket(); show("market"); stamp(b.id); }
   commit();
 }
@@ -823,67 +823,21 @@ function openBoard() {
 $("bal-arena-btn").addEventListener("click", openWallet);
 
 // ------------------------------------------------------------------ deal room
-let negotiation = null;
-const KIND_COLOR = { otc: "#4fd8ff", sponsor: "#7ef0a6", partner: "#ff7eb6", license: "#ffc94d" };
-function renderDeals() {
-  $("deal-grid").replaceChildren(...DEALS.map((d) => el("div", { class: "deal-card", style: `--c:${KIND_COLOR[d.kind]}` },
-    el("div", { class: "dc-top" }, el("span", { class: "kind" }, t(`deal.kind.${d.kind}`)), el("span", { class: "muted tiny" }, t("deal.expires", { n: d.mins }))),
-    el("div", { class: "dc-title" }, pick(d.title)),
-    el("div", { class: "dc-who" }, portrait(d.archetype), el("div", {}, el("b", {}, d.who), el("small", {}, `${archetype(d.archetype).name} · ${t("deal.trust")} ${d.trust}%`))),
-    el("div", { class: "dc-foot" }, el("div", {}, el("small", {}, t("deal.ask")), el("b", { class: "ic arena" }, fmt(d.ask))), el("button", { type: "button", class: "btn gold small", onclick: () => negotiate(d) }, t("deal.negotiate"))))));
-}
-async function negotiate(d) {
-  const token = {}; negotiation = token;
-  const alive = () => negotiation === token;
-  const me = state.player.agent, room = $("deal-room");
-  show("deal-list", false); show("deal-room");
-  const log = el("div", { class: "chat" }), meter = el("i"), priceTag = el("b", {}, "—");
-  room.replaceChildren(
-    el("button", { type: "button", class: "btn ghost small", onclick: () => { negotiation = null; show("deal-room", false); show("deal-list"); } }, `‹ ${t("deal.again")}`),
-    el("div", { class: "dr-head" },
-      el("div", { class: "dr-party" }, portrait(me.archetype), el("div", {}, el("small", {}, t("deal.you")), el("b", {}, me.name))),
-      el("div", { class: "dr-mid" }, el("span", { class: "kind", style: `--c:${KIND_COLOR[d.kind]}` }, t(`deal.kind.${d.kind}`)), el("div", { class: "dr-title" }, pick(d.title)), el("div", { class: "dr-meter" }, meter), el("div", { class: "dr-price" }, el("small", {}, t("deal.ask")), ` ${fmt(d.ask)} · `, priceTag)),
-      el("div", { class: "dr-party r" }, el("div", {}, el("small", {}, t("deal.counterparty")), el("b", {}, d.who)), portrait(d.archetype))),
-    log);
-  const say = async (who, key, price, delay = 900) => {
-    const typing = el("div", { class: `msg ${who} typing` }, el("span"), el("span"), el("span"));
-    log.append(typing); log.scrollTop = log.scrollHeight;
-    await wait(delay); typing.remove();
-    if (!alive()) return false;
-    sound.play("type");
-    log.append(el("div", { class: `msg ${who}` }, el("small", {}, who === "me" ? me.name : d.who), pick(DEAL_LINES[key]).split("{price}").join(fmt(price))));
-    log.scrollTop = log.scrollHeight;
-    priceTag.textContent = `${fmt(price)} $ARENA`; meter.style.width = `${Math.min(100, Math.round((price / d.ask) * 100))}%`;
-    return true;
-  };
-  const bonus = { tactician: 0.12, support: 0.06, hybrid: 0.04 }[me.archetype] || 0, p = 0.4 + d.trust / 400 + bonus;
-  const offer = Math.round(d.ask * 0.68), counter = Math.round(d.ask * 0.93), push = Math.round(d.ask * 0.8);
-  if (!(await say("me", "open", offer, 700))) return;
-  if (!(await say("them", "counter", counter, 1300))) return;
-  if (!(await say("me", "push", push))) return;
-  let final = null;
-  if (Math.random() < p) { if (!(await say("them", "accept", push, 1400))) return; final = push; }
-  else {
-    const c2 = Math.round(d.ask * 0.88), m2 = Math.round(d.ask * 0.85);
-    if (!(await say("them", "counter", c2, 1400))) return;
-    if (!(await say("me", "push", m2))) return;
-    if (Math.random() < p + 0.2) { if (!(await say("them", "accept", m2, 1400))) return; final = m2; }
-    else if (!(await say("them", "walk", m2, 1400))) return;
-  }
-  if (final) {
-    // The Deal Room is a labeled preview (no backend), so it pays out Kult World XP
-    // only; it never touches the player's real $ARENA or KP.
-    const saved = d.ask - final;
-    gainXp(70); quest("close-deal");
-    addActivity(t("act.deal", { kind: t(`deal.kind.${d.kind}`), name: d.who, price: fmt(final) }));
+// The first Verified Arena (Negotiation), js/dealroom.js. Matches are scored
+// on the server; only verified ones move the agent's reputation.
+const dealRoom = createDealRoom({
+  el, t, toast, sound, burst, portrait, ago,
+  player: () => state.player,
+  onMatch: (m) => {
+    if (!state.player || m.agent?.id !== state.player.agent.id) return;
+    if (m.outcome === "DEAL") quest("close-deal");
+    gainXp(m.kind === "VERIFIED" ? 70 : 25);
+    addActivity(t(m.outcome === "DEAL" ? "act.drDeal" : "act.drMatch", { name: state.player.agent.name, n: m.negotiation ?? "—", asset: m.scenario.asset.name }));
     commit();
-    log.append(el("div", { class: "deal-result win" }, el("div", { class: "big" }, t("deal.closed")), el("div", {}, `${t("deal.terms")}: ${fmt(final)} $ARENA`), el("div", { class: "muted" }, t("deal.saved", { n: fmt(saved) })), el("div", { class: "rows" }, el("span", { class: "ic xp" }, "+70 XP")), el("div", { class: "tiny muted" }, t("deal.demo"))));
-    toast(t("toast.deal", { name: d.who }), "good");
-    const r = room.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, "#ffc94d", 40);
-    sound.play("deal");
-  } else { sound.play("lose"); log.append(el("div", { class: "deal-result lose" }, el("div", { class: "big" }, t("deal.walked")))); }
-  log.scrollTop = log.scrollHeight;
-}
+  },
+  onPurchase: (svc) => { addActivity(t("act.drBought", { name: svc.name, n: svc.priceArena })); commit(); },
+  onHire: (x) => { quest("hire-agent"); gainXp(60); addActivity(t("act.drHired", { name: x.agent.name })); commit(); }
+});
 
 // ------------------------------------------------------------------ agentic marketplace
 // Two halves: the Kult OKX gateway (js/okx.js), where OKX.AI users hire the
@@ -1009,6 +963,11 @@ void populateCity();
 // ?debug: enter with an existing AI Arena session, without the Privy modal.
 if (window.kw) { window.kw.enter = async () => { await loadPlayer(); if (state.player) enterWorld(false); else openMint(); }; window.kw.openMint = openMint; window.kw.stage = () => stage; }
 void introDone.then(() => { if (!state.inWorld && $("mint").hidden) show("landing"); });
+// ?dealroom=<match id>: a shared Deal Room result, open to anyone.
+{
+  const shared = new URLSearchParams(location.search).get("dealroom");
+  if (shared) void introDone.then(() => { show("deal"); void dealRoom.open($("deal-body"), shared); });
+}
 {
   const params = new URLSearchParams(location.search);
   try {

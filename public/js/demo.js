@@ -536,6 +536,8 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     if (R("DELETE", /^\/v1\/matchmaking\/([^/]+)$/)) { delete db.queue[decodeURIComponent(m[1])]; return ok({ ok: true }); }
     if (R("POST", /^\/v1\/matchmaking\/match\/direct$/)) return ok({ match: { battleId: newBattle(body.agentId, body.opponentId, body.gameId, body.mode).id } });
     if (R("POST", /^\/v1\/inference\/battle-commentary$/)) return ok({ commentary: any(COMMENTARY).replace("{w}", body.winnerName).replace("{l}", body.loserName) });
+    // The Deal Room only runs on the real service (see dealRoomDemoToken in server.mjs).
+    if (path.startsWith("/v1/marketplace/deal-room")) return fail(503, "The Deal Room runs on the live KULT backend only");
     // The A2A job board
     if (path.startsWith("/v1/marketplace/okx")) return okx(method, path.slice("/v1/marketplace/okx".length), q, body);
     if (R("GET", /^\/v1\/marketplace\/jobs$/)) {

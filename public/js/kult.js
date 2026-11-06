@@ -59,8 +59,11 @@ export class ApiError extends Error {
 }
 const errorText = (body, status) => body?.error?.message || body?.error || body?.message || `Request failed (${status})`;
 
+const DR = "/v1/marketplace/deal-room";
 async function call(base, path, { method = "GET", body, headers = {}, token } = {}) {
-  if (demo) {
+  // Local development: demo mode can still run the Deal Room on a real service.
+  if (demo && cfg.dealRoomDemoToken && base === cfg.arenaApi && path.startsWith(DR)) token = cfg.dealRoomDemoToken;
+  else if (demo) {
     const { status, data } = await demo.call(base === cfg.kultApi ? "kult" : "arena", path, { method, body });
     if (status >= 400) throw new ApiError(errorText(data, status), status, data);
     return data;
@@ -285,6 +288,24 @@ export const a2aApi = {
   identity: async (agentId) => { try { const d = await arena(`/v1/marketplace/agents/${enc(agentId)}/identity`); return d?.identity ?? (typeof d?.status === "string" ? d : null); } catch { return null; } },
   registerIdentity: (agentId) => arena(`/v1/marketplace/agents/${enc(agentId)}/register-identity`, { method: "POST", body: {} }),
   reputation: (erc8004Id) => arena(`/v1/a2a/reputation/agents/${enc(erc8004Id)}`)
+};
+
+// ------------------------------------------------------------------ Deal Room
+// The first Verified Arena (Negotiation): a2a-marketplace-service
+// src/routes/deal-room.routes.ts. Matches run on the server; the page polls.
+export const dealRoomApi = {
+  arena: () => arena(`${DR}/arena`, { auth: false }),
+  profile: (agentId) => arena(`${DR}/agents/${enc(agentId)}/profile`),
+  start: async (agentId, kind) => (await arena(`${DR}/matches`, { method: "POST", body: { agentId, kind } }))?.match,
+  match: (id) => arena(`${DR}/matches/${enc(id)}`, { auth: false }),
+  audit: (id) => arena(`${DR}/matches/${enc(id)}/audit`, { auth: false }),
+  buy: (pairId, serviceId) => arena(`${DR}/purchases`, { method: "POST", body: { pairId, serviceId } }),
+  retest: async (pairId) => (await arena(`${DR}/pairs/${enc(pairId)}/retest`, { method: "POST", body: {} }))?.match,
+  abandon: (pairId) => arena(`${DR}/pairs/${enc(pairId)}/abandon`, { method: "POST", body: {} }),
+  discover: async (minNegotiation, minReliability) => (await arena(`${DR}/discover${q({ minNegotiation, minReliability })}`, { auth: false }))?.agents ?? [],
+  hire: async (providerAgentId, assetKey) => (await arena(`${DR}/hires`, { method: "POST", body: { providerAgentId, assetKey } }))?.hire,
+  hireStatus: async (id) => (await arena(`${DR}/hires/${enc(id)}`))?.hire,
+  wallet: () => arena(`${DR}/wallet`)
 };
 
 // ------------------------------------------------------------------ Kult OKX gateway
