@@ -88,11 +88,29 @@ export const session = {
   get wallet() { return this.arena?.walletAddress || null; }
 };
 
+// Referral links: <site>?referral=<code>. The first code seen is kept until
+// the next sign-in sends it; the backend only credits it to a brand-new wallet.
+const REFERRAL_KEY = "kult.referral";
+(function captureReferral() {
+  try {
+    const code = new URLSearchParams(location.search).get("referral")?.trim();
+    if (code && /^[A-Za-z0-9_-]{1,64}$/.test(code) && !localStorage.getItem(REFERRAL_KEY)) {
+      localStorage.setItem(REFERRAL_KEY, code);
+    }
+  } catch { /* storage blocked */ }
+})();
+function readReferral() {
+  try { return localStorage.getItem(REFERRAL_KEY) || undefined; } catch { return undefined; }
+}
+
 async function exchangePrivy() {
   const p = await privyClient();
   const { accessToken } = await p.tokens();
   const c = await config();
-  const data = await call(c.arenaApi, "/v1/auth/privy", { method: "POST", body: { accessToken } });
+  const referralCode = readReferral();
+  const data = await call(c.arenaApi, "/v1/auth/privy", { method: "POST", body: { accessToken, referralCode } });
+  // Sent once: the wallet is either new (credited) or already existed (ignored)
+  if (referralCode) { try { localStorage.removeItem(REFERRAL_KEY); } catch { /* ignore */ } }
   session.arena = {
     accessToken: data.accessToken, refreshToken: data.refreshToken, expiresAt: Date.now() + (data.expiresIn || 900) * 1000,
     userId: data.userId, walletAddress: data.walletAddress, isNewUser: Boolean(data.isNewUser)
