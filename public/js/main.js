@@ -72,6 +72,7 @@ async function loadArt() {
   catch (e) { console.warn("[kult-world] world art not loaded", e); }
 }
 const wart = (key) => { const f = state.wart?.files?.[key]; return f ? `art/${f.file}?v=${state.wart.rev}` : null; };
+const wartMeta = (key) => state.wart?.files?.[key] || null;
 // Portraits follow one file pattern, so they show even if the art manifest is
 // missing; one that fails to load becomes the archetype's coloured initial.
 const portraitUrl = (arch) => {
@@ -898,7 +899,7 @@ async function startMatch(gm, opponent = null) {
       closeStage();
     } else {
       const wait2 = el("div", { class: "scan-names" }, t("match.launcherWait", { n: 0 }));
-      setScreen(el("div", { class: "scan" }, el("div", { class: "scan-t" }, t("match.launcher")), el("p", { class: "launcher-note" }, t("match.launcherNote")),
+      setScreen(el("div", { class: "scan" }, wart("hubos-launcher") ? el("img", { class: "launcher-art", src: wart("hubos-launcher"), alt: "" }) : null, el("div", { class: "scan-t" }, t("match.launcher")), el("p", { class: "launcher-note" }, t("match.launcherNote")),
         el("a", { class: "btn small", href: LAUNCHER_DOWNLOAD, target: "_blank", rel: "noopener" }, t("match.launcherGet")), wait2));
       result = await playLauncher({ battleId, me, them, isAlive: alive, onTick: (ms) => { wait2.textContent = t("match.launcherWait", { n: Math.round(ms / 1000) }); } });
     }
@@ -917,6 +918,7 @@ async function startMatch(gm, opponent = null) {
     sound.play(win ? "win" : "lose");
     const commentaryBox = el("p", { class: "commentary muted" }, t("match.commentaryWait"));
     setScreen(el("div", { class: "result" },
+      win && wart("kp-burst") ? el("img", { class: "win-burst", src: wart("kp-burst"), alt: "" }) : null,
       el("div", { class: `big ${win ? "win" : "lose"}` }, t(win ? "match.victory" : "match.defeat")),
       el("div", { class: "scan-names" }, `${me.name.toUpperCase()} VS ${them.name.toUpperCase()}`),
       el("div", { class: "rows" },
@@ -959,7 +961,7 @@ function openWallet() {
 // KULT-OS, the Game Hub's console (js/hubos.js). The AI Gaming folder holds
 // the AI Arena list and match screen above.
 const hubos = createHubOS({
-  el, t, sound, toast, wart, isDemo,
+  el, t, sound, toast, wart, isDemo, artMeta: wartMeta,
   player: () => state.player,
   renderAi: () => { renderGames(); if (!match) { show("hub-list"); show("hub-match", false); $("monitor-led").className = "led"; } },
   leaveAi: () => { cancelMatch(); show("hub-match", false); show("hub-list"); $("monitor-led").className = "led"; },
@@ -1118,6 +1120,7 @@ function showSession(user) {
 // ------------------------------------------------------------------ boot
 introReady(Promise.all([worldReady, framesReady]));
 await loadArt();
+hubos.applyArt();
 void populateCity();
 // ?debug: enter with an existing AI Arena session, without the Privy modal.
 if (window.kw) { window.kw.enter = async () => { await loadPlayer(); if (state.player) enterWorld(false); else openMint(); }; window.kw.openMint = openMint; window.kw.stage = () => stage; }

@@ -65,15 +65,42 @@ export function createHubOS(ctx) {
 
   // ---------------------------------------------------------------- art
   // A generated asset, once imported, replaces its CSS stand-in.
+  // The frame, window and tile are 9-slices or overlays; their slice sizes
+  // and slots come from the manifest (scripts/import-hub-art.py measures them).
+  const meta = (key) => ctx.artMeta?.(key) || null;
   function applyArt() {
-    const root = $("hub");
-    for (const [key, prop] of [["hubos-wallpaper", "--os-wall"], ["hubos-wallpaper-mobile", "--os-wall-m"], ["hubos-boot", "--os-boot"], ["kp-coin", "--os-kp"], ["hubos-create-cover", "--os-cc"]]) {
-      const src = wart(key);
-      if (src) root.style.setProperty(prop, `url("${src}")`); else root.style.removeProperty(prop);
-    }
+    const root = $("hub"), doc = document.documentElement;
+    const url = (key) => { const src = wart(key); return src ? `url("${src}")` : null; };
+    const set = (node, prop, v) => (v === null || v === undefined ? node.style.removeProperty(prop) : node.style.setProperty(prop, String(v)));
+    for (const [key, prop] of [["hubos-wallpaper", "--os-wall"], ["hubos-wallpaper-mobile", "--os-wall-m"], ["hubos-boot", "--os-boot"], ["kp-coin", "--os-kp"],
+      ["hubos-create-cover", "--os-cc"], ["hubos-frame", "--os-frame"], ["hubos-window", "--os-win"], ["hubos-tile-normal", "--os-tile"], ["hubos-tile-selected", "--os-tile-on"]]) set(root, prop, url(key));
     root.classList.toggle("art-wall", Boolean(wart("hubos-wallpaper")));
     root.classList.toggle("art-boot", Boolean(wart("hubos-boot")));
+    const fr = meta("hubos-frame");
+    root.classList.toggle("art-frame", Boolean(fr?.slice));
+    if (fr?.slice) {
+      ["t", "r", "b", "l"].forEach((k, i) => { set(root, `--fr-${k}`, fr.slice[i]); set(root, `--fs-${k}`, fr.screen[i]); });
+      set(root, "--fr-w", fr.w);
+    }
+    const win = meta("hubos-window");
+    root.classList.toggle("art-win", Boolean(win?.slice));
+    if (win?.slice) { ["t", "r", "b", "l"].forEach((k, i) => set(root, `--wn-${k}`, win.slice[i])); set(root, "--wn-bar", win.bar); }
+    const tile = meta("hubos-tile-normal"), on = meta("hubos-tile-selected");
+    root.classList.toggle("art-tile", Boolean(tile?.hole));
+    if (tile?.hole) {
+      set(root, "--tl-ratio", tile.ratio);
+      ["t", "r", "b", "l"].forEach((k, i) => { set(root, `--th-${k}`, `${tile.hole[i]}%`); set(root, `--tp-${k}`, `${tile.plate[i]}%`); if (on?.box) set(root, `--ts-${k}`, `-${on.box[i]}%`); });
+    }
+    // Window and player controls use the icon set.
+    for (const [id, key] of [["os-back", "back"], ["os-win-close", "close"], ["os-player-close", "back"], ["os-newtab", "newtab"], ["os-full", "full"], ["hub-close", "close"]]) {
+      const v = url(`hubos-icon-${key}`);
+      set($(id), "--ic", v); $(id).classList.toggle("art", Boolean(v));
+    }
+    // The leaderboard (here and in the city) gets the podium and the medals.
+    for (const [key, prop] of [["lb-podium", "--lb-podium"], ["lb-medal-gold", "--medal-1"], ["lb-medal-silver", "--medal-2"], ["lb-medal-bronze", "--medal-3"], ["lb-medal-you", "--medal-you"]]) set(doc, prop, url(key));
+    doc.classList.toggle("art-lb", Boolean(wart("lb-podium")));
   }
+  const artImg = (key, cls = "") => { const src = wart(key); return src ? el("img", { class: cls, src, alt: "", draggable: "false" }) : null; };
   const kpIcon = () => wart("kp-coin") || "art/world/token-kp.png";
 
   // ---------------------------------------------------------------- desktop
@@ -89,8 +116,8 @@ export function createHubOS(ctx) {
         el("span", { class: "f-sub" }, count[f.id] === null ? t(`os.f.${f.id}Sub`) : t("os.games", { n: count[f.id] })));
     }));
     $("os-apps").replaceChildren(
-      el("button", { type: "button", class: "os-app", style: "--c:#f2c14e", onclick: () => openWin("board", "arena") }, svgEl("span", { class: "a-ic" }, icon("trophy")), el("span", {}, t("os.app.board"))),
-      el("button", { type: "button", class: "os-app", style: "--c:#f2c14e", onclick: () => openWin("board", "kp") }, el("span", { class: "a-ic kp" }, el("img", { src: kpIcon(), alt: "" })), el("span", {}, t("os.app.kp"))));
+      el("button", { type: "button", class: "os-app", style: "--c:#f2c14e", onclick: () => openWin("board", "arena") }, wart("hubos-icon-trophy") ? el("span", { class: "a-ic art" }, artImg("hubos-icon-trophy")) : svgEl("span", { class: "a-ic" }, icon("trophy")), el("span", {}, t("os.app.board"))),
+      el("button", { type: "button", class: "os-app", style: "--c:#f2c14e", onclick: () => openWin("board", "kp") }, el("span", { class: "a-ic kp art" }, el("img", { src: kpIcon(), alt: "" })), el("span", {}, t("os.app.kp"))));
   }
 
   // The top bar: who is playing, their Kult Points, the clock.
@@ -179,7 +206,7 @@ export function createHubOS(ctx) {
       actions.push(el("div", { class: "os-actions" },
         el("a", { class: "btn primary", href: live.url, target: "_blank", rel: "noopener", onclick: () => ctx.onPlay?.(g.name) }, svgEl("span", { class: "bi" }, icon("download")), t("os.download")),
         g.id === "robowars" ? el("button", { type: "button", class: "btn ghost", onclick: () => openWin("ai") }, t("os.robowarsAi")) : null),
-        el("p", { class: "muted tiny" }, t("os.downloadNote")));
+        el("p", { class: "muted tiny" }, t("os.downloadNote")), artImg("hubos-launcher", "od-launcher"));
     } else if (live?.url) {
       actions.push(el("div", { class: "os-actions" }, el("button", { type: "button", class: "btn primary", onclick: () => playLegacy(g) }, svgEl("span", { class: "bi" }, icon("play")), t("os.play"))));
     } else {
@@ -241,7 +268,7 @@ export function createHubOS(ctx) {
     if (pane !== "create") return;
     if (created.error) {
       const c = await config();
-      fill(body, head("create"), el("div", { class: "os-empty" },
+      fill(body, head("create"), el("div", { class: "os-empty" }, artImg("hubos-empty", "os-empty-art"),
         el("b", {}, t("os.createOff")), el("p", { class: "muted" }, created.error),
         el("div", { class: "os-actions" },
           el("button", { type: "button", class: "btn primary small", onclick: () => renderCreate(true) }, svgEl("span", { class: "bi" }, icon("refresh")), t("os.retry")),
@@ -253,13 +280,13 @@ export function createHubOS(ctx) {
     fill(body, head("create"),
       ctx.isDemo() ? el("p", { class: "os-note" }, t("os.createDemo")) : null,
       el("div", { class: "os-grid" }, make, games.map((g, i) => el("button", { type: "button", class: "os-tile", style: `--c:hsl(${hue(g.id)} 80% 70%);--h:${hue(g.id)};--i:${i + 1}`, onclick: () => playCreate(g) },
-        el("span", { class: "tl-cover cc" }, coverArt ? el("img", { src: coverArt, alt: "", draggable: "false", loading: "lazy" }) : null,
+        el("span", { class: "tl-cover cc" }, coverArt ? el("img", { src: coverArt, alt: "", draggable: "false", loading: "lazy", style: `filter:hue-rotate(${(hue(g.id) + 60) % 360}deg)` }) : null,
           coverArt ? null : el("span", { class: "cc-mono", "aria-hidden": "true" }, (g.title.match(/[A-Za-z0-9一-鿿]/)?.[0] || "K").toUpperCase()), g.rank <= 3 ? el("span", { class: "tl-rank" }, `#${g.rank}`) : null),
         el("span", { class: "tl-plate" },
           el("span", { class: "tl-genre" }, g.studio ? t("os.by", { studio: g.studio }) : "KULT CREATE"),
           el("b", { class: "tl-name" }, g.title),
           el("span", { class: "tl-meta" }, t("os.plays", { n: compact(g.plays || 0) }), el("span", { class: "tl-star" }, `♥ ${compact(g.likes || 0)}`)))))),
-      games.length ? null : el("p", { class: "muted os-wait" }, t("os.createEmpty")));
+      games.length ? null : el("div", { class: "os-empty center" }, artImg("hubos-empty", "os-empty-art"), el("p", { class: "muted" }, t("os.createEmpty"))));
   }
   async function playCreate(g) {
     const url = g.playUrl || (ctx.isDemo() ? null : await createApi.playPage(g.id));
@@ -326,5 +353,5 @@ export function createHubOS(ctx) {
     if (pane) { const keep = pane; pane = null; openWin(keep, undefined, true); }
   }
 
-  return { open, close, back, openWin, relabel, refresh: renderBar, get ready() { return ready; }, get pane() { return pane; }, get isOpen() { return !$("hub").hidden; } };
+  return { open, close, back, openWin, relabel, applyArt, refresh: renderBar, get ready() { return ready; }, get pane() { return pane; }, get isOpen() { return !$("hub").hidden; } };
 }

@@ -205,7 +205,7 @@ export function createArena(ctx) {
     const podium = top.length === 3 ? el("div", { class: "lb-podium kp" }, [1, 0, 2].map((i) => {
       const e = top[i];
       return el("div", { class: `pod pod-${i + 1}${isMe(e) ? " me" : ""}`, style: "--c:#ffc94d" },
-        el("div", { class: "pod-face" }, el("span", { class: "pf kp-face" }, el("img", { src: "art/world/token-kp.png", alt: "" })), el("span", { class: "pod-n" }, String(e.rank))),
+        el("div", { class: "pod-face" }, el("span", { class: "pf kp-face" }, el("img", { src: "art/hub/kp-coin.webp", alt: "" })), el("span", { class: "pod-n" }, String(e.rank))),
         el("b", { class: "pod-name", title: e.wallet }, who(e), isMe(e) ? el("em", { class: "lb-you" }, t("lb.you")) : null),
         el("div", { class: "pod-meta" }, e.level !== null ? el("span", { class: "lb-lv" }, t("pp.level", { n: e.level })) : null),
         el("div", { class: "pod-elo" }, Math.round(e.kultPoints).toLocaleString(), el("small", {}, "KP")),
@@ -216,7 +216,7 @@ export function createArena(ctx) {
       el("div", { class: "lb-row lb-th", role: "row" }, ...["#", t("lb.player"), t("lb.level"), t("pp.kp")].map((h) => el("span", { role: "columnheader" }, h))),
       rows.map((e) => el("div", { class: `lb-row${isMe(e) ? " me" : ""}`, role: "row" },
         el("span", { class: "lb-rank" }, `#${e.rank.toLocaleString()}`),
-        el("span", { class: "lb-agent", title: e.wallet }, el("span", { class: "lf kp-face" }, el("img", { src: "art/world/token-kp.png", alt: "" })), el("span", {}, el("b", {}, who(e), isMe(e) ? el("em", { class: "lb-you" }, t("lb.you")) : null), e.name ? el("small", {}, short(e.wallet)) : null)),
+        el("span", { class: "lb-agent", title: e.wallet }, el("span", { class: "lf kp-face" }, el("img", { src: "art/hub/kp-coin.webp", alt: "" })), el("span", {}, el("b", {}, who(e), isMe(e) ? el("em", { class: "lb-you" }, t("lb.you")) : null), e.name ? el("small", {}, short(e.wallet)) : null)),
         el("span", {}, e.level ?? "—"),
         el("span", { class: "lb-elo" }, Math.round(e.kultPoints).toLocaleString())))) : el("p", { class: "muted lb-empty" }, t("lb.empty"));
     main.replaceChildren(el("p", { class: "muted tiny lb-count" }, t("lb.players", { n: d.total.toLocaleString() })), podium || "", table,

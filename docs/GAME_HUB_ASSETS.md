@@ -336,23 +336,24 @@ from `kult-games-v3` at the same time.
 
 ## 8. Build notes (for the code side, no art needed)
 
-**Status (2026-11-11): built with CSS stand-ins.** The code is in
-`public/js/hubos.js`, and the `#hub` markup and the KULT-OS styles are in
-`styles.css`.
+**Status (2026-11-12): all 18 assets are imported.** To bring in new or
+changed art, re-run the importer (it needs Pillow and numpy):
 
-These art keys are picked up automatically once they are in
-`art/world/manifest.json`:
+```bash
+python scripts/import-hub-art.py   # default folder: ~/Desktop/Kult World Graphics/GameHubUI
+```
 
-| Key | Replaces |
-|---|---|
-| `hubos-wallpaper`, `hubos-wallpaper-mobile` | The CSS wallpaper |
-| `hubos-boot` | The CSS boot emblem |
-| `kp-coin` | `token-kp` in the top bar and the Kult Points app |
-| `hubos-create-cover` | The tinted Kult Create covers |
-| `hubos-folder-<ai\|legacy\|create>-closed` / `-open` | The SVG folders |
+The importer:
+- writes WebP files to `public/art/hub/`;
+- merges their entries into `public/art/world/manifest.json`, keeping the
+  entries already there;
+- removes the solid white background the window and medals came on;
+- cuts the two-state images and the icon and medal sheets apart;
+- crops the portrait Kult Create cover to landscape;
+- measures the frame and window 9-slices and the tile's cover and nameplate
+  slots, so `public/js/hubos.js` can line the page up with the art.
 
-The frame (G1), window (G7) and tile (G8) are 9-slice. They get wired in when
-they are imported, once their corner sizes are known.
+The CSS stand-ins remain the fallback for any key that is missing.
 
 **Bigger building.** The hub is now `bld-game-hub` at 10 x 11 tiles, 14 m tall
 (`public/js/models.js`, `public/js/layout.js`). The hub district (x 30–45,

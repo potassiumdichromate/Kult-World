@@ -120,7 +120,7 @@ input:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px r
 .pill { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px 9px 10px; border-radius: 999px; font: 700 15px var(--display); white-space: nowrap; }
 .pill i { width: 24px; height: 24px; border-radius: 50%; background: center / contain no-repeat; }
 .pill.arena i { background-image: url("art/world/token-arena.png"); filter: drop-shadow(0 0 6px rgba(255, 79, 163, 0.7)); }
-.pill.kp i { background-image: url("art/world/token-kp.png"); filter: drop-shadow(0 0 6px rgba(255, 201, 77, 0.7)); }
+.pill.kp i { background-image: url("art/hub/kp-coin.webp"); filter: drop-shadow(0 0 6px rgba(255, 201, 77, 0.7)); }
 .pill.bump { animation: bump 0.5s; }
 @keyframes bump { 40% { transform: scale(1.15); box-shadow: 0 0 30px rgba(255, 201, 77, 0.6); } }
 .menu { position: absolute; top: calc(100% + 8px); right: 0; display: grid; min-width: 250px; padding: 6px; border-radius: 16px; }
@@ -226,7 +226,7 @@ input:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px r
 /* Token icons */
 .ic::before { content: ""; display: inline-block; width: 1.4em; height: 1.4em; margin-right: 0.4em; vertical-align: -0.4em; background: center / contain no-repeat; }
 .ic.arena::before, .bal.arena span::before { background-image: url("art/world/token-arena.png"); }
-.ic.kp::before, .bal.kp span::before { background-image: url("art/world/token-kp.png"); }
+.ic.kp::before, .bal.kp span::before { background-image: url("art/hub/kp-coin.webp"); }
 .ic.kult::before, .bal.kult span::before { background-image: url("art/world/token-kult.png"); }
 .ic.xp::before { background-image: url("art/world/token-xp.png"); }
 .ic.elo-ic::before { background-image: url("art/world/token-elo.png"); }
@@ -1680,3 +1680,78 @@ body:has(#dock:not([hidden])) .tour:not(.center) .tour-guide:not(.top) { bottom:
 @media (prefers-reduced-motion: reduce) { .os-grid-floor, .os-emblem i, .os-emblem b, .os-live { animation: none; } }
 /* The city's corner buttons sit over the OS bar; the OS has its own close. */
 body:has(#hub:not([hidden])) .corner-tools { display: none; }
+
+/* ------------------------------------------------------------------ KULT-OS with the generated art (scripts/import-hub-art.py)
+   hubos.js sets the art-* classes and the slice numbers from the manifest. */
+/* The frame: a 9-slice scaled with the frame's width, the screen inside it. */
+.hubos.art-frame { --fw: min(1480px, calc(100vw - 4.4vmin)); --fk: calc(var(--fw) / var(--fr-w)); }
+.hubos.art-frame .os-frame { width: var(--fw); background: none; clip-path: none; box-shadow: none;
+  padding: calc(var(--fk) * var(--fs-t) - 3px) calc(var(--fk) * var(--fs-r) - 3px) calc(var(--fk) * var(--fs-b) - 3px) calc(var(--fk) * var(--fs-l) - 3px); }
+.hubos.art-frame .os-frame::before { inset: 0; z-index: 40; clip-path: none; border-style: solid; border-color: transparent;
+  border-width: calc(var(--fk) * var(--fr-t)) calc(var(--fk) * var(--fr-r)) calc(var(--fk) * var(--fr-b)) calc(var(--fk) * var(--fr-l));
+  border-image-source: var(--os-frame); border-image-slice: var(--fr-t) var(--fr-r) var(--fr-b) var(--fr-l); border-image-repeat: stretch; }
+.hubos.art-frame .os-corner { display: none; }
+.hubos.art-frame .os-screen { clip-path: none; border-radius: 6px; }
+
+/* The window: a 9-slice behind the content; its own title bar and lights. */
+.hubos.art-win .os-win { --wk: 0.55px; isolation: isolate; background: none; border: 0; clip-path: none; box-shadow: none; backdrop-filter: none; }
+.hubos.art-win .os-win::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; border-style: solid; border-color: transparent;
+  border-width: calc(var(--wn-t) * var(--wk)) calc(var(--wn-r) * var(--wk)) calc(var(--wn-b) * var(--wk)) calc(var(--wn-l) * var(--wk));
+  border-image-source: var(--os-win); border-image-slice: var(--wn-t) var(--wn-r) var(--wn-b) var(--wn-l) fill; border-image-repeat: stretch;
+  filter: drop-shadow(0 24px 50px rgba(0, 0, 0, 0.55)); }
+.hubos.art-win .os-win-bar { height: calc(var(--wn-bar) * var(--wk)); padding: 0 calc(28 * var(--wk)) 0 calc(124 * var(--wk)); background: none; border: 0; }
+.hubos.art-win .os-win-bar .dots { display: none; }
+.hubos.art-win .os-win-body { margin: 0 calc(14 * var(--wk)) calc(22 * var(--wk)); }
+
+/* Icon buttons from the icon set */
+.os-wb.art, .os-x.art { background: var(--ic) center / contain no-repeat; border: 0; border-radius: 0; color: transparent; font-size: 0; transition: filter 0.2s, transform 0.2s; }
+.os-wb.art svg { display: none; }
+.os-wb.art:hover, .os-x.art:hover { background: var(--ic) center / contain no-repeat; filter: brightness(1.3) drop-shadow(0 0 8px rgba(94, 200, 242, 0.6)); transform: scale(1.06); }
+.os-x.art:hover { filter: brightness(1.2) hue-rotate(150deg) drop-shadow(0 0 8px rgba(255, 107, 125, 0.6)); }
+.a-ic.art { background: none; width: 34px; height: 34px; }
+.a-ic.art img { width: 100%; height: 100%; object-fit: contain; }
+
+/* Game tiles: the frame drawn over the cover; content sits in its slots. */
+.hubos.art-tile .os-tile { aspect-ratio: var(--tl-ratio); display: block; overflow: visible; background: none; border: 0; clip-path: none; }
+.hubos.art-tile .os-tile::before, .hubos.art-tile .os-tile::after { content: ""; position: absolute; z-index: 2; pointer-events: none; background: var(--os-tile) center / 100% 100% no-repeat; inset: 0; opacity: 1; }
+.hubos.art-tile .os-tile::after { background-image: var(--os-tile-on); inset: var(--ts-t) var(--ts-r) var(--ts-b) var(--ts-l); opacity: 0; transition: opacity 0.25s; }
+.hubos.art-tile .os-tile:hover::after, .hubos.art-tile .os-tile:focus-visible::after { opacity: 1; }
+.hubos.art-tile .os-tile:hover, .hubos.art-tile .os-tile:focus-visible { box-shadow: none; filter: drop-shadow(0 14px 26px color-mix(in srgb, var(--c) 28%, transparent)); }
+.hubos.art-tile .tl-cover { position: absolute; z-index: 1; top: var(--th-t); right: var(--th-r); bottom: var(--th-b); left: var(--th-l); aspect-ratio: auto; }
+.hubos.art-tile .tl-plate { position: absolute; z-index: 3; top: var(--tp-t); right: var(--tp-r); bottom: var(--tp-b); left: var(--tp-l); align-content: center; gap: 2px; padding: 4px 8px; }
+.hubos.art-tile .tl-kind, .hubos.art-tile .tl-rank { z-index: 2; }
+
+/* Leaderboard podium and medals (the city's board too) */
+.art-lb .lb-podium { grid-template-columns: 34fr 32.2fr 33.8fr; gap: 0; width: 100%; max-width: 640px; margin: 0 auto; background: var(--lb-podium) center bottom / 100% auto no-repeat; }
+.art-lb .pod-step { height: auto; border: 0; border-radius: 0; background: none; aspect-ratio: 583 / 456; }
+.art-lb .pod-1 .pod-step { height: auto; aspect-ratio: 553 / 558; }
+.art-lb .pod-3 .pod-step { height: auto; aspect-ratio: 579 / 382; }
+.art-lb .pod-n { bottom: -18px; width: 30px; min-width: 0; height: 41px; padding: 0 0 12px; border-radius: 0; box-shadow: none; font-size: 13px; color: #2b1700; background: var(--medal-1) center / contain no-repeat; }
+.art-lb .pod-2 .pod-n { background-image: var(--medal-2); }
+.art-lb .pod-3 .pod-n { background-image: var(--medal-3); }
+.art-lb .pod-name { margin-top: 16px; }
+.art-lb .lb-you::before { content: ""; display: inline-block; width: 11px; height: 12px; margin-right: 3px; vertical-align: -2px; background: var(--medal-you) center / contain no-repeat; }
+
+/* Pictures */
+.os-empty-art { width: 150px; height: auto; }
+.os-empty.center { justify-items: center; text-align: center; }
+.od-launcher { width: min(300px, 100%); height: auto; margin-top: 6px; }
+.launcher-art { width: min(220px, 40%); height: auto; margin-bottom: 6px; }
+.result { position: relative; }
+.result > * { position: relative; z-index: 1; }
+.result > .win-burst { position: absolute; z-index: 0; left: 50%; top: 42%; width: min(80%, 520px); height: auto; transform: translate(-50%, -50%); opacity: 0.5; pointer-events: none; animation: win-burst 1s cubic-bezier(.2, 1.2, .4, 1) both; }
+@keyframes win-burst { from { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(-20deg); } }
+
+@media (max-width: 1100px) { .hubos.art-win .os-win { --wk: 0.45px; } }
+@media (max-width: 720px) {
+  .hubos.art-frame .os-frame { width: 100%; padding: 0; }
+  .hubos.art-frame .os-frame::before { display: none; }
+  .hubos.art-frame .os-screen { border-radius: 0; }
+  .hubos.art-win .os-win { --wk: 0.4px; }
+  .hubos.art-win .os-win-body { margin: 0 4px 6px; }
+  .hubos.art-tile .tl-meta { display: none; }
+  .hubos.art-tile .tl-plate { padding: 2px 6px; }
+  .hubos.art-tile .tl-genre { font-size: 9px; letter-spacing: 0.12em; }
+  .hubos.art-tile .tl-name { font-size: 13px; }
+  .tl-kind { top: 5px; right: 5px; padding: 2px 5px; font-size: 7px; letter-spacing: 0.1em; }
+}

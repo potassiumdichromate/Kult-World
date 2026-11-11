@@ -1,5 +1,5 @@
 {
- "rev": "cfdb28fd02",
+ "rev": "f48f5766ab",
  "files": {
   "ground": {
    "file": "world/ground.png",
@@ -408,6 +408,279 @@
   },
   "thumb-highway": {
    "file": "world/thumb-highway.webp"
+  },
+  "hubos-wallpaper": {
+   "file": "hub/wallpaper.webp",
+   "w": 1672,
+   "h": 941
+  },
+  "hubos-wallpaper-mobile": {
+   "file": "hub/wallpaper-mobile.webp",
+   "w": 941,
+   "h": 1672
+  },
+  "hubos-frame": {
+   "file": "hub/frame.webp",
+   "w": 1536,
+   "h": 1024,
+   "slice": [
+    127,
+    76,
+    100,
+    78
+   ],
+   "screen": [
+    110,
+    76,
+    100,
+    78
+   ]
+  },
+  "hubos-window": {
+   "file": "hub/window.webp",
+   "w": 1645,
+   "h": 888,
+   "bar": 92,
+   "slice": [
+    94,
+    130,
+    36,
+    130
+   ]
+  },
+  "hubos-folder-ai-closed": {
+   "file": "hub/folder-ai-closed.webp",
+   "w": 440,
+   "h": 330
+  },
+  "hubos-folder-ai-open": {
+   "file": "hub/folder-ai-open.webp",
+   "w": 440,
+   "h": 319
+  },
+  "hubos-folder-legacy-closed": {
+   "file": "hub/folder-legacy-closed.webp",
+   "w": 440,
+   "h": 321
+  },
+  "hubos-folder-legacy-open": {
+   "file": "hub/folder-legacy-open.webp",
+   "w": 440,
+   "h": 362
+  },
+  "hubos-folder-create-closed": {
+   "file": "hub/folder-create-closed.webp",
+   "w": 440,
+   "h": 320
+  },
+  "hubos-folder-create-open": {
+   "file": "hub/folder-create-open.webp",
+   "w": 440,
+   "h": 361
+  },
+  "hubos-tile-normal": {
+   "file": "hub/tile-normal.webp",
+   "w": 520,
+   "h": 576,
+   "ratio": 0.9032,
+   "hole": [
+    10.75,
+    8.6,
+    31.06,
+    8.73
+   ],
+   "plate": [
+    68.94,
+    8.6,
+    6.5,
+    8.73
+   ]
+  },
+  "hubos-tile-selected": {
+   "file": "hub/tile-selected.webp",
+   "w": 560,
+   "h": 620,
+   "box": [
+    1.76,
+    1.96,
+    1.64,
+    1.96
+   ]
+  },
+  "hubos-icon-trophy": {
+   "file": "hub/icon-trophy.webp",
+   "w": 128,
+   "h": 112
+  },
+  "hubos-icon-kp": {
+   "file": "hub/icon-kp.webp",
+   "w": 128,
+   "h": 126
+  },
+  "hubos-icon-play": {
+   "file": "hub/icon-play.webp",
+   "w": 128,
+   "h": 113
+  },
+  "hubos-icon-back": {
+   "file": "hub/icon-back.webp",
+   "w": 128,
+   "h": 113
+  },
+  "hubos-icon-close": {
+   "file": "hub/icon-close.webp",
+   "w": 128,
+   "h": 117
+  },
+  "hubos-icon-full": {
+   "file": "hub/icon-full.webp",
+   "w": 128,
+   "h": 117
+  },
+  "hubos-icon-search": {
+   "file": "hub/icon-search.webp",
+   "w": 128,
+   "h": 116
+  },
+  "hubos-icon-sound": {
+   "file": "hub/icon-sound.webp",
+   "w": 128,
+   "h": 116
+  },
+  "hubos-icon-mute": {
+   "file": "hub/icon-mute.webp",
+   "w": 128,
+   "h": 115
+  },
+  "hubos-icon-live": {
+   "file": "hub/icon-live.webp",
+   "w": 128,
+   "h": 115
+  },
+  "hubos-icon-players": {
+   "file": "hub/icon-players.webp",
+   "w": 128,
+   "h": 116
+  },
+  "hubos-icon-star": {
+   "file": "hub/icon-star.webp",
+   "w": 128,
+   "h": 116
+  },
+  "hubos-icon-ranked": {
+   "file": "hub/icon-ranked.webp",
+   "w": 115,
+   "h": 128
+  },
+  "hubos-icon-casual": {
+   "file": "hub/icon-casual.webp",
+   "w": 128,
+   "h": 87
+  },
+  "hubos-icon-wager": {
+   "file": "hub/icon-wager.webp",
+   "w": 128,
+   "h": 104
+  },
+  "hubos-icon-download": {
+   "file": "hub/icon-download.webp",
+   "w": 128,
+   "h": 120
+  },
+  "hubos-icon-launcher": {
+   "file": "hub/icon-launcher.webp",
+   "w": 128,
+   "h": 117
+  },
+  "hubos-icon-ai": {
+   "file": "hub/icon-ai.webp",
+   "w": 128,
+   "h": 124
+  },
+  "hubos-icon-new": {
+   "file": "hub/icon-new.webp",
+   "w": 128,
+   "h": 122
+  },
+  "hubos-icon-hot": {
+   "file": "hub/icon-hot.webp",
+   "w": 128,
+   "h": 126
+  },
+  "hubos-icon-info": {
+   "file": "hub/icon-info.webp",
+   "w": 126,
+   "h": 128
+  },
+  "hubos-icon-settings": {
+   "file": "hub/icon-settings.webp",
+   "w": 128,
+   "h": 125
+  },
+  "hubos-icon-newtab": {
+   "file": "hub/icon-newtab.webp",
+   "w": 128,
+   "h": 123
+  },
+  "hubos-icon-refresh": {
+   "file": "hub/icon-refresh.webp",
+   "w": 127,
+   "h": 128
+  },
+  "kp-coin": {
+   "file": "hub/kp-coin.webp",
+   "w": 256,
+   "h": 258
+  },
+  "kp-burst": {
+   "file": "hub/kp-burst.webp",
+   "w": 560,
+   "h": 423
+  },
+  "lb-podium": {
+   "file": "hub/podium.webp",
+   "w": 1000,
+   "h": 327
+  },
+  "lb-medal-gold": {
+   "file": "hub/medal-gold.webp",
+   "w": 116,
+   "h": 160
+  },
+  "lb-medal-silver": {
+   "file": "hub/medal-silver.webp",
+   "w": 116,
+   "h": 160
+  },
+  "lb-medal-bronze": {
+   "file": "hub/medal-bronze.webp",
+   "w": 116,
+   "h": 160
+  },
+  "lb-medal-you": {
+   "file": "hub/medal-you.webp",
+   "w": 144,
+   "h": 160
+  },
+  "hubos-boot": {
+   "file": "hub/boot.webp",
+   "w": 420,
+   "h": 414
+  },
+  "hubos-empty": {
+   "file": "hub/empty.webp",
+   "w": 420,
+   "h": 578
+  },
+  "hubos-launcher": {
+   "file": "hub/launcher.webp",
+   "w": 560,
+   "h": 384
+  },
+  "hubos-create-cover": {
+   "file": "hub/create-cover.webp",
+   "w": 800,
+   "h": 600
   }
  }
 }
