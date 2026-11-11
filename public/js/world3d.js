@@ -9,7 +9,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
 import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
-import { MAP, tiles, BUILDINGS, CAMPUS, WALL, MONUMENT, FOUNTAIN, SPAWN, PROPS, DISTRICTS, POND, CENTER, SHAPES, walkable, findPath, randomStreetTile, islandSD } from "./layout.js";
+import { MAP, tiles, BUILDINGS, CAMPUS, WALL, MONUMENT, FOUNTAIN, SPAWN, PROPS, DISTRICTS, POND, CENTER, SHAPES, ISLE, BRIDGE, walkable, findPath, randomStreetTile, islandSD } from "./layout.js";
 import { T, build, glowTexture, lightPool, loadProvided, loadGLB, providedModel, capsuleAgent, AGENT_PLACEHOLDER_URL, SLOTS, M, sign, instanceProps, swayTime, addGlow } from "./models.js";
 import { buildTerrain, heightAt } from "./terrain.js";
 import { FX } from "./fx.js";
@@ -21,6 +21,7 @@ export const toWorld = (x, y) => new THREE.Vector3(x * T - HALF, 0, y * T - HALF
 const ISO_AZ = Math.PI / 4;
 // Minimap framing in tile space: the island plus the start of the bridges.
 const MM = { x0: -6, span: 68 };
+const TMP = new THREE.Vector3();
 // Soft contact shadow under wandering agents (cheaper than a real shadow).
 const BLOB = { geo: new THREE.PlaneGeometry(1.6, 1.6), m: null, mat() { return this.m ||= new THREE.MeshBasicMaterial({ map: glowTexture(), color: "#000000", transparent: true, opacity: 0.5, depthWrite: false }); } };
 // Repeated props drawn as instanced meshes once their model is provided.
@@ -34,6 +35,8 @@ export class World {
     this.anims = [];
     this.hoverId = null;
     this.zoom = 1;
+    // The hand tool moves the view away from the player; recenter brings it back.
+    this.pan = new THREE.Vector3();
     this.cinematic = true;
     this.az = ISO_AZ; this.azTarget = ISO_AZ;
     this.viewH = 52; this.viewHTarget = 52;
@@ -85,7 +88,7 @@ export class World {
       .catch((e) => console.warn("[world] agent model not loaded, using capsule bots", e?.message || e));
   }
   // Translated labels (districts, door prompts). tr(key) -> string.
-  setTranslator(tr) { this.tr = tr; for (const l of this.districtLabels || []) l.el.querySelector("b").textContent = tr(`district.${l.id}`); this.promptKey = null; }
+  setTranslator(tr) { this.tr = tr; for (const l of this.districtLabels || []) l.el.querySelector("b").textContent = tr(`district.${l.id}`); this.relabelIsle(); this.promptKey = null; }
 
   // ---------------------------------------------------------------- island, sky, water
   buildIsland() {
@@ -185,6 +188,7 @@ export class World {
       });
       if (b.status === "soon") this.comingSoon(b, c, W, D, h);
     }
+    this.buildIsle();
     // Campus wall: low walls with a glowing cap, posts at the corners.
     const wall = new THREE.InstancedMesh(new THREE.BoxGeometry(T, 1.1, T * 0.5), M.frame(), WALL.length), cap = new THREE.InstancedMesh(new THREE.BoxGeometry(T, 0.12, T * 0.5 + 0.06), M.glow("#ffc94d", 1.6), WALL.length);
     const o = new THREE.Object3D();
@@ -241,6 +245,67 @@ export class World {
     this.beam.position.copy(toWorld(...SPAWN)).setY(30); s.add(this.beam);
   }
   register(g) { this.anims.push((t, dt) => g.userData.anim?.(t, dt)); }
+
+  // Studio Isle: a neon bridge over the sky, and a beacon, ground ring and sign
+  // that make Kult Create's game studio the brightest place on the map.
+  buildIsle() {
+    const s = this.scene, studio = BUILDINGS.find((b) => b.isle);
+    const PINK = "#ff7eb6", CYAN = "#4fd8ff";
+    // Bridge: a deck with glowing edges, rails and posts, and a lit arch underneath.
+    const cx = (BRIDGE.x0 + BRIDGE.x1) / 2, w = (BRIDGE.x1 - BRIDGE.x0) * T * 0.92, len = (BRIDGE.y1 - BRIDGE.y0 + 1) * T;
+    const deckY = Math.max(heightAt(cx, BRIDGE.y0 - 0.5), heightAt(cx, BRIDGE.y1 + 0.5)) + 0.04;
+    const mid = toWorld(cx, (BRIDGE.y0 + BRIDGE.y1) / 2);
+    const bridge = new THREE.Group(); bridge.position.set(mid.x, deckY, mid.z); s.add(bridge);
+    const box = (bw, bh, bd, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, bd), mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; bridge.add(m); return m; };
+    box(w, 0.4, len, M.frame(), 0, -0.2, 0);
+    const plank = new THREE.MeshStandardMaterial({ color: "#5d4b8f", roughness: 0.7 });
+    for (let k = -len / 2 + 0.6; k < len / 2; k += 1.1) { box(w * 0.96, 0.06, 0.5, plank, 0, 0.02, k); box(0.5, 0.05, 0.18, M.glow(k % 2.2 < 1.1 ? PINK : CYAN, 2.4), 0, 0.07, k); }
+    for (const [side, color] of [[-1, PINK], [1, CYAN]]) {
+      const x = side * (w / 2 - 0.12);
+      box(0.12, 0.12, len, M.glow(color, 2.8), x, 0.06, 0);
+      box(0.1, 0.1, len, M.glow(color, 2.2), x, 1.05, 0);
+      for (let k = -len / 2 + 0.3; k <= len / 2; k += len / 4 - 0.15) box(0.22, 1.1, 0.22, M.frame(), x, 0.55, k);
+    }
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(len / 2, 0.14, 8, 40, Math.PI), M.glow(CYAN, 2.4));
+    arch.rotation.y = Math.PI / 2; arch.rotation.z = Math.PI; arch.position.y = -0.35; arch.scale.y = 0.45; bridge.add(arch);
+    if (!studio) return;
+    // Beacon over the studio, a pulsing ring on the ground round it, and its sign.
+    const c = toWorld((studio.x0 + studio.x1) / 2, (studio.y0 + studio.y1) / 2); c.y = heightAt((studio.x0 + studio.x1) / 2, (studio.y0 + studio.y1) / 2);
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 2.4, 70, 24, 1, true), new THREE.MeshBasicMaterial({ color: PINK, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    beam.position.copy(c).setY(c.y + 35); s.add(beam);
+    const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.9, 0), M.glow(PINK, 4)); star.scale.y = 1.6; s.add(star);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(ISLE.r * T * 0.72, ISLE.r * T * 0.8, 64), new THREE.MeshBasicMaterial({ color: PINK, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.copy(toWorld(ISLE.cx, ISLE.cy)).setY(c.y + 0.07); s.add(ring);
+    // The label renderer positions the outer element with an inline transform;
+    // the card inside it is the part that bobs.
+    const el = document.createElement("div"); el.className = "isle-sign-at";
+    el.innerHTML = '<div class="isle-sign"><span class="isle-star">\u2605</span><b></b><small></small></div>';
+    const sign = new CSS2DObject(el); sign.position.copy(c).setY(c.y + (SLOTS[studio.slot]?.height || studio.h) + 5); s.add(sign);
+    this.isleSign = el; this.relabelIsle();
+    this.anims.push((t) => {
+      star.position.copy(c).setY(c.y + (SLOTS[studio.slot]?.height || studio.h) + 2.4 + Math.sin(t * 2) * 0.4); star.rotation.y = t * 1.4;
+      beam.material.opacity = 0.13 + Math.sin(t * 2.2) * 0.04;
+      const k = (t * 0.6) % 1; ring.scale.setScalar(0.9 + k * 0.25); ring.material.opacity = 0.55 * (1 - k);
+    });
+  }
+  relabelIsle() {
+    if (!this.isleSign) return;
+    this.isleSign.querySelector("b").textContent = this.tr("isle.sign");
+    this.isleSign.querySelector("small").textContent = this.tr("isle.signSub");
+  }
+  // Where a building sits on screen (for the tutorial spotlight), or null.
+  buildingRect(id) {
+    const b = BUILDINGS.find((x) => x.id === id); if (!b || !this.cw) return null;
+    const h = SLOTS[b.slot]?.height || b.h, r = this.canvas.getBoundingClientRect();
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of [[b.x0, b.y0], [b.x1, b.y0], [b.x0, b.y1], [b.x1, b.y1]]) for (const z of [0, h]) {
+      const v = toWorld(x, y).setY(z).project(this.camera);
+      const sx = r.left + (v.x + 1) / 2 * r.width, sy = r.top + (1 - v.y) / 2 * r.height;
+      x0 = Math.min(x0, sx); y0 = Math.min(y0, sy); x1 = Math.max(x1, sx); y1 = Math.max(y1, sy);
+    }
+    if (x1 < 0 || y1 < 0 || x0 > innerWidth || y0 > innerHeight) return null;
+    return { left: x0, top: y0, right: x1, bottom: y1, width: x1 - x0, height: y1 - y0 };
+  }
 
   // A "coming soon" business: holographic scaffold, scan line and a banner.
   // Over a real model it is only a faint outline, so the building shows.
@@ -379,6 +444,7 @@ export class World {
     const path = findPath([a.x, a.y], target);
     if (!path) return false;
     a.path = path; a.onArrive = done || null; a.emoteUntil = 0;
+    if (a.isPlayer) this.pan.set(0, 0, 0);
     if (!path.length) { a.onArrive = null; done?.(); }
     return true;
   }
@@ -436,7 +502,21 @@ export class World {
   set hover(id) { this.hoverId = id; }
   get hover() { return this.hoverId; }
   zoomBy(f) { this.zoom = Math.min(1.8, Math.max(0.45, this.zoom * f)); }
-  recenter() { this.zoom = 1; }
+  recenter() { this.zoom = 1; this.pan.set(0, 0, 0); }
+  // Move the view to a tile (the tutorial shows the Studio Isle this way).
+  lookAtTile(x, y) { if (this.player) this.pan.copy(toWorld(x, y)).sub(this.player.group.position).setY(0); }
+  // The hand tool: drag the map by (dx, dy) screen pixels. The ground under the
+  // pointer stays under it, at any zoom.
+  panByScreen(dx, dy) {
+    if (!this.ch) return;
+    const unit = ((this.viewH * (this.mobileK || 1)) / this.zoom) / this.ch;
+    this.camera.updateMatrixWorld();
+    const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0); right.y = 0; right.normalize();
+    const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1), upH = Math.hypot(up.x, up.z) || 1;
+    const fwd = new THREE.Vector3(up.x, 0, up.z).normalize();
+    this.pan.addScaledVector(right, -dx * unit).addScaledVector(fwd, (dy * unit) / upH);
+    if (this.pan.length() > 70) this.pan.setLength(70);
+  }
 
   // ---------------------------------------------------------------- frame
   resize(cw, ch, dpr) {
@@ -461,7 +541,7 @@ export class World {
     for (const l of this.districtLabels || []) l.el.classList.toggle("on", showLabels);
 
     if (this.cinematic) { this.azTarget = ISO_AZ + Math.sin(t * 0.06) * 0.55; this.target.lerp(toWorld(CENTER[0] + Math.sin(t * 0.05) * 6, CENTER[1] - 4 + Math.cos(t * 0.04) * 4), 0.02); }
-    else if (this.player) this.target.lerp(this.player.group.position, Math.min(1, dt * 3.2));
+    else if (this.player) this.target.lerp(TMP.copy(this.player.group.position).add(this.pan), Math.min(1, dt * 3.2));
     this.az += (this.azTarget - this.az) * Math.min(1, dt * 1.6);
     this.viewH += (this.viewHTarget - this.viewH) * Math.min(1, dt * 1.8);
     const vh = (this.viewH * (this.mobileK || 1)) / this.zoom, aspect = this.cw / this.ch;
@@ -566,6 +646,8 @@ export class World {
       g.fillStyle = p.kind === "blossom" ? "rgba(255,140,200,0.75)" : "rgba(18,70,52,0.85)";
       g.beginPath(); g.arc(p.x, p.y, p.kind === "bush" ? 0.35 : 0.55, 0, Math.PI * 2); g.fill();
     }
+    // The Studio Isle bridge.
+    g.fillStyle = "#ff7eb6"; g.fillRect(BRIDGE.x0 + 0.4, BRIDGE.y0 - 0.4, BRIDGE.x1 - BRIDGE.x0 - 0.8, BRIDGE.y1 - BRIDGE.y0 + 0.8);
     // Campus lawn and its wall.
     const cw = CAMPUS.x1 - CAMPUS.x0, ch = CAMPUS.y1 - CAMPUS.y0;
     g.fillStyle = "#2f8a62"; g.beginPath(); g.roundRect(CAMPUS.x0, CAMPUS.y0, cw, ch, 1.2); g.fill();

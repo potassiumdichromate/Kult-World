@@ -24,7 +24,7 @@ export function createTour(ctx) {
   arrow.innerHTML = ARROW;
   const text = el("p", { class: "tour-text", onclick: () => finishTyping() });
   const count = el("span", { class: "tour-count" });
-  const next = el("button", { type: "button", class: "btn gold small tour-next", onclick: () => advance() });
+  const next = el("button", { type: "button", class: "btn gold small tour-next", onclick: () => onNext() });
   const skip = el("button", { type: "button", class: "tour-skip", onclick: () => stop(true) });
   const guide = el("div", { class: "tour-guide glass" },
     el("div", { class: "tour-face" }, el("img", { src: GUIDE, alt: "" }), el("span", { class: "tour-name" }, "NOVA")),
@@ -32,9 +32,10 @@ export function createTour(ctx) {
   const root = el("div", { id: "tour", class: "tour", hidden: true }, ...shades, cover, hole, arrow, guide);
   document.body.append(root);
 
-  let i = -1, step = null, enteredAt = 0, doneAt = 0, raf = 0, typing = null, full = "", scrolled = false, lastR = null;
+  let key = null, i = -1, step = null, enteredAt = 0, doneAt = 0, raf = 0, typing = null, full = "", scrolled = false, lastR = null;
 
-  function start(fromId = steps[0].id) {
+  function start(fromId = steps[0].id, doneKey = null) {
+    key = doneKey || ctx.doneKey();
     i = Math.max(0, steps.findIndex((s) => s.id === fromId));
     root.hidden = false;
     if (!raf) raf = requestAnimationFrame(frame);
@@ -45,7 +46,7 @@ export function createTour(ctx) {
     step.leave?.();
     step = null; i = -1; root.hidden = true;
     cancelAnimationFrame(raf); raf = 0; clearInterval(typing);
-    try { localStorage.setItem(ctx.doneKey(), skipped ? "skipped" : "done"); } catch { /* storage optional */ }
+    try { localStorage.setItem(key || ctx.doneKey(), skipped ? "skipped" : "done"); } catch { /* storage optional */ }
     if (skipped) sound.play("close");
   }
   function enter() {
@@ -56,7 +57,7 @@ export function createTour(ctx) {
     guide.querySelector(".tour-top b").textContent = t(step.title || "tour.guide");
     const phase = steps.filter((s) => s.phase === step.phase);
     count.textContent = `${phase.indexOf(step) + 1} / ${phase.length}`;
-    next.hidden = !step.next; next.textContent = t(step.nextKey || "tour.next");
+    next.hidden = !step.next && !step.auto; next.textContent = t(step.next ? step.nextKey || "tour.next" : step.autoKey || "tour.takeMe");
     skip.hidden = Boolean(step.last); skip.textContent = t("tour.skip");
     guide.classList.remove("in"); void guide.offsetWidth; guide.classList.add("in");
     sound.play("pop");
@@ -68,6 +69,12 @@ export function createTour(ctx) {
     step.leave?.();
     if (step.last || i + 1 >= steps.length) return stop(false);
     i++; enter();
+  }
+  // Next on a "do it" step does it for the player; the step's done check then moves on.
+  function onNext() {
+    if (!step) return;
+    if (!step.next && step.auto) { step.auto(); return; }
+    advance();
   }
   function goto(id) { step?.leave?.(); i = steps.findIndex((s) => s.id === id); enter(); }
 
@@ -171,7 +178,7 @@ export function createTour(ctx) {
 
   addEventListener("keydown", (e) => {
     if (!step || root.classList.contains("quiet")) return;
-    if (e.key === "Enter" && step.next && !e.target.closest("input, textarea, select")) { e.preventDefault(); advance(); }
+    if (e.key === "Enter" && (step.next || step.auto) && !e.target.closest("input, textarea, select")) { e.preventDefault(); onNext(); }
   });
 
   return {
@@ -182,15 +189,15 @@ export function createTour(ctx) {
     relabel() {
       if (!step) return;
       guide.querySelector(".tour-top b").textContent = t(step.title || "tour.guide");
-      next.textContent = t(step.nextKey || "tour.next"); skip.textContent = t("tour.skip");
+      next.textContent = t(step.next ? step.nextKey || "tour.next" : step.autoKey || "tour.takeMe"); skip.textContent = t("tour.skip");
       clearInterval(typing); full = t(`tour.${step.id}`); text.textContent = full;
     },
     /** Starts the tour unless this player has finished or skipped it. */
-    offer(fromId, force = false) {
+    offer(fromId, force = false, doneKey = null) {
       if (step) return;
       let seen = null;
-      try { seen = localStorage.getItem(ctx.doneKey()); } catch { /* storage optional */ }
-      if (!seen || force) start(fromId);
+      try { seen = localStorage.getItem(doneKey || ctx.doneKey()); } catch { /* storage optional */ }
+      if (!seen || force) start(fromId, doneKey);
     }
   };
 }
@@ -200,7 +207,9 @@ export function createTour(ctx) {
 // returning a rect. next: explained with a Next button (the target can't be
 // clicked unless interactive). done: waits for the player to do it. quiet: hides
 // the tour while the player walks or a screen loads. lost + fallback: the
-// player closed what the step was showing, so go back a step.
+// player closed what the step was showing, so go back a step. auto: a
+// "do it" step also gets a button that does it for the player (Take me there,
+// Show me, Close it), so nobody is left with only Skip.
 function buildSteps(c) {
   const { $, world } = c;
   const open = (id) => c.isOpen(id);
@@ -236,6 +245,9 @@ function buildSteps(c) {
     return at ? { left: at.x - 45, top: at.y - 10, width: 90, height: 110, right: at.x + 45, bottom: at.y + 100 } : null;
   };
   const dock = (k) => `#dock [data-goto="${k}"]`;
+  // A sheet left open covers the dock, so a step that points at the dock closes it first.
+  const clear = () => c.closeOverlays();
+  const walkAhead = () => { const r = groundRect(); if (r) world.walkToScreen(r.left + r.width / 2, r.top + r.height / 2); };
   let walked = false, met = false;
   return [
     // Minting: from the character select to the city.
@@ -249,24 +261,25 @@ function buildSteps(c) {
     { id: "w-arrive", phase: "world", target: playerRect, next: true, guideBottom: true },
     { id: "w-card", phase: "world", target: "#hud-player", next: true },
     { id: "w-money", phase: "world", target: "#topbar .pill", next: true },
-    { id: "w-walk", phase: "world", target: groundRect, round: true, free: true,
+    { id: "w-walk", phase: "world", target: groundRect, round: true, free: true, auto: walkAhead, autoKey: "tour.showMe",
       enter: () => { walked = false; }, done: () => (walked ||= walking()), doneDelay: 1400 },
     { id: "w-map", phase: "world", target: "#minimap-wrap", next: true },
-    { id: "w-hub-go", phase: "world", target: dock("hub"), done: () => open("hub"), doneDelay: 700, quiet: walking },
+    { id: "w-hub-go", phase: "world", target: dock("hub"), enter: clear, auto: () => { clear(); c.goTo("hub"); }, done: () => open("hub"), doneDelay: 700, quiet: walking },
     { id: "w-hub", phase: "world", target: "#game-grid", next: true, lost: () => !open("hub"), fallback: "w-hub-go" },
-    { id: "w-hub-close", phase: "world", target: "#hub-close", done: () => !open("hub") },
-    { id: "w-park-go", phase: "world", target: dock("park"), done: () => open("park"), doneDelay: 700, quiet: walking },
+    { id: "w-hub-close", phase: "world", target: "#hub-close", auto: clear, autoKey: "tour.closeIt", done: () => !open("hub") },
+    { id: "w-park-go", phase: "world", target: dock("park"), enter: clear, auto: () => { clear(); c.goTo("park"); }, done: () => open("park"), doneDelay: 700, quiet: walking },
     { id: "w-park", phase: "world", target: "#biz-grid", next: true, lost: () => !open("park"), fallback: "w-park-go" },
     { id: "w-okx", phase: "world", target: "#okx-owner-btn", next: true, lost: () => !open("park"), fallback: "w-park-go" },
-    { id: "w-park-close", phase: "world", target: "#park .close", done: () => !open("park") },
-    { id: "w-market-go", phase: "world", target: dock("market"), done: () => open("market"), doneDelay: 700, quiet: walking },
+    { id: "w-park-close", phase: "world", target: "#park .close", auto: clear, autoKey: "tour.closeIt", done: () => !open("park") },
+    { id: "w-market-go", phase: "world", target: dock("market"), enter: clear, auto: () => { clear(); c.goTo("market"); }, done: () => open("market"), doneDelay: 700, quiet: walking },
     { id: "w-market", phase: "world", target: "#market-brand", next: true, lost: () => !open("market"), fallback: "w-market-go" },
-    { id: "w-market-close", phase: "world", target: "#market .close", done: () => !open("market") },
+    { id: "w-market-close", phase: "world", target: "#market .close", auto: clear, autoKey: "tour.closeIt", done: () => !open("market") },
     // The Base A2A Marketplace shares the sheet; its job board shows instead.
-    { id: "w-a2a-go", phase: "world", target: dock("a2a"), done: () => open("market") && open("agent-home"), doneDelay: 700, quiet: walking },
+    { id: "w-a2a-go", phase: "world", target: dock("a2a"), enter: clear, auto: () => { clear(); c.goTo("a2a"); }, done: () => open("market") && open("agent-home"), doneDelay: 700, quiet: walking },
     { id: "w-a2a", phase: "world", target: "#market-brand", next: true, lost: () => !open("market"), fallback: "w-a2a-go" },
-    { id: "w-a2a-close", phase: "world", target: "#market .close", done: () => !open("market") },
-    { id: "w-pass-go", phase: "world", target: '#dock [data-act="passport"]', done: () => $("passport").classList.contains("open"), doneDelay: 600 },
+    { id: "w-a2a-close", phase: "world", target: "#market .close", auto: clear, autoKey: "tour.closeIt", done: () => !open("market") },
+    { id: "w-isle", phase: "world", target: () => world.buildingRect("create"), next: true, enter: () => { clear(); c.lookAtIsle(true); }, leave: () => c.lookAtIsle(false) },
+    { id: "w-pass-go", phase: "world", target: '#dock [data-act="passport"]', enter: clear, auto: () => { clear(); c.togglePassport(true); }, done: () => $("passport").classList.contains("open"), doneDelay: 600 },
     { id: "w-pass", phase: "world", target: "#passport-body", pad: 0, next: true, lost: () => !$("passport").classList.contains("open"), fallback: "w-pass-go",
       leave: () => c.togglePassport(false) },
     { id: "w-quests", phase: "world", target: "#quest-tracker", next: true, skip: () => $("quest-tracker").hidden },
@@ -275,6 +288,11 @@ function buildSteps(c) {
       enter: () => { buddy = null; met = false; }, leave: () => { if (buddy) buddy.paused = false; },
       quiet: () => { const on = !$("agent-card").hidden; met ||= on; return on; }, done: () => met && $("agent-card").hidden },
     { id: "w-done", phase: "world", next: true, nextKey: "tour.finish", last: true, title: "tour.doneTitle",
-      enter: () => { c.closeAgentCard(); c.reward(); } }
+      enter: () => { c.closeAgentCard(); c.reward(); } },
+
+    // Studio Isle: starts when the player first walks onto the bridge.
+    { id: "i-hello", phase: "isle", title: "tour.isleTitle", target: playerRect, next: true, guideBottom: true },
+    { id: "i-studio", phase: "isle", title: "tour.isleTitle", target: () => world.buildingRect("create"), next: true },
+    { id: "i-go", phase: "isle", title: "tour.isleTitle", target: () => world.buildingRect("create"), auto: () => { clear(); c.goTo("create"); }, done: () => open("app-frame") || Boolean(document.querySelector('iframe[title="Kult Create"]')), doneDelay: 400, quiet: walking, last: true }
   ];
 }

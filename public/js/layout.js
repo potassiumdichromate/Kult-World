@@ -17,7 +17,16 @@ export const CENTER = [28.5, 28.5];
 // The Business Park is a walled campus in the north-west with four buildings.
 export const CAMPUS = { x0: 3, y0: 3, x1: 25, y1: 25, gates: [{ side: "s", from: 12, to: 15 }, { side: "e", from: 12, to: 15 }] };
 
+// Studio Isle: Kult Create's game studio on its own small floating island off
+// the south-east coast, in front of the camera. A ring of open sky (the moat)
+// separates it from the city; a neon bridge from the gardens crosses it.
+export const ISLE = { cx: 50, cy: 51.5, r: 6.2, moat: 5 };
+export const BRIDGE = { x0: 48, x1: 51, y0: 40, y1: 47 };
+const inIsleZone = (x, y) => Math.hypot(x - ISLE.cx, y - ISLE.cy) < ISLE.r + ISLE.moat;
+export const onBridge = (x, y) => x >= BRIDGE.x0 && x < BRIDGE.x1 && y >= BRIDGE.y0 && y < BRIDGE.y1;
+
 export const DISTRICTS = [
+  { id: "studio", x0: 45, y0: 42, x1: 56, y1: 56 },
   { id: "plaza", x0: 21, y0: 21, x1: 36, y1: 36 },
   { id: "park", x0: 2, y0: 2, x1: 26, y1: 26 },
   { id: "hub", x0: 30, y0: 2, x1: 45, y1: 26 },
@@ -39,9 +48,12 @@ paint(12, 24, 15, 27, "p"); paint(24, 12, 27, 15, "p");
 paint(30, 16, 46, 19, "p"); paint(44, 11, 54, 14, "p"); paint(47, 14, 50, 19, "p");
 // Market Street: the OKX.AI and Base A2A marketplaces share one forecourt.
 paint(3, 44, 27, 47, "p"); paint(3, 30, 27, 32, "p");
-export const POND = { x: 43, y: 42, r: 4.2 };
+export const POND = { x: 40, y: 40, r: 3.8 };
 disc(POND.x, POND.y, POND.r, "w");
 paint(41, 30, 44, 37, "p");                // garden path to the pond
+paint(48, 31, 51, 40, "p");                // garden path to the Studio Isle bridge
+// Studio Isle: a path from the bridge round the studio to its forecourt.
+paint(46, 46, 54, 48, "p"); paint(46, 48, 47, 53, "p"); paint(53, 48, 54, 53, "p"); paint(46, 53, 54, 56, "p");
 
 // ------------------------------------------------------------------ buildings
 // kind: biz (a business inside the park), park (the campus gate), hub, deal, market.
@@ -50,7 +62,7 @@ paint(41, 30, 44, 37, "p");                // garden path to the pond
 export const BUILDINGS = [
   { id: "dex", kind: "biz", slot: "bld-dex", x0: 4, y0: 4, x1: 11, y1: 12, h: 24, door: [7, 12], color: "#4fd8ff", status: "soon" },
   { id: "sports", kind: "biz", slot: "bld-sports", x0: 16, y0: 4, x1: 23, y1: 12, h: 13, door: [19, 12], color: "#3ddc84", status: "open" },
-  { id: "create", kind: "biz", slot: "bld-gaming-studio", x0: 4, y0: 16, x1: 11, y1: 22, h: 12, door: [7, 22], color: "#ff7eb6", status: "open" },
+  { id: "create", kind: "biz", slot: "bld-gaming-studio", x0: 47, y0: 48, x1: 53, y1: 53, h: 12, door: [50, 53], color: "#ff7eb6", status: "open", isle: true },
   { id: "production", kind: "biz", slot: "bld-film", x0: 16, y0: 16, x1: 23, y1: 22, h: 10, door: [19, 22], color: "#ffc94d", status: "soon" },
   { id: "park", kind: "park", slot: "campus-gate", x0: 12, y0: 24, x1: 15, y1: 25, h: 8, door: [13, 25], color: "#ffc94d" },
   { id: "hub", kind: "hub", slot: "bld-game-hub", x0: 33, y0: 5, x1: 43, y1: 16, h: 14, door: [37, 16], color: "#a96bff" },
@@ -96,7 +108,8 @@ export const ISLAND = (() => {
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
     const px = (i + 0.5) / RES - PAD, py = (j + 0.5) / RES - PAD, tx = Math.floor(px), ty = Math.floor(py);
     if (tx < 0 || ty < 0 || tx >= MAP || ty >= MAP) continue;
-    const inB = BUILDINGS.some((b) => tx >= b.x0 - 1 && tx < b.x1 + 1 && ty >= b.y0 - 1 && ty < b.y1 + 1);
+    if (inIsleZone(px, py)) continue;
+    const inB = BUILDINGS.some((b) => !b.isle && tx >= b.x0 - 1 && tx < b.x1 + 1 && ty >= b.y0 - 1 && ty < b.y1 + 1);
     const core = Math.hypot(px - CENTER[0], py - CENTER[1]) <= 15;
     content[j * N + i] = tiles[tx][ty] !== "g" || inB || core ? 1 : 0;
   }
@@ -105,7 +118,8 @@ export const ISLAND = (() => {
     const px = (i + 0.5) / RES - PAD, py = (j + 0.5) / RES - PAD;
     const margin = 0.5 + vnoise(px, py, 8, 3) ** 1.5 * 5 + vnoise(px, py, 2.6, 7) * 1.1;
     const border = Math.min(px, py, MAP - px, MAP - py) + PAD - 0.6;
-    land[j * N + i] = Math.min(margin - dOut[j * N + i] / RES, border) > 0 ? 1 : 0;
+    const dIsle = Math.hypot(px - ISLE.cx, py - ISLE.cy);
+    land[j * N + i] = dIsle < ISLE.r + (vnoise(px, py, 3, 13) - 0.5) * 0.8 ? 1 : dIsle < ISLE.r + ISLE.moat ? 0 : Math.min(margin - dOut[j * N + i] / RES, border) > 0 ? 1 : 0;
   }
   const notLand = land.map((v) => 1 - v), inD = chamfer(notLand), outD = chamfer(land);
   let sd = new Float32Array(N * N);
@@ -146,6 +160,7 @@ for (let x = CAMPUS.x0; x < CAMPUS.x1; x++) for (let y = CAMPUS.y0; y < CAMPUS.y
 // The courtyard monument.
 export const MONUMENT = { x: 13.5, y: 13.5 };
 blocked[13][13] = true;
+for (let x = BRIDGE.x0; x < BRIDGE.x1; x++) for (let y = BRIDGE.y0; y < BRIDGE.y1; y++) if (tiles[x][y] === "v") tiles[x][y] = "b";
 for (let x = 0; x < MAP; x++) for (let y = 0; y < MAP; y++) {
   if (tiles[x][y] === "w" || tiles[x][y] === "v") blocked[x][y] = true;
   if (Math.hypot(x + 0.5 - FOUNTAIN.x, y + 0.5 - FOUNTAIN.y) < FOUNTAIN.r + 0.4) blocked[x][y] = true;
@@ -157,7 +172,7 @@ const rnd = (() => { let s = 11; return () => ((s = (s * 16807) % 2147483647) / 
 const free = (x, y, r = 0, kinds = ["g"]) => {
   for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
     const tx = Math.floor(x) + dx, ty = Math.floor(y) + dy;
-    if (tx < 1 || ty < 1 || tx >= MAP - 1 || ty >= MAP - 1 || blocked[tx][ty] || !kinds.includes(tiles[tx][ty]) || islandSD(tx + 0.5, ty + 0.5) < 1.2) return false;
+    if (tx < 1 || ty < 1 || tx >= MAP - 1 || ty >= MAP - 1 || blocked[tx][ty] || !kinds.includes(tiles[tx][ty]) || islandSD(tx + 0.5, ty + 0.5) < 1.2 || inIsleZone(tx + 0.5, ty + 0.5)) return false;
   }
   return true;
 };
@@ -197,6 +212,9 @@ for (let i = 0; i < 12; i++) { const x = 3 + rnd() * 22, y = 33 + rnd() * 20; if
 // Billboards.
 put("billboard", 45.5, 21.5, { ad: 0 }); put("billboard", 7, 28.4, { ad: 1 }); put("billboard", 24.5, 49.5, { ad: 2 }); put("billboard", 51.5, 27, { ad: 3 });
 put("crane", 31.5, 9.5);
+// Studio Isle: lamps along the garden path and round the forecourt.
+for (let y = 32; y < 40; y += 3.5) { put("lamp", 47.5, y + 0.5, { glow: "#ff7eb6" }, false); put("lamp", 51.5, y + 0.5, { glow: "#4fd8ff" }, false); }
+for (const [x, y, glow] of [[45.6, 54.4, "#ff7eb6"], [54.4, 54.4, "#4fd8ff"], [45.2, 50.2, "#4fd8ff"], [54.8, 50.2, "#ff7eb6"]]) put("lamp", x, y, { glow }, false);
 
 export const walkable = (x, y) => x >= 0 && y >= 0 && x < MAP && y < MAP && !blocked[x][y];
 

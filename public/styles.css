@@ -709,7 +709,7 @@ img.ph { background: color-mix(in srgb, var(--ac, #a98bff) 35%, #140c2c); }
 .intro-orbit { position: absolute; inset: 9%; border-radius: 50%; border: 2px solid transparent; border-top-color: #ff4fa3; border-right-color: rgba(79, 216, 255, 0.85); opacity: 0; transform: rotateX(72deg) rotateZ(0deg); filter: drop-shadow(0 0 6px #ff4fa3); }
 .intro-orbit.o2 { inset: 3%; border-top-color: #4fd8ff; border-right-color: rgba(177, 77, 255, 0.8); transform: rotateX(68deg) rotateY(-18deg); filter: drop-shadow(0 0 6px #4fd8ff); }
 .intro-flare { position: absolute; left: -30%; right: -30%; top: 50%; height: 2px; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95) 45%, #ff9bd0 50%, rgba(255, 255, 255, 0.95) 55%, transparent); opacity: 0; box-shadow: 0 0 22px 4px rgba(255, 79, 163, 0.6); }
-.intro-word { width: min(66vw, 330px); height: auto; margin-top: 6px; opacity: 0; will-change: transform, opacity; transform: translateY(14px) scale(0.92); filter: drop-shadow(0 0 16px rgba(255, 79, 163, 0.55)); }
+.intro-word { width: min(70vw, 400px); height: auto; margin-top: 6px; opacity: 0; will-change: transform, opacity; transform: translateY(14px) scale(0.92); filter: drop-shadow(0 0 16px rgba(255, 79, 163, 0.55)); }
 .intro-tag { margin: 6px 0 0; font: 700 clamp(11px, 2.6vw, 14px) var(--display); letter-spacing: 0.32em; margin-right: -0.32em; text-transform: uppercase; color: #efe9ff; opacity: 0; text-shadow: 0 0 14px rgba(169, 139, 255, 0.8); }
 .intro-load { display: flex; align-items: baseline; gap: 12px; margin-top: 22px; font: 600 10px var(--display); letter-spacing: 0.32em; text-transform: uppercase; color: var(--muted); opacity: 0; }
 .intro-load b { min-width: 4ch; font-size: 13px; letter-spacing: 0.08em; color: #fff; text-align: right; }
@@ -745,7 +745,7 @@ img.ph { background: color-mix(in srgb, var(--ac, #a98bff) 35%, #140c2c); }
 .landing-kicker { display: inline-flex; align-items: center; gap: 10px; margin: 0; padding: 8px 15px; border-radius: 999px; font: 700 12px var(--display); letter-spacing: 0.22em; text-transform: uppercase; color: #ffe7a8; background: rgba(255, 201, 77, 0.08); border: 1px solid rgba(255, 201, 77, 0.38); box-shadow: inset 0 0 22px rgba(255, 201, 77, 0.1), 0 0 24px rgba(255, 201, 77, 0.08); }
 .landing-kicker i { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); animation: blink 1.6s infinite; }
 .landing-title { margin: 0; line-height: 0; }
-.landing-title img { width: min(430px, 100%); height: auto; filter: drop-shadow(0 0 24px rgba(255, 79, 163, 0.45)) drop-shadow(0 5px 0 rgba(70, 14, 110, 0.75)); }
+.landing-title img { width: min(520px, 100%); height: auto; filter: drop-shadow(0 0 24px rgba(255, 79, 163, 0.45)) drop-shadow(0 5px 0 rgba(70, 14, 110, 0.75)); }
 .landing .lead { margin: 0; max-width: 520px; font-size: clamp(15px, 1.45vw, 18px); line-height: 1.6; color: #e4ddff; text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6); }
 .landing-cta { display: grid; gap: 14px; justify-items: start; margin-top: 4px; }
 .enter-btn { gap: 14px; padding: 19px 34px 19px 38px; font-size: 16px; }
@@ -785,7 +785,7 @@ img.ph { background: color-mix(in srgb, var(--ac, #a98bff) 35%, #140c2c); }
   .landing-emblem { order: -1; width: min(250px, 62vw); }
   .landing-copy { justify-items: center; text-align: center; gap: 16px; }
   .landing-cta { justify-items: center; }
-  .landing-title img { width: min(340px, 82vw); }
+  .landing-title img { width: min(380px, 86vw); }
   .landing-kicker { font-size: 11px; letter-spacing: 0.16em; }
   .exp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px 12px; }
 }
@@ -1344,3 +1344,39 @@ a.ext:hover { text-decoration: underline; }
   /* Tiles only on phones; the label stays for screen readers. */
   .dock .dl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
+
+/* ------------------------------------------------------------------ map tools (hand, zoom, recenter) */
+.map-tools { position: fixed; right: 228px; bottom: 16px; z-index: 10; display: grid; gap: 6px; padding: 6px; border-radius: 16px; }
+.map-tools button { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.05); color: #e9e2ff; cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s; }
+.map-tools button:hover { background: rgba(255, 255, 255, 0.12); transform: translateY(-1px); }
+.map-tools button[aria-pressed="true"] { color: #2b1700; background: linear-gradient(135deg, #ffe08a, #ffb02e); border-color: rgba(255, 240, 200, 0.9); box-shadow: 0 0 16px rgba(255, 201, 77, 0.55); }
+.map-tools svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+body.hand-mode #world { cursor: grab; }
+@media (max-width: 900px) { .map-tools { right: 12px; top: 192px; bottom: auto; grid-template-columns: 1fr; padding: 5px; } .map-tools button { width: 36px; height: 36px; } }
+
+/* ------------------------------------------------------------------ hover cards: buildings vs agents
+   A building gets a solid card in its own colour with an Enter chip, above
+   everything, and the agents' name tags fade while it shows. An agent gets a
+   small glass pill. Agent tags themselves are quieter, so places stand out. */
+.world-tip.bld { z-index: 12; padding: 10px 14px 11px; border-radius: 14px; min-width: 180px; white-space: normal; max-width: 260px; color: #fff; letter-spacing: 0.02em;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--c) 34%, #120a2a), #120a2a 70%); border: 1.5px solid var(--c); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 22px color-mix(in srgb, var(--c) 45%, transparent); }
+.world-tip.bld::after { content: ""; position: absolute; left: 50%; top: 100%; width: 12px; height: 12px; background: #120a2a; border-right: 1.5px solid var(--c); border-bottom: 1.5px solid var(--c); transform: translate(-50%, -6px) rotate(45deg); }
+.world-tip.bld .wt-top { display: flex; align-items: center; gap: 8px; font: 700 14px var(--display); text-transform: uppercase; letter-spacing: 0.08em; }
+.world-tip.bld .wt-dot { width: 10px; height: 10px; border-radius: 3px; background: var(--c); box-shadow: 0 0 10px var(--c); flex: none; }
+.world-tip.bld small { margin-top: 4px; color: rgba(235, 228, 255, 0.78); font-size: 12px; line-height: 1.35; }
+.world-tip.bld .wt-go { display: inline-block; margin-top: 8px; padding: 3px 9px; border-radius: 999px; font: 700 10px var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: #120a2a; background: var(--c); }
+.world-tip.agt { padding: 5px 11px; border-radius: 999px; font: 600 12px var(--display); color: #fff; background: rgba(12, 8, 28, 0.82); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); }
+.world-tip.agt small { display: inline; margin-left: 6px; }
+.agent-tag { padding: 2px 8px 2px 5px; font-size: 10.5px; background: rgba(10, 6, 24, 0.5); border-color: rgba(255, 255, 255, 0.1); transition: opacity 0.2s; }
+.agent-tag i { width: 6px; height: 6px; }
+body.hover-bld .agent-tag:not(.me) { opacity: 0.18; }
+
+/* ------------------------------------------------------------------ Studio Isle sign over Kult Create */
+.isle-sign-at { pointer-events: none; }
+.isle-sign { position: relative; display: grid; justify-items: center; gap: 2px; padding: 8px 16px 9px; border-radius: 16px; pointer-events: none; text-align: center;
+  background: linear-gradient(160deg, rgba(255, 126, 182, 0.35), rgba(18, 10, 42, 0.9) 65%); border: 1.5px solid #ff7eb6; box-shadow: 0 0 26px rgba(255, 126, 182, 0.55), 0 10px 26px rgba(0, 0, 0, 0.45); animation: isle-bob 3s ease-in-out infinite; }
+.isle-sign b { font: 700 15px var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: #fff; }
+.isle-sign small { font: 600 11px var(--body); color: #ffd3e6; white-space: nowrap; }
+.isle-star { position: absolute; top: -12px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; color: #2b1700; background: linear-gradient(135deg, #fff1c4, #ffc94d); box-shadow: 0 0 12px rgba(255, 201, 77, 0.8); }
+@keyframes isle-bob { 50% { transform: translateY(-11px); } }
+@media (prefers-reduced-motion: reduce) { .isle-sign { animation: none; } }

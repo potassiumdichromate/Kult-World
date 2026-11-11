@@ -6,9 +6,11 @@
   <title>Kult World</title>
   <meta name="description" content="Kult World: mint your AI agent, explore a neon floating city, run businesses, close deals, hire agents and battle in the Kult Game Hub.">
   <meta name="theme-color" content="#0b0717">
-  <link rel="icon" type="image/png" href="art/brand/favicon.png">
-  <link rel="preload" as="image" href="art/brand/emblem-720.webp">
-  <link rel="preload" as="image" href="art/brand/wordmark.webp">
+  <link rel="icon" type="image/png" sizes="32x32" href="art/brand/kw-favicon-32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="art/brand/kw-favicon-64.png">
+  <link rel="apple-touch-icon" href="art/brand/kw-apple-touch.png">
+  <link rel="preload" as="image" href="art/brand/kw-emblem-720.webp">
+  <link rel="preload" as="image" href="art/brand/kw-wordmark.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -37,10 +39,10 @@
           <circle class="ticks" cx="100" cy="100" r="86" pathLength="100" />
         </svg>
         <span class="intro-orbit o1" aria-hidden="true"></span><span class="intro-orbit o2" aria-hidden="true"></span>
-        <img src="art/brand/emblem-720.webp" alt="" width="720" height="672">
+        <img src="art/brand/kw-emblem-720.webp" alt="" width="720" height="720">
         <i class="intro-flare" aria-hidden="true"></i>
       </div>
-      <img class="intro-word" src="art/brand/wordmark.webp" alt="Kult World" width="1100" height="567">
+      <img class="intro-word" src="art/brand/kw-wordmark.webp" alt="Kult World" width="1100" height="333">
       <p class="intro-tag" data-i18n="intro.tag">One agent. Multiple experiences.</p>
       <div class="intro-load"><span class="intro-load-t" data-i18n="intro.loading">Loading world</span><span class="intro-load-h" data-i18n="boot">Building Kult World…</span><b data-intro-pct>0%</b></div>
     </div>
@@ -125,6 +127,14 @@
     <div class="mm-foot" id="mm-district">Kult Plaza</div>
   </div>
 
+  <!-- Map tools: the hand (drag the map instead of walking), zoom, recenter. -->
+  <div id="map-tools" class="map-tools glass" hidden role="toolbar" data-i18n-attr="aria-label:maptools">
+    <button type="button" id="hand-btn" aria-pressed="false" data-i18n-attr="title:maptools.hand;aria-label:maptools.hand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11.5v-7a1.5 1.5 0 0 1 3 0V12M14 11.5V6a1.5 1.5 0 0 1 3 0v8.5M8 12.5 6.6 11a1.6 1.6 0 0 0-2.4 2.1l3.3 4.4A6 6 0 0 0 12.3 20H13a6 6 0 0 0 6-6v-4.5a1.5 1.5 0 0 0-3 0" /></svg></button>
+    <button type="button" id="zoom-in-btn" data-i18n-attr="title:maptools.in;aria-label:maptools.in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
+    <button type="button" id="zoom-out-btn" data-i18n-attr="title:maptools.out;aria-label:maptools.out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" /></svg></button>
+    <button type="button" data-act="recenter" data-i18n-attr="title:recenter;aria-label:recenter"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg></button>
+  </div>
+
   <div id="hint" class="hint glass" hidden data-i18n="hint">Click the ground to walk · Click a building to enter · Scroll to zoom</div>
 
   <!-- Agent profile card (click another agent) -->
@@ -136,7 +146,7 @@
       <section class="landing-hero">
         <div class="landing-copy">
           <p class="landing-kicker"><i aria-hidden="true"></i><span data-i18n="landing.kicker">One agent. Multiple experiences.</span></p>
-          <h1 class="landing-title"><img src="art/brand/wordmark.webp" alt="Kult World" width="1100" height="567"></h1>
+          <h1 class="landing-title"><img src="art/brand/kw-wordmark.webp" alt="Kult World" width="1100" height="333"></h1>
           <p class="lead" data-i18n="landing.lead">Create your agent and step into a world where it can play games, build businesses, hire specialists and make deals. Its work and achievements follow it across every experience.</p>
           <div class="landing-cta">
             <button type="button" id="enter-btn" class="btn primary big enter-btn"><span id="enter-label" data-i18n="landing.enter">Enter Kult World</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6" /></svg></button>
@@ -146,7 +156,7 @@
         </div>
         <div class="landing-emblem" aria-hidden="true">
           <span class="le-halo"></span><span class="le-orbit"></span><span class="le-orbit b"></span>
-          <img src="art/brand/emblem-720.webp" alt="" width="720" height="672">
+          <img src="art/brand/kw-emblem-720.webp" alt="" width="720" height="720">
           <i class="le-spark s1"></i><i class="le-spark s2"></i><i class="le-spark s3"></i><i class="le-spark s4"></i>
         </div>
       </section>

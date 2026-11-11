@@ -68,6 +68,21 @@ export const MATCH_MODES = [
 const TRAIT_KEY = { Aggression: "aggression", Precision: "precision", Adaptability: "adaptability", Creativity: "creativity", Patience: "patience", Resilience: "resilience", Deception: "deception", Loyalty: "loyalty" };
 
 /** An AI Arena agent (GET /v1/agents/...) in Kult World's shape. Missing traits stay null. */
+// Agents whose owners never named them carry AI Arena's default name
+// ("kult-player_a930696c", "agent-1411"), which reads like a bot account in the
+// city. Those show a callsign made from the agent's id instead, the same on
+// every screen and for every player; real names are never touched.
+const DEFAULT_NAME = /^(?:kult[-_ ]?player|player|user|agent)[-_ ]?[0-9a-f]{3,}$/i;
+const CALL_A = ["Neon", "Rift", "Nova", "Volt", "Pixel", "Lunar", "Cyber", "Blaze", "Frost", "Echo", "Prism", "Vortex", "Hyper", "Solar", "Shadow", "Crimson", "Quantum", "Astro", "Turbo", "Glitch"];
+const CALL_B = ["Falcon", "Runner", "Viper", "Sage", "Raven", "Wolf", "Ronin", "Comet", "Knight", "Fox", "Titan", "Specter", "Lynx", "Pilot", "Drifter", "Phoenix", "Hawk", "Nomad", "Striker", "Ghost"];
+export function displayName(name, id) {
+  const n = String(name ?? "").trim();
+  if (n && !DEFAULT_NAME.test(n)) return n;
+  let h = 2166136261;
+  for (const ch of String(id ?? n)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  return `${CALL_A[h % CALL_A.length]}${CALL_B[(h >>> 8) % CALL_B.length]}${10 + ((h >>> 16) % 90)}`;
+}
+
 export function agentFromApi(a) {
   const raw = a?.traits && typeof a.traits === "object" ? a.traits : {};
   const traits = Object.fromEntries(TRAITS.map((t) => {
@@ -75,7 +90,7 @@ export function agentFromApi(a) {
     return [t, Number.isFinite(v) ? Math.round(v <= 1 ? v * 100 : v) : null];
   }));
   return {
-    id: String(a.id), name: String(a.name ?? "Agent"), archetype: String(a.archetype ?? "hybrid").toLowerCase(),
+    id: String(a.id), name: displayName(a.name, a.id), rawName: String(a.name ?? ""), archetype: String(a.archetype ?? "hybrid").toLowerCase(),
     clan: String(a.clan ?? "ZEROG").toUpperCase(), backstory: a.description ?? a.metadata?.backstory ?? "",
     inft: a.inftTokenId ?? null, evolution: String(a.evolutionStage ?? "GENESIS"),
     elo: Number(a.eloRating ?? 1000), wins: Number(a.wins ?? 0), losses: Number(a.losses ?? 0), draws: Number(a.draws ?? 0),

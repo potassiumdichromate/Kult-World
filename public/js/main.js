@@ -7,7 +7,7 @@
 // English / 中文 (js/i18n.js).
 
 import { World, BUILDINGS, MAP } from "./world3d.js";
-import { randomStreetTile } from "./layout.js";
+import { randomStreetTile, onBridge, ISLE } from "./layout.js";
 import { setSignTranslator } from "./models.js";
 import { drawThumb } from "./minigames.js";
 import { t, setLang, getLang, applyI18n, onLang } from "./i18n.js";
@@ -138,7 +138,7 @@ function tick(now) {
     sound.update(world.t, { walking: p?.walking, fountainDist: p && world.fountainPos ? p.group.position.distanceTo(world.fountainPos) : 99 });
   }
   if (++frames === 3) firstFrames();
-  if (state.inWorld && now - slowAt > 100) { slowAt = now; updateLocation(); updatePrompt(); world.minimap($("minimap")); }
+  if (state.inWorld && now - slowAt > 100) { slowAt = now; updateLocation(); updatePrompt(); world.minimap($("minimap")); checkIsle(); }
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
@@ -172,6 +172,11 @@ const tour = createTour({
   minting: () => minting || $("mint").classList.contains("minted"),
   togglePassport: (o) => togglePassport(o),
   closeAgentCard: () => closeAgentCard(),
+  // Steps that point at the dock close whatever sheet covers it; "Take me there" walks to a place.
+  closeOverlays: () => { if (anyOpen()) closeOverlays(); },
+  goTo: (id) => goTo(id),
+  // Shows the whole Studio Isle and its bridge: the view moves there and zooms out.
+  lookAtIsle: (on) => { if (on) { world.lookAtTile(ISLE.cx - 1, ISLE.cy - 4); world.zoom = 0.6; } else world.recenter(); },
   reward: () => {
     gainXp(150); addActivity(t("act.tour")); commit();
     sound.play("level"); burst(innerWidth / 2, innerHeight / 2, "#ffc94d", 44);
@@ -184,19 +189,53 @@ $("tour-btn").addEventListener("click",() => { show("menu", false); closeOverlay
 
 // ------------------------------------------------------------------ pointer
 const canvas = $("world");
+// The hand tool: with it on, dragging moves the map and clicks never walk.
+// Without it, a drag (more than a few pixels) still moves the map.
+let handOn = false, drag = null, dragged = false;
+function setHand(on) {
+  handOn = on;
+  $("hand-btn").setAttribute("aria-pressed", String(on));
+  document.body.classList.toggle("hand-mode", on);
+  canvas.style.cursor = on ? "grab" : "default";
+}
+$("hand-btn").addEventListener("click", () => setHand(!handOn));
+$("zoom-in-btn").addEventListener("click", () => world.zoomBy(1.2));
+$("zoom-out-btn").addEventListener("click", () => world.zoomBy(1 / 1.2));
+canvas.addEventListener("pointerdown", (e) => {
+  if (!state.inWorld || e.button > 0) return;
+  drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0 }; dragged = false;
+});
+addEventListener("pointermove", (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  drag.moved += Math.abs(dx) + Math.abs(dy);
+  if (handOn || drag.moved > 8) {
+    if (!dragged) { dragged = true; try { canvas.setPointerCapture(e.pointerId); } catch { /* fine */ } }
+    world.panByScreen(dx, dy); canvas.style.cursor = "grabbing";
+  }
+  drag.x = e.clientX; drag.y = e.clientY;
+});
+addEventListener("pointerup", (e) => { if (drag && e.pointerId === drag.id) { drag = null; canvas.style.cursor = handOn ? "grab" : "default"; } });
 canvas.addEventListener("pointermove", (e) => {
   if (!state.inWorld) return;
+  if (drag && dragged) return;
   const b = world.buildingAt(e.clientX, e.clientY), a = b ? null : world.agentAt(e.clientX, e.clientY);
   world.hover = b?.id || null;
-  canvas.style.cursor = b || a ? "pointer" : "default";
+  canvas.style.cursor = handOn ? "grab" : b || a ? "pointer" : "default";
+  // Buildings and agents get different cards: a solid card with the place's
+  // colour and an Enter chip for a building (agent name tags fade under it),
+  // a small glass pill for an agent.
   const tip = $("world-tip");
-  if (b) { tip.replaceChildren(placeName(b), el("small", {}, `${t(`blurb.${b.id}`)} · ${t("tip.enter")}`)); tip.style.setProperty("--c", b.color); }
+  tip.classList.toggle("bld", Boolean(b)); tip.classList.toggle("agt", Boolean(!b && a));
+  document.body.classList.toggle("hover-bld", Boolean(b));
+  if (b) { tip.replaceChildren(el("span", { class: "wt-top" }, el("i", { class: "wt-dot" }), placeName(b)), el("small", {}, t(`blurb.${b.id}`)), el("span", { class: "wt-go" }, handOn ? t("tip.handOn") : t("tip.enter"))); tip.style.setProperty("--c", b.color); }
   else if (a) { tip.replaceChildren(a.name, el("small", {}, `${archetype(a.archetype).name} · ${t("agent.elo", { n: fmt(a.elo) })}`)); tip.style.setProperty("--c", a.color); }
   if (b || a) { tip.style.left = `${e.clientX}px`; tip.style.top = `${e.clientY}px`; tip.hidden = false; } else tip.hidden = true;
 });
-canvas.addEventListener("pointerleave", () => { world.hover = null; $("world-tip").hidden = true; });
+canvas.addEventListener("pointerleave", () => { world.hover = null; $("world-tip").hidden = true; document.body.classList.remove("hover-bld"); });
 canvas.addEventListener("click", (e) => {
   if (!state.inWorld) return;
+  if (dragged || handOn) { dragged = false; return; }
   closeAgentCard();
   const b = world.buildingAt(e.clientX, e.clientY);
   if (b) return goTo(b.id);
@@ -209,6 +248,14 @@ $("minimap").addEventListener("click", (e) => {
   const r = e.currentTarget.getBoundingClientRect();
   world.walkToTile(...world.minimapToTile((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height));
 });
+
+// Studio Isle: the first time the player walks onto the bridge, Nova's short
+// isle tour shows them into the game studio (once per player; ?tour repeats it).
+function checkIsle() {
+  const p = world.player;
+  if (!p || tour.running || anyOpen() || !onBridge(Math.floor(p.x), Math.floor(p.y))) return;
+  tour.offer("i-hello", forceTour, `kw.isletour.v1.${String(session.wallet || "anon").toLowerCase()}`);
+}
 
 let lastPlace = "", walkingLabel = false;
 function goTo(id, then) {
@@ -432,7 +479,7 @@ let feedTimer = null, liveTimer = null;
 function enterWorld(fresh) {
   for (const id of ["landing", "mint"]) show(id, false);
   stage?.stop();
-  for (const id of ["passport", "topbar", "hint", "dock", "minimap-wrap", "feed"]) show(id, true);
+  for (const id of ["passport", "topbar", "hint", "dock", "minimap-wrap", "map-tools", "feed"]) show(id, true);
   state.inWorld = true;
   const a = state.player.agent;
   world.spawnPlayer({ name: a.name, archetype: a.archetype, clan: a.clan, elo: a.elo });
@@ -587,7 +634,7 @@ addEventListener("keydown", (e) => {
   if (anyOpen()) return;
   const k = e.key.toLowerCase();
   const go = { 1: "park", 2: "hub", 3: "deal", 4: "market", 5: "a2a" }[k];
-  if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter(); else if (k === "l") openBoard();
+  if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter(); else if (k === "l") openBoard(); else if (k === "h") setHand(!handOn);
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
 function closeOverlays() { sound.play("close"); cancelMatch(); dealRoom.stop(); okx.stop(); a2a.stop(); for (const id of ["park", "hub", "deal", "market", "okx", "wallet", "board"]) show(id, false); }

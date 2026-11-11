@@ -12,7 +12,7 @@
 //                 Points, weekly, monthly or all time.
 
 import { arenaApi, chainApi, kultApi, explorer } from "./kult.js";
-import { RANKS, rankOf, nextRank, CLANS, archetype } from "./data.js";
+import { RANKS, rankOf, nextRank, CLANS, archetype, displayName } from "./data.js";
 
 const short = (a, n = 6) => (a ? `${a.slice(0, n)}…${a.slice(-4)}` : "—");
 const num = (v) => { const n = typeof v === "string" ? Number.parseFloat(v) : Number(v); return Number.isFinite(n) ? n : null; };
@@ -136,7 +136,7 @@ export function createArena(ctx) {
       el("button", { type: "button", class: s.tier === null ? "on" : "", onclick: () => { s.tier = null; s.page = 1; arenaBoard(main, side, run); } }, t("lb.all")),
       RANKS.map((r, i) => el("button", { type: "button", class: s.tier === i ? "on" : "", style: `--c:${r.color}`, title: `${r.name} · ${r.min.toLocaleString()}+ ELO`, onclick: () => { s.tier = i; s.page = 1; arenaBoard(main, side, run); } }, el("img", { src: `art/${r.badge}`, alt: "" }), el("span", {}, r.name))));
 
-    const name = (e) => e.name?.trim() || `Agent ${String(e.agentId).slice(0, 8)}`;
+    const name = (e) => displayName(e.name, e.agentId);
     const you = (e) => mine.has(e.agentId) ? el("em", { class: "lb-you" }, t("lb.you")) : null;
     const challenge = (e) => p && !mine.has(e.agentId) ? el("button", { type: "button", class: "btn ghost small lb-fight", title: t("agent.challenge"), onclick: () => { closeAll(); goHub({ id: e.agentId }); } }, t("lb.fight")) : el("span");
 
