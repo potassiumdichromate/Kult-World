@@ -1,5 +1,6 @@
-// The guided tutorial: Nova, the city guide, walks a new player from minting
-// their agent through the city, one step at a time. A step spotlights one
+// Nova's guidance: one step while minting, then a short flow for whichever
+// quick start choice the player picks (js/quickstart.js), and one step when
+// they first cross the bridge to Studio Isle. A step spotlights one
 // thing on screen (the rest is dimmed and blocked) and either waits for the
 // player to do it or explains it with a Next button. Steps that send the
 // player walking go quiet until they arrive.
@@ -44,7 +45,9 @@ export function createTour(ctx) {
   function stop(skipped = false) {
     if (!step) return;
     step.leave?.();
+    const phase = step.phase;
     step = null; i = -1; root.hidden = true;
+    if (!skipped) ctx.onFinish?.(phase);
     cancelAnimationFrame(raf); raf = 0; clearInterval(typing);
     try { localStorage.setItem(key || ctx.doneKey(), skipped ? "skipped" : "done"); } catch { /* storage optional */ }
     if (skipped) sound.play("close");
@@ -56,7 +59,7 @@ export function createTour(ctx) {
     root.className = `tour${step.target || step.free ? "" : " center"}${step.free ? " free" : ""}`;
     guide.querySelector(".tour-top b").textContent = t(step.title || "tour.guide");
     const phase = steps.filter((s) => s.phase === step.phase);
-    count.textContent = `${phase.indexOf(step) + 1} / ${phase.length}`;
+    count.textContent = phase.length > 1 ? `${phase.indexOf(step) + 1} / ${phase.length}` : "";
     next.hidden = !step.next && !step.auto; next.textContent = t(step.next ? step.nextKey || "tour.next" : step.autoKey || "tour.takeMe");
     skip.hidden = Boolean(step.last); skip.textContent = t("tour.skip");
     guide.classList.remove("in"); void guide.offsetWidth; guide.classList.add("in");
@@ -111,7 +114,7 @@ export function createTour(ctx) {
     raf = requestAnimationFrame(frame);
     if (!step) return;
     const s = step;
-    if (s.lost?.() && now - enteredAt > 600) return goto(s.fallback);
+    if (s.lost?.() && now - enteredAt > 600) return s.fallback ? goto(s.fallback) : stop(false);
     if (s.done && now - enteredAt > 400 && s.done()) {
       doneAt ||= now;
       if (now - doneAt >= (s.doneDelay ?? 250)) { sound.play("coin"); return advance(); }
@@ -215,10 +218,6 @@ function buildSteps(c) {
   const open = (id) => c.isOpen(id);
   const walking = () => Boolean(world.player?.walking);
   const mintQuiet = () => $("mint").hidden || c.minting();
-  const playerRect = () => {
-    const p = world.player && world.screenAt(world.player, 0.95);
-    return p ? { left: p.x - 60, top: p.y - 30, width: 120, height: 130, right: p.x + 60, bottom: p.y + 100 } : null;
-  };
   const groundRect = () => {
     const p = world.player && world.screenAt(world.player, 0.95);
     if (!p) return null;
@@ -236,7 +235,7 @@ function buildSteps(c) {
       buddy = null;
       let best = Infinity;
       for (const a of world.agents.values()) {
-        const p = !a.isPlayer && world.screenAt(a, 0.8), d = p ? Math.hypot(p.x - me.x, p.y - me.y) : Infinity;
+        const p = !a.isPlayer && !a.inside && world.screenAt(a, 0.8), d = p ? Math.hypot(p.x - me.x, p.y - me.y) : Infinity;
         if (d > 130 && d < best) { best = d; buddy = a; at = p; }
       }
       // It waits for the player to tap it.
@@ -244,55 +243,34 @@ function buildSteps(c) {
     }
     return at ? { left: at.x - 45, top: at.y - 10, width: 90, height: 110, right: at.x + 45, bottom: at.y + 100 } : null;
   };
-  const dock = (k) => `#dock [data-goto="${k}"]`;
-  // A sheet left open covers the dock, so a step that points at the dock closes it first.
-  const clear = () => c.closeOverlays();
   const walkAhead = () => { const r = groundRect(); if (r) world.walkToScreen(r.left + r.width / 2, r.top + r.height / 2); };
   let walked = false, met = false;
+  const studioOpen = () => open("app-frame") || Boolean(document.querySelector('iframe[title="Kult Create"]'));
   return [
-    // Minting: from the character select to the city.
-    { id: "mint-hello", phase: "mint", next: true, nextKey: "tour.letsgo", quiet: mintQuiet },
-    { id: "mint-arch", phase: "mint", target: "#mint-archetypes", next: true, interactive: true, quiet: mintQuiet },
-    { id: "mint-clan", phase: "mint", target: "#mint-clans", next: true, interactive: true, quiet: mintQuiet },
-    { id: "mint-name", phase: "mint", target: "#cs-form .name-row", next: true, interactive: true, quiet: mintQuiet },
-    { id: "mint-go", phase: "mint", target: "#mint-form .cs-mint", done: c.inWorld, doneDelay: 1800, quiet: mintQuiet },
+    // Minting: one step; the whole form stays usable.
+    { id: "mint-go", phase: "mint", target: "#mint-form .cs-mint", free: true, done: c.inWorld, doneDelay: 1800, quiet: mintQuiet },
 
-    // The city.
-    { id: "w-arrive", phase: "world", target: playerRect, next: true, guideBottom: true },
-    { id: "w-card", phase: "world", target: "#hud-player", next: true },
-    { id: "w-money", phase: "world", target: "#topbar .pill", next: true },
-    { id: "w-walk", phase: "world", target: groundRect, round: true, free: true, auto: walkAhead, autoKey: "tour.showMe",
-      enter: () => { walked = false; }, done: () => (walked ||= walking()), doneDelay: 1400 },
-    { id: "w-map", phase: "world", target: "#minimap-wrap", next: true },
-    { id: "w-hub-go", phase: "world", target: dock("hub"), enter: clear, auto: () => { clear(); c.goTo("hub"); }, done: () => open("hub"), doneDelay: 700, quiet: walking },
-    { id: "w-hub", phase: "world", target: "#game-grid", next: true, lost: () => !open("hub"), fallback: "w-hub-go" },
-    { id: "w-hub-close", phase: "world", target: "#hub-close", auto: clear, autoKey: "tour.closeIt", done: () => !open("hub") },
-    { id: "w-park-go", phase: "world", target: dock("park"), enter: clear, auto: () => { clear(); c.goTo("park"); }, done: () => open("park"), doneDelay: 700, quiet: walking },
-    { id: "w-park", phase: "world", target: "#biz-grid", next: true, lost: () => !open("park"), fallback: "w-park-go" },
-    { id: "w-okx", phase: "world", target: "#okx-owner-btn", next: true, lost: () => !open("park"), fallback: "w-park-go" },
-    { id: "w-park-close", phase: "world", target: "#park .close", auto: clear, autoKey: "tour.closeIt", done: () => !open("park") },
-    { id: "w-market-go", phase: "world", target: dock("market"), enter: clear, auto: () => { clear(); c.goTo("market"); }, done: () => open("market"), doneDelay: 700, quiet: walking },
-    { id: "w-market", phase: "world", target: "#market-brand", next: true, lost: () => !open("market"), fallback: "w-market-go" },
-    { id: "w-market-close", phase: "world", target: "#market .close", auto: clear, autoKey: "tour.closeIt", done: () => !open("market") },
-    // The Base A2A Marketplace shares the sheet; its job board shows instead.
-    { id: "w-a2a-go", phase: "world", target: dock("a2a"), enter: clear, auto: () => { clear(); c.goTo("a2a"); }, done: () => open("market") && open("agent-home"), doneDelay: 700, quiet: walking },
-    { id: "w-a2a", phase: "world", target: "#market-brand", next: true, lost: () => !open("market"), fallback: "w-a2a-go" },
-    { id: "w-a2a-close", phase: "world", target: "#market .close", auto: clear, autoKey: "tour.closeIt", done: () => !open("market") },
-    { id: "w-isle", phase: "world", target: () => world.buildingRect("create"), next: true, enter: () => { clear(); c.lookAtIsle(true); }, leave: () => c.lookAtIsle(false) },
-    { id: "w-pass-go", phase: "world", target: '#dock [data-act="passport"]', enter: clear, auto: () => { clear(); c.togglePassport(true); }, done: () => $("passport").classList.contains("open"), doneDelay: 600 },
-    { id: "w-pass", phase: "world", target: "#passport-body", pad: 0, next: true, lost: () => !$("passport").classList.contains("open"), fallback: "w-pass-go",
-      leave: () => c.togglePassport(false) },
-    { id: "w-quests", phase: "world", target: "#quest-tracker", next: true, skip: () => $("quest-tracker").hidden },
+    // Quick start. Create: the player lands on Studio Isle and goes in.
+    { id: "q-create", phase: "qcreate", title: "tour.isleTitle", target: () => world.buildingRect("create"), free: true,
+      auto: () => c.enterStudio(), autoKey: "tour.enterStudio", done: studioOpen, doneDelay: 300, quiet: walking, last: true },
+    // Play: the Game Hub is open; picking a game ends it.
+    { id: "q-play", phase: "qplay", target: "#game-grid", next: true, nextKey: "tour.gotIt", interactive: true,
+      lost: () => !open("hub"), done: () => $("hub-list").hidden, last: true },
+    // Hire agents: the OKX.AI Marketplace is open.
+    { id: "q-hire", phase: "qhire", target: "#market-brand", next: true, nextKey: "tour.gotIt",
+      lost: () => !open("market"), last: true },
+    // Explore: walk, the map, the other agents. Nothing blocks the city.
+    { id: "q-walk", phase: "qexplore", target: groundRect, round: true, free: true, auto: walkAhead, autoKey: "tour.showMe",
+      enter: () => { walked = false; }, done: () => (walked ||= walking()), doneDelay: 1200 },
+    { id: "q-map", phase: "qexplore", target: "#minimap-wrap, #map-tools", next: true, interactive: true },
     // Quiet while the player reads an agent's card; done once they close it.
-    { id: "w-agents", phase: "world", target: agentRect, round: true, free: true, next: true, nextKey: "tour.later",
+    { id: "q-agent", phase: "qexplore", target: agentRect, round: true, free: true, next: true, nextKey: "tour.later",
       enter: () => { buddy = null; met = false; }, leave: () => { if (buddy) buddy.paused = false; },
       quiet: () => { const on = !$("agent-card").hidden; met ||= on; return on; }, done: () => met && $("agent-card").hidden },
-    { id: "w-done", phase: "world", next: true, nextKey: "tour.finish", last: true, title: "tour.doneTitle",
-      enter: () => { c.closeAgentCard(); c.reward(); } },
+    { id: "q-done", phase: "qexplore", next: true, nextKey: "tour.finish", last: true, title: "tour.doneTitle", enter: () => c.closeAgentCard() },
 
-    // Studio Isle: starts when the player first walks onto the bridge.
-    { id: "i-hello", phase: "isle", title: "tour.isleTitle", target: playerRect, next: true, guideBottom: true },
-    { id: "i-studio", phase: "isle", title: "tour.isleTitle", target: () => world.buildingRect("create"), next: true },
-    { id: "i-go", phase: "isle", title: "tour.isleTitle", target: () => world.buildingRect("create"), auto: () => { clear(); c.goTo("create"); }, done: () => open("app-frame") || Boolean(document.querySelector('iframe[title="Kult Create"]')), doneDelay: 400, quiet: walking, last: true }
+    // Studio Isle: starts the first time the player walks onto the bridge.
+    { id: "i-go", phase: "isle", title: "tour.isleTitle", target: () => world.buildingRect("create"), free: true,
+      auto: () => c.enterStudio(), autoKey: "tour.enterStudio", done: studioOpen, doneDelay: 300, last: true }
   ];
 }

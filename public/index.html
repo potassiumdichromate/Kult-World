@@ -81,6 +81,8 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
       </button>
       <div id="menu" class="menu glass" hidden>
+        <button type="button" id="tour-btn" class="menu-top" data-i18n="qs.menu">Quick start</button>
+        <button type="button" data-goto="create" data-i18n="bld.create">Kult Create · Studio Isle</button>
         <button type="button" data-goto="park" data-i18n="bld.park">Animoca Minds Business Park</button>
         <button type="button" data-goto="hub" data-i18n="bld.hub">0G Gaming Hub</button>
         <button type="button" data-goto="deal" data-i18n="bld.deal">Kult Deal Room</button>
@@ -88,7 +90,6 @@
         <button type="button" data-goto="a2a" data-i18n="bld.a2a">Base A2A Marketplace</button>
         <button type="button" data-act="board" data-i18n="lb.title">Leaderboard</button>
         <button type="button" data-act="wallet" data-i18n="aw.title">$ARENA Wallet</button>
-        <button type="button" id="tour-btn" data-i18n="tour.replay">Replay tutorial</button>
         <button type="button" id="sign-out" data-i18n="pp.signout">Sign out</button>
       </div>
       <button type="button" id="logout-btn" class="icon-btn glass logout-btn" data-i18n-attr="aria-label:logout;title:logout"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" /></svg><span data-i18n="logout.confirm">Log out?</span></button>
@@ -98,20 +99,23 @@
   <div id="feed" class="feed" hidden aria-live="polite"></div>
 
   <nav id="dock" class="dock glass" hidden aria-label="Quick actions">
+    <button type="button" data-goto="create" class="dock-studio" style="--c:#ff5fa8">
+      <span class="dk-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1 11-11-3-3L5 16l-1 4zM14 6l3 3" /><path d="M18 2.5l.9 1.8 1.8.9-1.8.9-.9 1.8-.9-1.8-1.8-.9 1.8-.9z" /></svg><kbd>1</kbd></span>
+      <span class="dl" data-i18n="dock.create">Studio</span></button>
     <button type="button" data-goto="park" style="--c:#ff9f1c">
-      <span class="dk-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l6-4v17M10 21V10h10v11M3 21h18M13 13h1M17 13h1M13 17h1M17 17h1M6 10h1M6 14h1" /></svg><kbd>1</kbd></span>
+      <span class="dk-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V8l6-4v17M10 21V10h10v11M3 21h18M13 13h1M17 13h1M13 17h1M17 17h1M6 10h1M6 14h1" /></svg><kbd>2</kbd></span>
       <span class="dl" data-i18n="dock.park">Business Park</span></button>
     <button type="button" data-goto="hub" style="--c:#9b5cff">
-      <span class="dk-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9" width="18" height="9" rx="4" /><path d="M8 12v3M6.5 13.5h3M15 12.5h.01M17.5 14.5h.01M12 9V5" /><circle cx="12" cy="4" r="1.5" /></svg><kbd>2</kbd></span>
+      <span class="dk-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="9" width="18" height="9" rx="4" /><path d="M8 12v3M6.5 13.5h3M15 12.5h.01M17.5 14.5h.01M12 9V5" /><circle cx="12" cy="4" r="1.5" /></svg><kbd>3</kbd></span>
       <span class="dl" data-i18n="dock.hub">Game Hub</span></button>
     <button type="button" data-goto="deal" style="--c:#12b886">
-      <span class="dk-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l4-4 4 3 3-2 7 5M7 7v6l4 4 2-1 2 2 3-3M3 11v4l4 4" /></svg><kbd>3</kbd></span>
+      <span class="dk-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l4-4 4 3 3-2 7 5M7 7v6l4 4 2-1 2 2 3-3M3 11v4l4 4" /></svg><kbd>4</kbd></span>
       <span class="dl" data-i18n="dock.deal">Deal Room</span></button>
     <button type="button" data-goto="market" style="--c:#2b2b33">
-      <span class="dk-ico logo"><img class="dock-logo" src="art/partners/okx.webp" alt=""><kbd>4</kbd></span>
+      <span class="dk-ico logo"><img class="dock-logo" src="art/partners/okx.webp" alt=""><kbd>5</kbd></span>
       <span class="dl" data-i18n="dock.market">OKX.AI</span></button>
     <button type="button" data-goto="a2a" style="--c:#1f5bff">
-      <span class="dk-ico logo"><img class="dock-logo" src="art/partners/base-white.webp" alt=""><kbd>5</kbd></span>
+      <span class="dk-ico logo"><img class="dock-logo" src="art/partners/base-white.webp" alt=""><kbd>6</kbd></span>
       <span class="dl" data-i18n="dock.a2a">A2A Market</span></button>
     <button type="button" data-act="board" style="--c:#f2b705">
       <span class="dk-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" /></svg><kbd>L</kbd></span>
@@ -135,7 +139,7 @@
     <button type="button" data-act="recenter" data-i18n-attr="title:recenter;aria-label:recenter"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg></button>
   </div>
 
-  <div id="hint" class="hint glass" hidden data-i18n="hint">Click the ground to walk · Click a building to enter · Scroll to zoom</div>
+  <div id="hint" class="hint glass" hidden data-i18n="hint">Click the ground or use WASD to walk · Click a building to enter · Drag to look around · Scroll to zoom</div>
 
   <!-- Agent profile card (click another agent) -->
   <div id="agent-card" class="agent-card glass" hidden></div>

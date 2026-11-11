@@ -34,7 +34,11 @@ export class World {
     this.agents = new Map();
     this.anims = [];
     this.hoverId = null;
-    this.zoom = 1;
+    this.zoom = 1; this.zoomTo = 1;
+    // Agents inside each building, and when a door last flashed (someone went in or out).
+    this.inside = new Map(); this.doorPulse = {};
+    // Keyboard walking (WASD / arrows): a screen-space direction, or null.
+    this.keyMove = null;
     // The hand tool moves the view away from the player; recenter brings it back.
     this.pan = new THREE.Vector3();
     this.cinematic = true;
@@ -70,10 +74,11 @@ export class World {
 
     this.composer = new EffectComposer(r);
     this.composer.addPass(new RenderPass(s, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.85, 0.55, 0.8);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.4, 0.86);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
 
+    this.tick = 0;
     this.raycaster = new THREE.Raycaster();
     this.ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     this.buildIsland();
@@ -176,14 +181,19 @@ export class World {
       const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.2, 9, 16, 1, true), new THREE.MeshBasicMaterial({ color: b.color, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
       beam.position.copy(door).setY(door.y + 4.5); s.add(beam);
       const pool = lightPool(b.color, 3, 0.7); pool.position.copy(door).setY(door.y + 0.05); s.add(pool);
-      const marker = new THREE.Mesh(new THREE.OctahedronGeometry(0.45, 0), M.glow(b.color, 3)); marker.scale.y = 1.6; s.add(marker);
+      const marker = new THREE.Mesh(new THREE.OctahedronGeometry(0.4, 0), M.glow(b.color, 2.2)); marker.scale.y = 1.6; s.add(marker);
       const hl = new THREE.Mesh(new THREE.PlaneGeometry(W + 1.6, D + 1.6), new THREE.MeshBasicMaterial({ map: frameTexture(), color: b.color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
       hl.rotation.x = -Math.PI / 2; hl.position.copy(c).setY(c.y + 0.06); s.add(hl);
-      this.bld.set(b.id, { b, g, door });
+      // "3 inside": a solid chip in the building's colour by its door.
+      const chip = document.createElement("div"); chip.className = "bld-live"; chip.style.setProperty("--c", b.color); chip.hidden = true;
+      chip.innerHTML = "<i></i><span></span>";
+      const chipObj = new CSS2DObject(chip); chipObj.position.copy(door).setY(door.y + 3.4); s.add(chipObj);
+      this.bld.set(b.id, { b, g, door, chip });
       this.anims.push((t) => {
         const hot = this.hoverId === b.id;
         marker.position.copy(door).setY(door.y + 5.4 + Math.sin(t * 2.4) * 0.35); marker.rotation.y = t * 1.6;
-        beam.material.opacity = (hot ? 0.3 : 0.12) + Math.sin(t * 3) * 0.03;
+        const pulse = Math.max(0, 1 - (t - (this.doorPulse?.[b.id] ?? -9)) / 1.2);
+        beam.material.opacity = (hot ? 0.2 : 0.05) + Math.sin(t * 3) * 0.015 + pulse * 0.3;
         hl.material.opacity += ((hot ? 0.9 : 0) - hl.material.opacity) * 0.2;
       });
       if (b.status === "soon") this.comingSoon(b, c, W, D, h);
@@ -271,7 +281,7 @@ export class World {
     if (!studio) return;
     // Beacon over the studio, a pulsing ring on the ground round it, and its sign.
     const c = toWorld((studio.x0 + studio.x1) / 2, (studio.y0 + studio.y1) / 2); c.y = heightAt((studio.x0 + studio.x1) / 2, (studio.y0 + studio.y1) / 2);
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 2.4, 70, 24, 1, true), new THREE.MeshBasicMaterial({ color: PINK, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 2.4, 70, 24, 1, true), new THREE.MeshBasicMaterial({ color: PINK, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
     beam.position.copy(c).setY(c.y + 35); s.add(beam);
     const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.9, 0), M.glow(PINK, 4)); star.scale.y = 1.6; s.add(star);
     const ring = new THREE.Mesh(new THREE.RingGeometry(ISLE.r * T * 0.72, ISLE.r * T * 0.8, 64), new THREE.MeshBasicMaterial({ color: PINK, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }));
@@ -279,12 +289,13 @@ export class World {
     // The label renderer positions the outer element with an inline transform;
     // the card inside it is the part that bobs.
     const el = document.createElement("div"); el.className = "isle-sign-at";
-    el.innerHTML = '<div class="isle-sign"><span class="isle-star">\u2605</span><b></b><small></small></div>';
+    el.innerHTML = '<div class="isle-sign"><span class="isle-star">\u2605</span><b></b><small></small><em class="isle-go"></em></div>';
     const sign = new CSS2DObject(el); sign.position.copy(c).setY(c.y + (SLOTS[studio.slot]?.height || studio.h) + 5); s.add(sign);
     this.isleSign = el; this.relabelIsle();
     this.anims.push((t) => {
       star.position.copy(c).setY(c.y + (SLOTS[studio.slot]?.height || studio.h) + 2.4 + Math.sin(t * 2) * 0.4); star.rotation.y = t * 1.4;
-      beam.material.opacity = 0.13 + Math.sin(t * 2.2) * 0.04;
+      const flare = Math.max(0, 1 - (t - (this.isleFlareAt ?? -9)) / 2);
+      beam.material.opacity = 0.08 + Math.sin(t * 2.2) * 0.025 + flare * 0.35; star.scale.setScalar(1 + flare * 0.8); star.scale.y *= 1.6;
       const k = (t * 0.6) % 1; ring.scale.setScalar(0.9 + k * 0.25); ring.material.opacity = 0.55 * (1 - k);
     });
   }
@@ -292,6 +303,7 @@ export class World {
     if (!this.isleSign) return;
     this.isleSign.querySelector("b").textContent = this.tr("isle.sign");
     this.isleSign.querySelector("small").textContent = this.tr("isle.signSub");
+    this.isleSign.querySelector(".isle-go").textContent = this.tr("isle.enter");
   }
   // Where a building sits on screen (for the tutorial spotlight), or null.
   buildingRect(id) {
@@ -342,7 +354,7 @@ export class World {
     const group = new THREE.Group(); this.scene.add(group);
     const tag = document.createElement("div");
     tag.className = `agent-tag${isPlayer ? " me" : ""}`; tag.style.setProperty("--c", color);
-    tag.innerHTML = `<i></i><span></span><q class="say"></q>`; tag.querySelector("span").textContent = name;
+    tag.innerHTML = `<i></i><span></span>${isPlayer ? '<b class="lv" hidden></b>' : ""}<q class="say"></q>`; tag.querySelector("span").textContent = name;
     const label = new CSS2DObject(tag); label.position.y = 2.9; group.add(label);
     const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2.6, 8), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 1.3; group.add(hit);
     if (!isPlayer) { const blob = new THREE.Mesh(BLOB.geo, BLOB.mat()); blob.rotation.x = -Math.PI / 2; blob.position.y = 0.03; group.add(blob); }
@@ -397,6 +409,116 @@ export class World {
     a.current = name;
   }
   emote(a, name) { this.play(a, name, true); }
+  faceTo(a, x, y) { a.yaw = Math.atan2(x - a.x, y - a.y); }
+  /** The player's level on their name tag. */
+  setPlayerLevel(n) { const lv = this.player?.label.element.querySelector(".lv"); if (lv) { lv.hidden = !n; lv.textContent = `Lv ${n}`; } }
+  /** A line of text that rises from an agent's head and fades: XP, stamps, quests, level-ups. */
+  floatText(a, text, kind = "") {
+    if (!a) return;
+    const el = document.createElement("div"); el.className = `float-fx ${kind}`; el.textContent = text;
+    const o = new CSS2DObject(el); o.position.y = 3.6 + (this.floats = ((this.floats || 0) + 1) % 3) * 0.7; a.group.add(o);
+    setTimeout(() => { a.group.remove(o); el.remove(); }, kind === "big" ? 3000 : 2300);
+  }
+  /** A beam of light and a burst of sparks on a tile (warps, arrivals). */
+  beamFx(x, y, color = "#9fe8ff") {
+    const c0 = toWorld(x, y); c0.y = heightAt(x, y);
+    const n = 60, pos = new Float32Array(n * 3), vel = [], geo = new THREE.BufferGeometry();
+    for (let i = 0; i < n; i++) { pos.set([c0.x, c0.y + 0.5, c0.z], i * 3); const a = Math.random() * 6.28, sp = 1.5 + Math.random() * 4; vel.push([Math.cos(a) * sp, 3 + Math.random() * 7, Math.sin(a) * sp]); }
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.45, map: glowTexture(), color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 40, 20, 1, true), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    beam.position.copy(c0).setY(c0.y + 20);
+    this.scene.add(pts, beam);
+    const t0 = this.t;
+    const fx = (t, dt) => {
+      const k = t - t0;
+      for (let i = 0; i < n; i++) { vel[i][1] -= 9 * dt; pos[i * 3] += vel[i][0] * dt; pos[i * 3 + 1] = Math.max(c0.y + 0.1, pos[i * 3 + 1] + vel[i][1] * dt); pos[i * 3 + 2] += vel[i][2] * dt; }
+      geo.attributes.position.needsUpdate = true; pts.material.opacity = Math.max(0, 1 - k / 1.4); beam.material.opacity = Math.max(0, 0.6 * (1 - k / 1.1));
+      if (k > 1.5) { this.scene.remove(pts, beam); geo.dispose(); beam.geometry.dispose(); this.anims.splice(this.anims.indexOf(fx), 1); }
+    };
+    this.anims.push(fx);
+  }
+  /** Warp the player to a tile: beam out, the camera flies over, beam in. */
+  warpTo([gx, gy], done) {
+    const p = this.player; if (!p || p.warping) return false;
+    this.beamFx(p.x, p.y, "#ffc94d");
+    p.path = []; p.onArrive = null; p.warping = true; p.warpOutAt = this.t;
+    setTimeout(() => {
+      p.x = gx + 0.5; p.y = gy + 0.5; p.gy = undefined; p.yaw = Math.PI; p.warping = false; p.spawnAt = this.t;
+      this.pan.set(0, 0, 0); this.beamFx(p.x, p.y, "#9fe8ff");
+      setTimeout(() => done?.(), 750);
+    }, 280);
+    return true;
+  }
+  /** How far the player is from a building's door, in tiles. */
+  distTo(id) { const b = BUILDINGS.find((x) => x.id === id), p = this.player; return b && p ? Math.hypot(b.door[0] + 0.5 - p.x, b.door[1] + 0.5 - p.y) : Infinity; }
+
+  // ---------------------------------------------------------------- city life
+  // A city agent with nothing to do picks something purposeful: visit a
+  // building (it goes inside for a while and the door lights up), walk over
+  // to another agent for a chat, or stroll.
+  pickGoal(a) {
+    a.idleUntil = this.t + 3 + Math.random() * 6;
+    const r = Math.random();
+    if (r < 0.42) {
+      const open = BUILDINGS.filter((b) => b.status !== "soon");
+      const b = open[Math.floor(Math.random() * open.length)];
+      if (Math.hypot(b.door[0] - a.x, b.door[1] - a.y) < 36 && this.walk(a, b.door, () => this.enterBuilding(a, b))) return;
+    } else if (r < 0.68) {
+      const mates = [...this.agents.values()].filter((o) => o !== a && !o.isPlayer && !o.inside && !o.paused && !o.waitingFor && !o.path.length && Math.hypot(o.x - a.x, o.y - a.y) < 18);
+      const o = mates[Math.floor(Math.random() * mates.length)];
+      const ox = o && Math.floor(o.x), oy = o && Math.floor(o.y);
+      const spot = o && [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [ox + dx, oy + dy]).find(([x, y]) => walkable(x, y));
+      if (spot && this.walk(a, spot, () => this.meet(a, o))) { o.waitingFor = a; o.idleUntil = this.t + 16; return; }
+    }
+    for (let i = 0; i < 10; i++) { const [x, y] = randomStreetTile(); if (Math.hypot(x - a.x, y - a.y) > 4 && Math.hypot(x - a.x, y - a.y) < 20 && this.walk(a, [x, y])) break; }
+  }
+  meet(a, o) {
+    if (o.waitingFor === a) o.waitingFor = null;
+    if (o.inside || Math.hypot(o.x - a.x, o.y - a.y) > 2.6) return;
+    this.faceTo(a, o.x, o.y); this.faceTo(o, a.x, a.y);
+    this.emote(a, "Wave"); setTimeout(() => this.emote(o, "Wave"), 500);
+    a.idleUntil = o.idleUntil = this.t + 6;
+    this.onMeet?.(a, o);
+  }
+  enterBuilding(a, b) {
+    a.inside = b.id; a.insideUntil = this.t + 10 + Math.random() * 18;
+    a.group.visible = false; a.label.visible = false;
+    this.inside.set(b.id, (this.inside.get(b.id) || 0) + 1); this.doorPulse[b.id] = this.t; this.showInside(b.id);
+  }
+  leaveBuilding(a) {
+    const id = a.inside, b = BUILDINGS.find((x) => x.id === id);
+    a.inside = null; a.group.visible = true; a.label.visible = true; a.idleUntil = this.t + 1.5;
+    this.inside.set(id, Math.max(0, (this.inside.get(id) || 1) - 1)); this.doorPulse[id] = this.t; this.showInside(id);
+    if (b) { a.yaw = 0; this.onExit?.(a, b); }
+  }
+  showInside(id) {
+    const chip = this.bld?.get(id)?.chip, n = this.inside.get(id) || 0;
+    if (!chip) return;
+    chip.hidden = !n; chip.querySelector("span").textContent = this.tr("bld.inside").replace("{n}", n);
+    chip.classList.remove("ping"); void chip.offsetWidth; chip.classList.add("ping");
+  }
+  // Name tags never pile up: the player's, a talking agent's and the hovered
+  // one win; any other tag that would overlap one already shown fades out.
+  // Zoomed far out, only the player's and talking agents' tags show.
+  declutter() {
+    const rects = [], me = this.player, far = this.zoom < 0.7, list = [];
+    for (const a of this.agents.values()) {
+      if (a.inside || !a.label.visible) continue;
+      const v = TMP.copy(a.group.position); v.y += 2.9; v.project(this.camera);
+      const off = v.z >= 1 || Math.abs(v.x) > 1.05 || Math.abs(v.y) > 1.05;
+      const pri = a.isPlayer ? 0 : a.saying ? 1 : a === this.hoverAgent ? 1.5 : 2 + (me ? Math.hypot(a.x - me.x, a.y - me.y) / 100 : 0);
+      list.push({ a, x: (v.x + 1) / 2 * this.cw, y: (1 - v.y) / 2 * this.ch, off, pri });
+    }
+    list.sort((p, q) => p.pri - q.pri);
+    for (const it of list) {
+      const el = it.a.label.element;
+      const w = (el._w ||= el.offsetWidth || 100) / 2 + 4, h = 13;
+      const hit = it.off || (far && it.pri >= 2) || rects.some((r) => Math.abs(r.x - it.x) < r.w + w && Math.abs(r.y - it.y) < r.h + h);
+      if (el.classList.contains("cull") !== hit) el.classList.toggle("cull", hit);
+      if (!hit) rects.push({ x: it.x, y: it.y, w, h });
+    }
+  }
   // A speech bubble over the agent's head for `ms`.
   say(a, text, ms = 4200) {
     const b = a.label.element.querySelector(".say");
@@ -490,7 +612,7 @@ export class World {
   }
   agentAt(sx, sy) {
     this.raycaster.setFromCamera(this.ndc(sx, sy), this.camera);
-    const hits = this.raycaster.intersectObjects([...this.agents.values()].filter((a) => !a.isPlayer).map((a) => a.hit), false);
+    const hits = this.raycaster.intersectObjects([...this.agents.values()].filter((a) => !a.isPlayer && !a.inside).map((a) => a.hit), false);
     return hits[0]?.object.userData.agent || null;
   }
   walkToScreen(sx, sy) {
@@ -501,8 +623,8 @@ export class World {
   }
   set hover(id) { this.hoverId = id; }
   get hover() { return this.hoverId; }
-  zoomBy(f) { this.zoom = Math.min(1.8, Math.max(0.45, this.zoom * f)); }
-  recenter() { this.zoom = 1; this.pan.set(0, 0, 0); }
+  zoomBy(f) { this.zoomTo = Math.min(1.8, Math.max(0.45, this.zoomTo * f)); }
+  recenter() { this.zoomTo = 1; this.pan.set(0, 0, 0); }
   // Move the view to a tile (the tutorial shows the Studio Isle this way).
   lookAtTile(x, y) { if (this.player) this.pan.copy(toWorld(x, y)).sub(this.player.group.position).setY(0); }
   // The hand tool: drag the map by (dx, dy) screen pixels. The ground under the
@@ -533,6 +655,8 @@ export class World {
   update(dt) {
     this.t += dt;
     const t = this.t;
+    this.zoom += (this.zoomTo - this.zoom) * Math.min(1, dt * 9);
+    if (++this.tick % 5 === 0 && this.cw) this.declutter();
     for (const a of this.agents.values()) this.stepAgent(a, dt);
     for (const f of [...this.anims]) f(t, dt);
     if (this.markAt !== undefined) { const k = (t - this.markAt) / 0.9; this.clickRing.material.opacity = k < 1 ? 1 - k : 0; this.clickRing.scale.setScalar(1 + k * 1.4); }
@@ -556,18 +680,23 @@ export class World {
   }
 
   stepAgent(a, dt) {
-    if (a.path.length) {
+    if (a.inside) { if (this.t > a.insideUntil) this.leaveBuilding(a); else return; }
+    const max = a.isPlayer ? 3.8 : 1.5;
+    if (a.isPlayer && this.keyMove && !a.warping) this.keyStep(a, dt, max);
+    else if (a.path.length) {
       a.walking = true;
-      const [tx, ty] = a.path[0], dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy), step = (a.isPlayer ? 3.8 : 1.5) * dt;
-      a.yaw = Math.atan2(dx, dy);
-      if (d <= step) { a.x = tx; a.y = ty; a.path.shift(); if (!a.path.length) { a.walking = false; const f = a.onArrive; a.onArrive = null; f?.(); } }
+      // Ease in from a standstill and ease out over the last stretch.
+      const end = a.path[a.path.length - 1], left = Math.hypot(end[0] - a.x, end[1] - a.y);
+      a.speed = Math.min(max, (a.speed || 0) + max * dt * 5);
+      const step = Math.min(a.speed, Math.max(max * 0.4, left * 2.5)) * dt;
+      const [tx, ty] = a.path[0], dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy);
+      if (d > 0.001) a.yaw = Math.atan2(dx, dy);
+      if (d <= step) { a.x = tx; a.y = ty; a.path.shift(); if (!a.path.length) { a.walking = false; a.speed = 0; const f = a.onArrive; a.onArrive = null; f?.(); } }
       else { a.x += (dx / d) * step; a.y += (dy / d) * step; }
     } else {
-      a.walking = false;
-      if (!a.isPlayer && this.t > a.idleUntil && !a.paused) {
-        for (let i = 0; i < 10; i++) { const [x, y] = randomStreetTile(); if (Math.hypot(x - a.x, y - a.y) > 4 && Math.hypot(x - a.x, y - a.y) < 20 && this.walk(a, [x, y])) break; }
-        a.idleUntil = this.t + 3 + Math.random() * 7;
-      }
+      a.walking = false; a.speed = 0;
+      // Waiting for someone to walk over ends at idleUntil, whether or not they came.
+      if (!a.isPlayer && this.t > a.idleUntil && !a.paused) { a.waitingFor = null; this.pickGoal(a); }
     }
     if (!(a.emoteUntil > this.t)) this.play(a, a.walking ? (a.isPlayer ? "Running" : "Walking") : "Idle");
     a.mixer?.update(dt);
@@ -577,9 +706,28 @@ export class World {
     a.group.rotation.y = cur + diff * Math.min(1, dt * 10);
     if (!a.mixer && a.body) a.body.position.y = a.walking ? Math.abs(Math.sin(this.t * 10)) * 0.15 : Math.sin(this.t * 2) * 0.03;
     if (a.isPlayer) {
-      const k = Math.min(1, (this.t - a.spawnAt) / 0.7); a.group.scale.setScalar(k < 1 ? 0.01 + k * k * (1.3 - 0.3 * k) : 1);
+      const k = Math.min(1, (this.t - a.spawnAt) / 0.7);
+      a.group.scale.setScalar(a.warping ? Math.max(0.01, 1 - (this.t - a.warpOutAt) / 0.25) : k < 1 ? 0.01 + k * k * (1.3 - 0.3 * k) : 1);
       a.ring.material.opacity = 0.55 + Math.sin(this.t * 4) * 0.35; a.ring.rotation.z = this.t;
     }
+  }
+
+  // Keyboard walking: the direction is on screen (up = away from the camera);
+  // the agent slides along walls rather than stopping dead.
+  keyStep(a, dt, max) {
+    a.path = []; a.onArrive = null; this.pan.set(0, 0, 0);
+    this.camera.updateMatrixWorld();
+    const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0); right.y = 0; right.normalize();
+    const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1); up.y = 0; up.normalize();
+    const d = right.multiplyScalar(this.keyMove.x).addScaledVector(up, this.keyMove.y);
+    if (d.lengthSq() < 1e-4) return;
+    d.normalize();
+    a.speed = Math.min(max, (a.speed || 0) + max * dt * 6);
+    const s = a.speed * dt, nx = a.x + d.x * s, ny = a.y + d.z * s;
+    if (walkable(Math.floor(nx), Math.floor(ny))) { a.x = nx; a.y = ny; }
+    else if (walkable(Math.floor(nx), Math.floor(a.y))) a.x = nx;
+    else if (walkable(Math.floor(a.x), Math.floor(ny))) a.y = ny;
+    a.walking = true; a.yaw = Math.atan2(d.x, d.z);
   }
 
   draw() {

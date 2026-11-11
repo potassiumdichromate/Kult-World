@@ -77,8 +77,34 @@ const LINES = {
   hello: [
     L("Oh hey! What's up?", "嘿！怎么了？"),
     L("Hi there. Looking for a match?", "你好，想来一局吗？"),
-    L("Hey! Good to see you.", "嘿！见到你真好。")
-  ]
+    L("Hey! Good to see you.", "嘿！见到你真好。"),
+    L("New here? Try the Game Hub first.", "新来的？先去游戏中心试试。"),
+    L("Have you seen Studio Isle yet?", "你去过工作室浮岛了吗？")
+  ],
+  // Two agents meeting on the street: an opener, then a reply.
+  open: [
+    L("Hey {name}! Up for a match later?", "嘿 {name}！待会儿来一局？"),
+    L("{name}! Want to team up on a job?", "{name}！要不要一起接个任务？"),
+    L("{name}, what are you building?", "{name}，你在做什么项目？"),
+    L("Heading to the Game Hub, {name}?", "{name}，去游戏中心吗？")
+  ],
+  reply: [
+    L("Count me in.", "算我一个。"),
+    L("After my next battle, deal.", "等我打完下一场，一言为定。"),
+    L("A racing game. Don't tell anyone.", "一款赛车游戏，别告诉别人。"),
+    L("Only if you're ready to lose.", "前提是你准备好输了。"),
+    L("Sure, meet you at the plaza.", "好啊，广场见。")
+  ],
+  // Coming out of a building.
+  out: {
+    hub: [L("Back from the Game Hub. Busy in there.", "从游戏中心回来了，里面好热闹。"), L("One more match? Maybe later.", "再来一局？待会儿吧。")],
+    deal: [L("The Deal Room is buzzing.", "交易室很热闹。"), L("Good talks in the Deal Room.", "在交易室聊得不错。")],
+    market: [L("Checked the OKX.AI agencies.", "看了看 OKX.AI 上的机构。")],
+    a2a: [L("New jobs on the A2A board.", "A2A 任务板上有新任务。")],
+    sports: [L("Analysts are busy at Kult Sports.", "Kult Sports 的分析师们正忙着。")],
+    create: [L("Studio Isle is cooking something.", "工作室浮岛在酝酿新作品。")],
+    park: [L("Walked round the Business Park.", "在商业园逛了一圈。")]
+  }
 };
 
 /**
@@ -104,10 +130,21 @@ export function createChatter(world, { lang, active, place }) {
     const clear = (a) => { const p = world.screenAt(a); return p && busy.every((b) => Math.abs(b.x - p.x) > 200 || Math.abs(b.y - p.y) > 90); };
     const me = world.player;
     if (me && !me.saying && performance.now() - lastMe > 22000 && Math.random() < 0.35 && clear(me)) { lastMe = performance.now(); return world.say(me, lineFor(me, "me")); }
-    const near = all.filter((a) => !a.isPlayer && !a.saying && !a.paused && clear(a));
+    const near = all.filter((a) => !a.isPlayer && !a.inside && !a.saying && !a.paused && clear(a));
     if (near.length) { const a = pick(near); world.say(a, lineFor(a)); }
   }
   setTimeout(next, 2500);
 
-  return { hello: (a) => world.say(a, lineFor(a, "hello"), 3200) };
+  const sayOk = (a) => active() && !document.hidden && world.screenAt(a);
+  return {
+    hello: (a) => world.say(a, lineFor(a, "hello"), 3200),
+    // Two agents meet: one opens, the other answers.
+    meet(a, o) {
+      if (!sayOk(a)) return;
+      world.say(a, pick(LINES.open)[lang()].replace("{name}", o.name), 3000);
+      setTimeout(() => { if (sayOk(o)) world.say(o, fill(pick(LINES.reply), o), 3000); }, 1700);
+    },
+    // An agent comes out of a building and says where it was.
+    out(a, b) { const list = LINES.out[b.id]; if (list && Math.random() < 0.6 && sayOk(a)) world.say(a, fill(pick(list), a), 3200); }
+  };
 }

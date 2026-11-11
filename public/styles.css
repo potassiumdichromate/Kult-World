@@ -1380,3 +1380,78 @@ body.hover-bld .agent-tag:not(.me) { opacity: 0.18; }
 .isle-star { position: absolute; top: -12px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 12px; color: #2b1700; background: linear-gradient(135deg, #fff1c4, #ffc94d); box-shadow: 0 0 12px rgba(255, 201, 77, 0.8); }
 @keyframes isle-bob { 50% { transform: translateY(-11px); } }
 @media (prefers-reduced-motion: reduce) { .isle-sign { animation: none; } }
+
+/* ---------------------------------------------------------------- premium pass
+   Calmer neon and more readable glass; agents are quiet pills, buildings get
+   solid chips in their own colour; the quick start; achievements in the world. */
+:root { --muted: #c6bee8; --dim: #958bbf; --glass: rgba(20, 14, 44, 0.72); --glass-2: rgba(32, 23, 66, 0.76); }
+.glass { backdrop-filter: blur(20px) saturate(125%); -webkit-backdrop-filter: blur(20px) saturate(125%); }
+#world { touch-action: none; }
+.btn { letter-spacing: 0.05em; }
+.btn.big { animation: none; }
+.btn:hover { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 24px rgba(10, 0, 30, 0.45); }
+.btn.primary { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 18px rgba(120, 30, 90, 0.4); }
+.district-label b { text-shadow: none; letter-spacing: 0.16em; font-size: 12px; background: rgba(14, 9, 32, 0.8); border-color: rgba(255, 255, 255, 0.18); }
+.agent-tag { padding: 2px 9px 2px 5px; font: 600 11px var(--body); letter-spacing: 0; background: rgba(14, 9, 32, 0.68); border-color: rgba(255, 255, 255, 0.14); transition: opacity 0.25s; }
+.agent-tag i { width: 7px; height: 7px; box-shadow: none; }
+.agent-tag.me { font: 700 12px var(--body); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); }
+.agent-tag.cull { opacity: 0; }
+.agent-tag .lv { padding: 1px 6px; border-radius: 6px; font: 700 10px var(--display); color: #ffd46b; background: #2b1700; }
+.bld-live { display: flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 6px; font: 700 11px var(--body); color: #120a24; background: var(--c); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); white-space: nowrap; pointer-events: none; }
+.bld-live i { width: 7px; height: 7px; border-radius: 50%; background: #120a24; animation: bld-live 1.6s ease-in-out infinite; }
+.bld-live.ping { animation: bld-ping 0.5s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes bld-live { 50% { opacity: 0.25; } }
+@keyframes bld-ping { from { scale: 1.3; } }
+body.hover-bld .bld-live { opacity: 0.25; }
+.float-fx { pointer-events: none; font: 800 14px var(--display); letter-spacing: 0.04em; color: #9ff0c4; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.75); white-space: nowrap; animation: float-up 2.2s ease-out forwards; }
+.float-fx.stamp { color: #ffd46b; }
+.float-fx.gold { color: #ffc94d; }
+.float-fx.big { font-size: 22px; color: #ffe08a; animation-duration: 2.9s; }
+@keyframes float-up { 0% { opacity: 0; translate: 0 10px; scale: 0.8; } 12% { opacity: 1; translate: 0 0; scale: 1; } 75% { opacity: 1; } 100% { opacity: 0; translate: 0 -46px; } }
+.isle-sign { pointer-events: auto; cursor: pointer; }
+.isle-go { margin-top: 4px; padding: 3px 10px; border-radius: 999px; font: 700 10px var(--display); font-style: normal; letter-spacing: 0.12em; text-transform: uppercase; color: #2a0a1c; background: #ff7eb6; }
+.isle-sign:hover .isle-go { background: #fff; }
+.tour-guide { border-color: rgba(255, 255, 255, 0.2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 18px 50px rgba(0, 0, 0, 0.55); }
+.tour-face img { box-shadow: none; border-color: rgba(255, 255, 255, 0.5); }
+.tour-text { min-height: 3em; }
+.feed { transition: opacity 0.3s; }
+body:has(#tour:not([hidden])) .feed, body:has(#qs:not([hidden])) .feed { opacity: 0; }
+.menu .menu-top { color: var(--gold); }
+.qs { position: fixed; inset: 0; z-index: 46; display: grid; place-items: center; padding: 16px; background: rgba(6, 2, 18, 0.5); animation: qs-in 0.3s ease-out; }
+.qs-card { width: min(720px, 100%); max-height: calc(100dvh - 32px); overflow: auto; padding: 24px; display: grid; gap: 18px; }
+.qs-head { display: flex; gap: 16px; align-items: center; }
+.qs-head .eyebrow { margin-bottom: 4px; }
+.qs-face { flex: none; width: 72px; height: 88px; object-fit: cover; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.35); }
+.qs-head h2 { font-size: 24px; line-height: 1.2; }
+.qs-lead { margin: 6px 0 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.qs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.qs-opt { position: relative; display: flex; gap: 14px; align-items: center; text-align: left; padding: 14px; border-radius: 16px; cursor: pointer; color: var(--text); background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.12); transition: background 0.15s, border-color 0.15s, transform 0.15s; }
+.qs-opt:hover, .qs-opt:focus-visible { outline: none; transform: translateY(-2px); background: color-mix(in srgb, var(--c) 14%, transparent); border-color: color-mix(in srgb, var(--c) 70%, transparent); }
+.qs-ico { flex: none; width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; color: #140a28; background: var(--c); }
+.qs-ico svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.qs-txt { display: grid; gap: 3px; min-width: 0; }
+.qs-txt b { font: 700 16px var(--display); letter-spacing: 0.02em; }
+.qs-txt span { font-size: 13px; line-height: 1.4; color: var(--muted); }
+.qs-opt kbd { position: absolute; top: 8px; right: 10px; font: 600 10px var(--display); color: var(--dim); }
+.qs-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.qs-skip { padding: 4px 0; border: 0; background: none; cursor: pointer; font: 600 13px var(--body); color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.qs-skip:hover { color: var(--text); }
+@keyframes qs-in { from { opacity: 0; } }
+@media (max-width: 560px) {
+  .qs-grid { grid-template-columns: 1fr; }
+  .qs-card { padding: 18px; gap: 14px; }
+  .qs-head h2 { font-size: 19px; }
+  .qs-face { width: 54px; height: 66px; }
+  .qs-lead { font-size: 14px; }
+  .qs-opt { padding: 11px 12px; }
+  .qs-ico { width: 42px; height: 42px; }
+  .qs-opt kbd { display: none; }
+}
+@media (max-width: 520px) { .dock [data-act="board"] { display: none; } }
+@media (prefers-reduced-motion: reduce) { .float-fx { animation: none !important; } .bld-live i { animation: none; } }
+/* Nova never covers the dock: her card sits just above it. */
+body:has(#dock:not([hidden])) .tour:not(.center) .tour-guide:not(.top) { bottom: 112px; }
+@media (max-width: 900px) { body:has(#dock:not([hidden])) .tour:not(.center) .tour-guide:not(.top) { bottom: 92px; } }
+/* The live feed: solid enough to read over the city, and old items leave instead of lingering. */
+.feed-item { background: rgba(16, 10, 36, 0.82); }
+.feed-item.old { opacity: 0; translate: -12px 0; transition: opacity 0.8s, translate 0.8s; }

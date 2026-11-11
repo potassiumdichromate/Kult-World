@@ -42,7 +42,9 @@ export const SLOTS = {
 const mats = new Map();
 export function mat(key, make) { if (!mats.has(key)) mats.set(key, make()); return mats.get(key); }
 const std = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0.05, flatShading: true, ...o });
-const glow = (color, intensity = 2.2) => new THREE.MeshStandardMaterial({ color: "#000000", emissive: color, emissiveIntensity: intensity, roughness: 1 });
+// Neon is an accent, not the lighting: every glow material runs at 65%.
+const GLOW_K = 0.65;
+const glow = (color, intensity = 2.2) => new THREE.MeshStandardMaterial({ color: "#000000", emissive: color, emissiveIntensity: intensity * GLOW_K, roughness: 1 });
 export const M = {
   stone: () => mat("stone", () => std("#5a5288")),
   stoneDark: () => mat("stoneDark", () => std("#2c2650")),
@@ -628,7 +630,7 @@ export function addGlow(obj, slot) {
       if (!m.map || m.emissiveMap) continue;
       const mask = neonMask(m.map, gold, bright);
       if (!mask) continue;
-      m.emissiveMap = mask; m.emissive.set("#ffffff"); m.emissiveIntensity = gold ? 1 : 1.6;
+      m.emissiveMap = mask; m.emissive.set("#ffffff"); m.emissiveIntensity = gold ? 0.8 : 1.1;
       if (gold) { m.color.multiplyScalar(0.7); m.metalness = 0.3; m.roughness = 0.45; }
       m.needsUpdate = true;
     }

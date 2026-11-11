@@ -7,7 +7,7 @@
 // English / 中文 (js/i18n.js).
 
 import { World, BUILDINGS, MAP } from "./world3d.js";
-import { randomStreetTile, onBridge, ISLE } from "./layout.js";
+import { randomStreetTile, onBridge } from "./layout.js";
 import { setSignTranslator } from "./models.js";
 import { drawThumb } from "./minigames.js";
 import { t, setLang, getLang, applyI18n, onLang } from "./i18n.js";
@@ -19,6 +19,7 @@ import { createOkx } from "./okx.js";
 import { createA2A } from "./a2a.js";
 import { createChatter } from "./chatter.js";
 import { createTour } from "./tour.js";
+import { createQuickStart } from "./quickstart.js";
 import { createDealRoom } from "./dealroom.js";
 import { createArena, arenaAmount } from "./arena.js";
 import {
@@ -103,7 +104,8 @@ onLang(() => {
   if (!$("deal").hidden) void dealRoom.open($("deal-body"));
   if (!$("market").hidden) renderMarket();
   closeAgentCard();
-  tour.relabel();
+  tour.relabel(); quick.relabel();
+  for (const b of BUILDINGS) world.showInside(b.id);
 });
 
 // ------------------------------------------------------------------ sound
@@ -138,7 +140,7 @@ function tick(now) {
     sound.update(world.t, { walking: p?.walking, fountainDist: p && world.fountainPos ? p.group.position.distanceTo(world.fountainPos) : 99 });
   }
   if (++frames === 3) firstFrames();
-  if (state.inWorld && now - slowAt > 100) { slowAt = now; updateLocation(); updatePrompt(); world.minimap($("minimap")); checkIsle(); }
+  if (state.inWorld && now - slowAt > 100) { slowAt = now; updateLocation(); updatePrompt(); world.minimap($("minimap")); checkIsle(); greetNearby(); }
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
@@ -162,30 +164,51 @@ async function populateCity() {
 
 // Speech bubbles over the agents walking the map (js/chatter.js).
 const chatter = createChatter(world, { lang: getLang, active: () => state.inWorld && !anyOpen(), place: (a) => t(`district.${world.districtAt(a.x, a.y)}`) });
+world.onMeet = (a, o) => chatter.meet(a, o);
+world.onExit = (a, b) => chatter.out(a, b);
 
-// The guided tutorial (js/tour.js), once per player; ?tour shows it again.
+// Nova's guidance (js/tour.js): one step while minting, a short flow per
+// quick start choice, one step on Studio Isle. ?tour shows them again.
 const forceTour = new URLSearchParams(location.search).has("tour");
+const who = () => String(session.wallet || "anon").toLowerCase();
 const tour = createTour({
   el, t, sound, world, $,
   isOpen: (id) => !$(id).hidden,
   inWorld: () => state.inWorld,
   minting: () => minting || $("mint").classList.contains("minted"),
-  togglePassport: (o) => togglePassport(o),
   closeAgentCard: () => closeAgentCard(),
-  // Steps that point at the dock close whatever sheet covers it; "Take me there" walks to a place.
-  closeOverlays: () => { if (anyOpen()) closeOverlays(); },
-  goTo: (id) => goTo(id),
-  // Shows the whole Studio Isle and its bridge: the view moves there and zooms out.
-  lookAtIsle: (on) => { if (on) { world.lookAtTile(ISLE.cx - 1, ISLE.cy - 4); world.zoom = 0.6; } else world.recenter(); },
-  reward: () => {
-    gainXp(150); addActivity(t("act.tour")); commit();
-    sound.play("level"); burst(innerWidth / 2, innerHeight / 2, "#ffc94d", 44);
-    setTimeout(() => burst(innerWidth / 2, innerHeight / 2 - 60, "#ff4fa3", 30), 280);
+  enterStudio: () => travel("create"),
+  // Finishing any quick start flow is worth 150 XP, once.
+  onFinish: (phase) => {
+    if (!phase.startsWith("q") || !state.player || state.player.passport.qsReward) return;
+    state.player.passport.qsReward = true;
+    gainXp(150); addActivity(t("act.qs")); commit();
+    sound.play("level"); burst(innerWidth / 2, innerHeight / 2, "#ffc94d", 40);
   },
-  doneKey: () => `kw.tour.v1.${String(session.wallet || "anon").toLowerCase()}`
+  doneKey: () => `kw.tour.v2.${who()}`
 });
 if (window.kw) window.kw.tour = tour;
-$("tour-btn").addEventListener("click",() => { show("menu", false); closeOverlays(); togglePassport(false); tour.start("w-arrive"); });
+const seen = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const markSeen = (k) => { try { localStorage.setItem(k, "done"); } catch { /* storage optional */ } };
+const qsKey = () => `kw.qs.v1.${who()}`, isleKey = () => `kw.isletour.v2.${who()}`;
+// The quick start (js/quickstart.js): four ways in, each a step or two long.
+const quick = createQuickStart({
+  el, t, sound,
+  onPick: (id) => {
+    markSeen(qsKey()); closeOverlays(true); closeAgentCard(); togglePassport(false); show("hint", false);
+    if (id === "create") {
+      // Straight to Studio Isle: warp to the studio door, light the beacon, one step in.
+      markSeen(isleKey());
+      const b = BUILDINGS.find((x) => x.id === "create");
+      world.warpTo(b.door, () => { world.isleFlareAt = world.t; sound.play("level"); tour.start("q-create", "kw.qsflow"); });
+    } else if (id === "play") travel("hub", null, () => tour.start("q-play", "kw.qsflow"));
+    else if (id === "hire") travel("market", null, () => tour.start("q-hire", "kw.qsflow"));
+    else { world.recenter(); tour.start("q-walk", "kw.qsflow"); }
+  },
+  onSkip: () => { markSeen(qsKey()); show("hint"); setTimeout(() => show("hint", false), 9000); }
+});
+function openQuickStart() { if (!state.player) return; show("menu", false); closeOverlays(true); closeAgentCard(); togglePassport(false); tour.stop(true); quick.open(state.player.agent.name); }
+$("tour-btn").addEventListener("click", openQuickStart);
 
 // ------------------------------------------------------------------ pointer
 const canvas = $("world");
@@ -201,11 +224,20 @@ function setHand(on) {
 $("hand-btn").addEventListener("click", () => setHand(!handOn));
 $("zoom-in-btn").addEventListener("click", () => world.zoomBy(1.2));
 $("zoom-out-btn").addEventListener("click", () => world.zoomBy(1 / 1.2));
+// Two fingers pinch to zoom (and never walk or pan).
+const touches = new Map();
+let pinch = 0;
+const spread = () => { const [p, q] = [...touches.values()]; return Math.hypot(p.x - q.x, p.y - q.y) || 1; };
 canvas.addEventListener("pointerdown", (e) => {
   if (!state.inWorld || e.button > 0) return;
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 2) { pinch = spread(); drag = null; dragged = true; return; }
   drag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: 0 }; dragged = false;
 });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, (e) => { touches.delete(e.pointerId); if (touches.size < 2) pinch = 0; });
 addEventListener("pointermove", (e) => {
+  if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch && touches.size === 2) { const d = spread(); world.zoomBy(d / pinch); pinch = d; return; }
   if (!drag || e.pointerId !== drag.id) return;
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
   drag.moved += Math.abs(dx) + Math.abs(dy);
@@ -220,7 +252,7 @@ canvas.addEventListener("pointermove", (e) => {
   if (!state.inWorld) return;
   if (drag && dragged) return;
   const b = world.buildingAt(e.clientX, e.clientY), a = b ? null : world.agentAt(e.clientX, e.clientY);
-  world.hover = b?.id || null;
+  world.hover = b?.id || null; world.hoverAgent = a || null;
   canvas.style.cursor = handOn ? "grab" : b || a ? "pointer" : "default";
   // Buildings and agents get different cards: a solid card with the place's
   // colour and an Enter chip for a building (agent name tags fade under it),
@@ -249,20 +281,51 @@ $("minimap").addEventListener("click", (e) => {
   world.walkToTile(...world.minimapToTile((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height));
 });
 
-// Studio Isle: the first time the player walks onto the bridge, Nova's short
-// isle tour shows them into the game studio (once per player; ?tour repeats it).
+// Studio Isle: the first time the player walks onto the bridge, the beacon
+// flares and Nova offers one tap into the studio (once per player; ?tour repeats it).
 function checkIsle() {
   const p = world.player;
-  if (!p || tour.running || anyOpen() || !onBridge(Math.floor(p.x), Math.floor(p.y))) return;
-  tour.offer("i-hello", forceTour, `kw.isletour.v1.${String(session.wallet || "anon").toLowerCase()}`);
+  if (!p || tour.running || quick.isOpen || anyOpen() || !onBridge(Math.floor(p.x), Math.floor(p.y))) return;
+  if (seen(isleKey()) && !forceTour) return;
+  world.isleFlareAt = world.t; sound.play("whoosh");
+  tour.offer("i-go", true, isleKey());
+}
+document.addEventListener("click", (e) => { if (e.target.closest(".isle-sign")) travel("create"); });
+
+// The dock, the menu and the quick start travel: a short way is walked, a
+// long one is warped (beam out, beam in at the door), so every place is a
+// few seconds away. Clicking a building in the city always walks.
+function travel(id, then, after) {
+  const b = BUILDINGS.find((x) => x.id === id), p = world.player;
+  if (!b || !p) return;
+  const d = world.distTo(id);
+  if (d < 1.6) { openPlace(b, then); after?.(); return; }
+  if (d < 14) return goTo(id, then, after);
+  $("location-text").textContent = t("warping", { place: placeName(b) }); walkingLabel = true; lastPlace = "";
+  flash(b.color); sound.play("whoosh");
+  world.warpTo(b.door, () => { walkingLabel = false; openPlace(b, then); after?.(); });
 }
 
 let lastPlace = "", walkingLabel = false;
-function goTo(id, then) {
+function goTo(id, then, after) {
   const b = BUILDINGS.find((x) => x.id === id);
   if (!b) return;
   $("location-text").textContent = t("walking", { place: placeName(b) }); walkingLabel = true; lastPlace = "";
-  world.walkToBuilding(id, () => { walkingLabel = false; openPlace(b, then); });
+  world.walkToBuilding(id, () => { walkingLabel = false; openPlace(b, then); after?.(); });
+}
+// A city agent the player walks up to stops, turns and says hello (once a minute each).
+const greeted = new Map();
+function greetNearby() {
+  const me = world.player;
+  if (!me || anyOpen() || quick.isOpen) return;
+  for (const a of world.agents.values()) {
+    if (a.isPlayer || a.inside || a.paused || a.saying || Math.hypot(a.x - me.x, a.y - me.y) > 2.4) continue;
+    if (performance.now() - (greeted.get(a.id) || -1e9) < 60000) continue;
+    greeted.set(a.id, performance.now());
+    a.path = []; a.onArrive = null; a.idleUntil = world.t + 4;
+    world.faceTo(a, me.x, me.y); world.emote(a, "Wave"); chatter.hello(a);
+    return;
+  }
 }
 function updateLocation() {
   const p = world.player;
@@ -391,7 +454,7 @@ function openMint() {
   stage ||= new CharacterStage($("cs-stage"));
   stage.setMode("idle"); stage.start();
   renderMint(true);
-  tour.offer("mint-hello", forceTour);
+  tour.offer("mint-go", forceTour);
 }
 function closeMint() {
   if (minting) return;
@@ -485,10 +548,11 @@ function enterWorld(fresh) {
   world.spawnPlayer({ name: a.name, archetype: a.archetype, clan: a.clan, elo: a.elo });
   sound.play("spawn");
   renderPassport(); renderQuests();
-  // A player who minted mid-tour carries on with it; anyone else new gets it here.
-  if (!tour.running) setTimeout(() => { if (state.inWorld) tour.offer("w-arrive", forceTour); }, 1800);
-  if (!tour.running && !forceTour) setTimeout(() => toast(t(fresh ? "toast.spawned" : "toast.welcome", { name: a.name }), "good"), 900);
-  setTimeout(() => show("hint", false), tour.running ? 0 : 14000);
+  if (tour.running) tour.stop(false);
+  // New players get the quick start; everyone else a welcome back.
+  const first = !seen(qsKey()) || forceTour;
+  if (first) { show("hint", false); setTimeout(() => { if (state.inWorld && !anyOpen()) quick.open(a.name); }, 1300); }
+  else { setTimeout(() => toast(t(fresh ? "toast.spawned" : "toast.welcome", { name: a.name }), "good"), 900); setTimeout(() => show("hint", false), 10000); }
   void populateCity();
   clearInterval(feedTimer); feedTimer = setInterval(feedEvent, 30000); setTimeout(feedEvent, 2500);
   clearInterval(liveTimer); liveTimer = setInterval(() => { if (!document.hidden) void refreshLive(); }, 60000);
@@ -507,7 +571,7 @@ function renderPassport() {
   const r = rankOf(a.elo), nr = nextRank(a.elo), games = a.wins + a.losses;
   if (p.passport.stamps.includes("arcade") && !p.passport.stamps.includes("hub")) p.passport.stamps.push("hub");
   setBalance("bal-arena", p.balances.arena); setBalance("bal-kp", p.balances.kp);
-  $("hp-name").textContent = a.name; $("hp-level").textContent = p.passport.level;
+  $("hp-name").textContent = a.name; $("hp-level").textContent = p.passport.level; world.setPlayerLevel(p.passport.level);
   $("hp-rank").textContent = r.name; $("hp-elo").textContent = t("agent.elo", { n: fmt(a.elo) }); $("hp-badge").src = rankBadge(r);
   $("hp-xp").style.width = `${Math.round((p.passport.xp / p.passport.xpToNext) * 100)}%`;
   const face = $("hp-img");
@@ -587,18 +651,33 @@ function setBalance(id, v) {
   if (old !== undefined && old !== "" && v !== null && Number(old) !== v) { const pill = n.closest(".pill"); pill.classList.remove("bump"); void pill.offsetWidth; pill.classList.add("bump"); }
 }
 function addActivity(text) { state.player.activity.unshift({ at: new Date().toISOString(), text }); state.player.activity.splice(20); }
-function stamp(id) { const s = state.player.passport.stamps; if (!s.includes(id)) { s.push(id); gainXp(60); } }
+function stamp(id) {
+  const s = state.player.passport.stamps;
+  if (s.includes(id)) return;
+  s.push(id); gainXp(60);
+  const b = BUILDINGS.find((x) => x.id === id);
+  world.floatText(world.player, t("fx.stamp", { place: b ? placeName(b) : id.toUpperCase() }), "stamp");
+}
 function quest(id, by = 1) {
   const q = state.player.quests.find((x) => x.id === id);
   if (!q || q.progress >= q.target) return;
   q.progress += by;
   if (q.progress >= q.target) {
     gainXp(q.reward);
+    world.floatText(world.player, t("fx.quest"), "gold");
     toast(t("toast.quest", { title: t(`quest.${q.id}`), reward: `${q.reward} XP` }), "good"); sound.play("quest");
     burst(innerWidth - 170, 150, "#ffc94d", 24);
   }
 }
-function gainXp(n) { const pp = state.player.passport; pp.xp += n; while (pp.xp >= pp.xpToNext) { pp.xp -= pp.xpToNext; pp.level += 1; pp.xpToNext = Math.round(pp.xpToNext * 1.35); toast(t("toast.level", { n: pp.level }), "good"); sound.play("level"); } }
+function gainXp(n) {
+  const pp = state.player.passport, me = world.player;
+  pp.xp += n; world.floatText(me, `+${n} XP`);
+  while (pp.xp >= pp.xpToNext) {
+    pp.xp -= pp.xpToNext; pp.level += 1; pp.xpToNext = Math.round(pp.xpToNext * 1.35);
+    toast(t("toast.level", { n: pp.level }), "good"); sound.play("level");
+    world.floatText(me, t("fx.level", { n: pp.level }), "big"); if (me) world.beamFx(me.x, me.y, "#ffc94d");
+  }
+}
 function commit() { if (!state.player) return; saveProgress(state.player.wallet, state.player.passport); renderPassport(); renderQuests(); }
 // A demo stays a demo after logging out.
 async function signOut() { await session.signOut(); const d = new URLSearchParams(location.search).get("demo"); location.href = location.pathname + (d ? `?demo=${encodeURIComponent(d)}` : ""); }
@@ -612,7 +691,7 @@ for (const b of document.querySelectorAll("[data-act]")) b.addEventListener("cli
   if (act === "passport") togglePassport(); else if (act === "board") openBoard(); else if (act === "wallet") openWallet(); else world.recenter();
 });
 $("menu-btn").addEventListener("click", () => show("menu", $("menu").hidden));
-for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("click", () => { show("menu", false); goTo(b.dataset.goto); });
+for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("click", () => { show("menu", false); if (anyOpen()) closeOverlays(true); travel(b.dataset.goto); });
 $("sign-out").addEventListener("click", () => signOut());
 // Log out: the HUD button asks first (a second click within 3 s); the
 // labelled buttons on the sign-in and mint screens log out straight away.
@@ -633,11 +712,25 @@ addEventListener("keydown", (e) => {
   if (e.key === "Escape") { if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
   if (anyOpen()) return;
   const k = e.key.toLowerCase();
-  const go = { 1: "park", 2: "hub", 3: "deal", 4: "market", 5: "a2a" }[k];
-  if (go) goTo(go); else if (k === "p") togglePassport(); else if (k === "c") world.recenter(); else if (k === "l") openBoard(); else if (k === "h") setHand(!handOn);
+  const go = { 1: "create", 2: "park", 3: "hub", 4: "deal", 5: "market", 6: "a2a" }[k];
+  if (go) travel(go); else if (k === "q") openQuickStart(); else if (k === "p") togglePassport(); else if (k === "c") world.recenter(); else if (k === "l") openBoard(); else if (k === "h") setHand(!handOn);
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
-function closeOverlays() { sound.play("close"); cancelMatch(); dealRoom.stop(); okx.stop(); a2a.stop(); for (const id of ["park", "hub", "deal", "market", "okx", "wallet", "board"]) show(id, false); }
+// Keyboard walking: WASD or the arrow keys, relative to the screen.
+const held = new Set();
+const KEY_DIR = { w: "u", arrowup: "u", s: "d", arrowdown: "d", a: "l", arrowleft: "l", d: "r", arrowright: "r" };
+function keyMove() {
+  const x = (held.has("r") ? 1 : 0) - (held.has("l") ? 1 : 0), y = (held.has("u") ? 1 : 0) - (held.has("d") ? 1 : 0);
+  world.keyMove = x || y ? { x, y } : null;
+}
+addEventListener("keydown", (e) => {
+  const dir = KEY_DIR[e.key.toLowerCase()];
+  if (!dir || !state.inWorld || anyOpen() || quick.isOpen || e.ctrlKey || e.metaKey || e.target.closest?.("input, textarea, select")) return;
+  e.preventDefault(); held.add(dir); keyMove();
+});
+addEventListener("keyup", (e) => { const dir = KEY_DIR[e.key.toLowerCase()]; if (dir) { held.delete(dir); keyMove(); } });
+addEventListener("blur", () => { held.clear(); keyMove(); });
+function closeOverlays(quiet = false) { if (!quiet) sound.play("close"); cancelMatch(); dealRoom.stop(); okx.stop(); a2a.stop(); for (const id of ["park", "hub", "deal", "market", "okx", "wallet", "board"]) show(id, false); }
 
 // ------------------------------------------------------------------ places
 function openPlace(b, then) {
