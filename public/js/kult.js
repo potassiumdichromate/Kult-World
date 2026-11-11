@@ -73,7 +73,7 @@ async function call(base, path, { method = "GET", body, headers = {}, token } = 
   if (demo && cfg.dealRoomDemoToken && base === cfg.arenaApi && path.startsWith(DR)) token = cfg.dealRoomDemoToken;
   else if (demo) {
     const kultCall = base === cfg.kultApi || base === KULT_WORLD_API;
-    const { status, data } = await demo.call(kultCall ? "kult" : "arena", path, { method, body });
+    const { status, data } = await demo.call(base === cfg.createApi ? "create" : kultCall ? "kult" : "arena", path, { method, body });
     if (status >= 400) throw new ApiError(errorText(data, status), status, data);
     return data;
   }
@@ -282,6 +282,20 @@ export const kultApi = {
       total, page: pickNum(raw.page) ?? page, totalPages: pickNum(raw.totalPages) ?? Math.max(1, Math.ceil(total / size))
     };
   },
+  /** The legacy game catalog (public): GET /games/all, as kult-games-v3 src/api/gamesApi.ts reads it. */
+  games: async () => {
+    const d = await kult("/games/all", { auth: false });
+    const list = Array.isArray(d?.data) ? d.data : Array.isArray(d?.data?.games) ? d.data.games : Array.isArray(d) ? d : [];
+    const text = (v) => (typeof v === "string" ? v : v?.en ?? Object.values(v ?? {})[0] ?? "");
+    return list.map((g) => ({
+      id: String(g.identification ?? g.slug ?? g.id ?? "").toLowerCase().replace(/[\s_-]+/g, ""),
+      name: text(g.name),
+      url: g.metadata?.play_url || g.url || null,
+      download: Boolean(g.isDownloadable ?? g.is_downloadable),
+      plays: pickNum(g.play_count, g.plays),
+      rating: pickNum(g.rating)
+    }));
+  },
   profile: async () => {
     const d = await kult("/player/profile");
     const raw = d?.data ?? d, p = raw?.profile ?? raw ?? {};
@@ -291,6 +305,17 @@ export const kultApi = {
       totalGamesPlayed: Number(p.totalGamesPlayed ?? p.total_games_played ?? 0), completedQuests: Number(p.completedQuests ?? p.completed_quests ?? 0)
     };
   }
+};
+
+// ------------------------------------------------------------------ Kult Create
+// The public list of games players' studios made (kult-create GET /games/public).
+export const createApi = {
+  games: async (limit = 30) => {
+    const c = await config();
+    return (await call(c.createApi, `/games/public${q({ limit })}`))?.games ?? [];
+  },
+  /** Kult Create's own play page for a game, used when the list gives no URL. */
+  playPage: async (id) => `${(await config()).kultCreateUrl}/play?gameId=${enc(id)}`
 };
 
 // ------------------------------------------------------------------ A2A marketplace

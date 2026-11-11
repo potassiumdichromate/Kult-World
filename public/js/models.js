@@ -19,7 +19,7 @@ export const SLOTS = {
   "bld-film": { size: [7, 6], height: 11 },
   "campus-gate": { size: [3, 1], height: 8 },
   "monument": { size: [2, 2], height: 6 },
-  "bld-game-hub": { size: [10, 11], height: 14 },
+  "bld-game-hub": { size: [13, 15], height: 20 },
   "bld-deal-room": { size: [7, 8], height: 20 },
   "bld-okx-market": { size: [10, 10], height: 13 },
   "bld-base-market": { size: [10, 10], height: 11 },

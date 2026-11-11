@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zero Dash</title>
+<!--
+  Zero Dash runs as a Unity build in the page, not behind an iframe of its own
+  (kult-games-v3 src/components/games/ZeroDashUnityPlayer.tsx). The Game Hub
+  frames this page so its Unity runtime stays apart from the AI Arena one.
+  ?build=<Unity build folder>&jwt=<Kult token>&wallet=<address>
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #03060c; color: #fff; font: 14px system-ui, sans-serif; overflow: hidden; }
+  #wrap { position: fixed; inset: 0; display: grid; place-items: center; }
+  canvas { display: block; max-width: 100%; max-height: 100%; aspect-ratio: 3 / 2; width: auto; height: 100%; background: #000; outline: none; touch-action: none; }
+  #veil { position: fixed; inset: 0; display: grid; place-items: center; background: #03060c; text-align: center; padding: 24px; }
+  #veil[hidden] { display: none; }
+  .t { letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; }
+  .bar { width: min(78vw, 420px); height: 6px; margin: 16px auto 8px; border-radius: 6px; background: rgba(255,255,255,0.1); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #5ec8f2, #9b5cff); transition: width 0.2s; }
+  .err { color: #ff8a9a; }
+  .muted { color: rgba(255,255,255,0.55); font-size: 12px; max-width: 520px; word-break: break-word; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="900" height="600" tabindex="-1"></canvas></div>
+<div id="veil"><div><div class="t" id="title">Loading Zero Dash</div><div class="bar"><i id="bar"></i></div><div class="muted" id="pct">0%</div></div></div>
+<script>
+(function () {
+  var p = new URLSearchParams(location.search);
+  var build = (p.get("build") || "").replace(/[?#].*$/, "").replace(/\/+$/, "");
+  var jwt = p.get("jwt") || "", wallet = p.get("wallet") || "";
+  var veil = document.getElementById("veil"), bar = document.getElementById("bar"), pct = document.getElementById("pct");
+  function fail(msg) {
+    veil.hidden = false;
+    document.getElementById("title").textContent = "Zero Dash could not start";
+    document.getElementById("title").className = "t err";
+    bar.parentNode.style.display = "none"; pct.textContent = msg;
+  }
+  if (!/^https:\/\//.test(build)) return fail("No game build was given.");
+
+  // Unity calls window.zeroDashBridge.reportGameEnd at the end of a run; it
+  // posts the score to the Zero Dash backend, which records new highs on-chain.
+  function report(raw) {
+    var w = (raw && typeof raw === "object" && typeof raw.wallet === "string" && raw.wallet) || wallet;
+    if (!/^0x[a-fA-F0-9]{40}$/.test(w)) return Promise.resolve({ ok: false, reason: "no_wallet" });
+    var data = raw;
+    if (typeof raw === "string") { try { data = JSON.parse(raw); } catch (e) { return Promise.resolve({ ok: false, reason: "invalid_json" }); } }
+    data = data || {};
+    return fetch("https://zerodashbackend.onrender.com/player/game-sync", {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + w },
+      body: JSON.stringify({ highScore: data.highScore != null ? data.highScore : data.score != null ? data.score : data.bestScore, coins: data.coins != null ? data.coins : data.coin, client: "unity-webgl", ts: Date.now() })
+    }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { ok: r.ok, body: b }; }); })
+      .catch(function (e) { return { ok: false, reason: e.message }; });
+  }
+  window.zeroDashBridge = { version: 2, reportGameEnd: report, syncRun: report };
+
+  var s = document.createElement("script");
+  s.src = build + "/ZeroDash.loader.js"; s.crossOrigin = "anonymous";
+  s.onerror = function () { fail("Could not load the game build."); };
+  s.onload = function () {
+    if (!window.createUnityInstance) return fail("The game loader did not start Unity.");
+    var slow = setTimeout(function () { fail("The game is taking too long to start."); }, 180000);
+    window.createUnityInstance(document.getElementById("c"), {
+      dataUrl: build + "/ZeroDash.data", frameworkUrl: build + "/ZeroDash.framework.js", codeUrl: build + "/ZeroDash.wasm",
+      streamingAssetsUrl: build + "/StreamingAssets", companyName: "Kult Games", productName: "Zero Dash", productVersion: "1.0",
+      matchWebGLToCanvasSize: false, devicePixelRatio: 1,
+      showBanner: function (msg, type) { if (type === "error") fail(msg); }
+    }, function (v) { var n = Math.round(v * 100); bar.style.width = n + "%"; pct.textContent = n + "%"; }).then(function (u) {
+      clearTimeout(slow); veil.hidden = true;
+      if (jwt) setTimeout(function () { try { u.SendMessage("GameBootstrapper", "SetJwtToken", jwt); } catch (e) { /* older builds */ } }, 1500);
+      document.getElementById("c").focus();
+    }).catch(function (e) { clearTimeout(slow); fail(e && e.message || "Unity could not start."); });
+  };
+  document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>

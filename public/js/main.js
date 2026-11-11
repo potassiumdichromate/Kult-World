@@ -22,11 +22,12 @@ import { createTour } from "./tour.js";
 import { createQuickStart } from "./quickstart.js";
 import { createDealRoom } from "./dealroom.js";
 import { createArena, arenaAmount } from "./arena.js";
+import { createHubOS } from "./hubos.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES,
   agentFromApi, loadProgress, saveProgress
 } from "./data.js";
-import { config, privyClient, session, arenaApi, kultApi, a2aApi, okxApi, chainApi } from "./kult.js";
+import { config, privyClient, session, arenaApi, kultApi, a2aApi, okxApi, chainApi, isDemo } from "./kult.js";
 import { findMatch, challenge as directChallenge, loadBattle, playUnity, playLauncher, report, Cancelled, LAUNCHER_DOWNLOAD } from "./battle.js";
 
 const $ = (id) => document.getElementById(id);
@@ -100,7 +101,7 @@ onLang(() => {
   if (state.inWorld) { renderPassport(); renderQuests(); }
   if (!$("mint").hidden) renderMint();
   if (!$("park").hidden) renderBiz();
-  if (!$("hub").hidden && !$("hub-list").hidden) renderGames();
+  hubos.relabel();
   if (!$("deal").hidden) void dealRoom.open($("deal-body"));
   if (!$("market").hidden) renderMarket();
   closeAgentCard();
@@ -201,7 +202,7 @@ const quick = createQuickStart({
       markSeen(isleKey());
       const b = BUILDINGS.find((x) => x.id === "create");
       world.warpTo(b.door, () => { world.isleFlareAt = world.t; sound.play("level"); tour.start("q-create", "kw.qsflow"); });
-    } else if (id === "play") travel("hub", null, () => tour.start("q-play", "kw.qsflow"));
+    } else if (id === "play") travel("hub", { folder: "ai" }, () => void hubos.ready.then(() => tour.start("q-play", "kw.qsflow")));
     else if (id === "hire") travel("market", null, () => tour.start("q-hire", "kw.qsflow"));
     else { world.recenter(); tour.start("q-walk", "kw.qsflow"); }
   },
@@ -708,8 +709,8 @@ $("sign-out").addEventListener("click", () => signOut());
 }
 for (const b of document.querySelectorAll("[data-logout]")) b.addEventListener("click", () => { b.disabled = true; void signOut(); });
 addEventListener("keydown", (e) => {
-  if (!state.inWorld || e.target.closest("input, textarea, select")) return;
-  if (e.key === "Escape") { if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
+  if (!state.inWorld || e.target.closest?.("input, textarea, select")) return;
+  if (e.key === "Escape") { if (hubos.back()) return; if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
   if (anyOpen()) return;
   const k = e.key.toLowerCase();
   const go = { 1: "create", 2: "park", 3: "hub", 4: "deal", 5: "market", 6: "a2a" }[k];
@@ -730,7 +731,7 @@ addEventListener("keydown", (e) => {
 });
 addEventListener("keyup", (e) => { const dir = KEY_DIR[e.key.toLowerCase()]; if (dir) { held.delete(dir); keyMove(); } });
 addEventListener("blur", () => { held.clear(); keyMove(); });
-function closeOverlays(quiet = false) { if (!quiet) sound.play("close"); cancelMatch(); dealRoom.stop(); okx.stop(); a2a.stop(); for (const id of ["park", "hub", "deal", "market", "okx", "wallet", "board"]) show(id, false); }
+function closeOverlays(quiet = false) { if (!quiet) sound.play("close"); cancelMatch(); hubos.close(); dealRoom.stop(); okx.stop(); a2a.stop(); for (const id of ["park", "deal", "market", "okx", "wallet", "board"]) show(id, false); }
 
 // ------------------------------------------------------------------ places
 function openPlace(b, then) {
@@ -741,7 +742,7 @@ function openPlace(b, then) {
   const biz = b.kind === "biz" ? BUSINESSES.find((x) => x.id === b.id && x.status === "open") : null;
   if (biz) { stamp("park"); quest("visit-park"); void openApp(biz); }
   else if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); quest("visit-park"); }
-  if (b.kind === "hub") { renderGames(); show("hub-list"); show("hub-match", false); show("hub"); stamp("hub"); if (then?.challenge) startMatch(GAMES[0], then.challenge); }
+  if (b.kind === "hub") { openHub(then); stamp("hub"); }
   if (b.kind === "deal") { show("deal"); stamp("deal"); void dealRoom.open($("deal-body")); }
   if (b.kind === "market") { marketTab = b.tab; renderMarket(); show("market"); stamp(b.id); }
   commit();
@@ -908,7 +909,7 @@ async function startMatch(gm, opponent = null) {
     const { commentary } = await report(result, { me, them });
     const win = result.winnerId === me.id;
     await refreshLive();
-    arena.refresh(); watchArena();
+    arena.refresh(); watchArena(); hubos.refresh();
     const after = state.player.agent, dElo = after.elo - startElo, before = rankOf(startElo), now = rankOf(after.elo);
     if (win) quest("arcade-win");
     gainXp(win ? 80 : 30);
@@ -939,7 +940,7 @@ async function startMatch(gm, opponent = null) {
 }
 function backToGames() { cancelMatch(); show("hub-match", false); show("hub-list"); renderGames(); $("monitor-led").className = "led"; }
 $("match-back").addEventListener("click", backToGames);
-$("hub-close").addEventListener("click", () => { sound.play("close"); cancelMatch(); show("hub", false); });
+$("hub-close").addEventListener("click", () => { sound.play("close"); cancelMatch(); hubos.close(); });
 
 // ------------------------------------------------------------------ $ARENA and the leaderboard
 const arena = createArena({
@@ -947,13 +948,31 @@ const arena = createArena({
   player: () => state.player,
   myAgents: () => state.agents,
   onBalance: (v) => { if (state.player && v !== null) { setArena(v); setBalance("bal-arena", state.player.balances.arena); } },
-  goHub: (challenge) => goTo("hub", challenge ? { challenge } : undefined),
+  goHub: (challenge) => (hubos.isOpen ? openHub(challenge ? { challenge } : { folder: "ai" }) : goTo("hub", challenge ? { challenge } : { folder: "ai" })),
   closeAll: () => { for (const id of ["wallet", "board"]) show(id, false); }
 });
 function openWallet() {
   if (!state.player) return;
   closeAgentCard(); togglePassport(false); sound.play("open");
   show("wallet"); void arena.wallet($("wallet-body"));
+}
+// KULT-OS, the Game Hub's console (js/hubos.js). The AI Gaming folder holds
+// the AI Arena list and match screen above.
+const hubos = createHubOS({
+  el, t, sound, toast, wart, isDemo,
+  player: () => state.player,
+  renderAi: () => { renderGames(); if (!match) { show("hub-list"); show("hub-match", false); $("monitor-led").className = "led"; } },
+  leaveAi: () => { cancelMatch(); show("hub-match", false); show("hub-list"); $("monitor-led").className = "led"; },
+  board: (root, mode) => arena.board(root, mode),
+  goStudio: () => { hubos.close(); travel("create"); },
+  onPlay: (name) => { if (!state.player) return; addActivity(t("act.played", { game: name })); commit(); }
+});
+// Entering the hub boots KULT-OS on its desktop; a challenge, or the quick
+// start's Play, goes straight to the AI Gaming folder.
+function openHub(then) {
+  const folder = then?.challenge ? "ai" : then?.folder || null;
+  if (hubos.isOpen) { if (folder) hubos.openWin(folder); } else hubos.open({ folder });
+  if (then?.challenge) startMatch(GAMES[0], then.challenge);
 }
 function openBoard() {
   if (!state.inWorld) return;
@@ -1064,7 +1083,7 @@ async function showAgentCard(a) {
       el("h3", { class: "ac-h" }, t("pp.traits"), el("small", {}, `${t("ac.style")}: ${arch.role.join(" · ")}`)),
       el("div", { class: "traits two" }, TRAITS.map((tr) => el("div", { class: "trait" }, el("span", {}, t(`trait.${tr}`)), el("div", { class: "bar" }, el("i", { style: `--c:${arch.color};width:${p.traits[tr] ?? 0}%` })), el("b", {}, p.traits[tr] ?? "—")))),
       el("div", { class: "ac-btns" },
-        state.player ? el("button", { type: "button", class: "btn primary small", onclick: () => { closeAgentCard(); goTo("hub", { challenge: { id: p.id } }); } }, t("agent.challenge")) : null,
+        state.player ? el("button", { type: "button", class: "btn primary small", onclick: () => { closeAgentCard(); if (hubos.isOpen) openHub({ challenge: { id: p.id } }); else goTo("hub", { challenge: { id: p.id } }); } }, t("agent.challenge")) : null,
         el("button", { type: "button", class: "btn ghost small", onclick: () => { world.emote(world.player, "Wave"); toast(t("toast.wave", { name: p.name })); closeAgentCard(); } }, t("agent.wave")))));
   show("agent-card");
   (viewer ||= new AgentViewer()).show(stage, a.body, world.agentClips(a), arch.color);

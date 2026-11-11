@@ -64,6 +64,26 @@ export const MATCH_MODES = [
   { id: "CASUAL", name: "Casual" }
 ];
 
+// The legacy Kult titles a player plays themself (kult-games-v3 src/pages/Games.tsx).
+// `id` is the Kult backend's identification: GET /games/all gives the live
+// play URL, plays and rating; this list gives the art, order and genre, so the
+// folder shows even while the catalog loads. `cover` is under art/.
+export const LEGACY_GAMES = [
+  { id: "guesstheai", name: "Guess the AI", genre: "puzzle", color: "#a98bff", cover: "hub/legacy-guesstheai.webp" },
+  { id: "highwayhustle", name: "Highway Hustle", genre: "racing", color: "#f2c14e", cover: "world/thumb-highway.webp", modes: true },
+  { id: "warzonewarriors", name: "Warzone Warriors", genre: "action", color: "#f78c6b", cover: "world/thumb-warzone.webp" },
+  { id: "zerodash", name: "Zero Dash", genre: "arcade", color: "#ff9a3c", cover: "hub/legacy-zerodash.webp", engine: "zerodash" },
+  { id: "robowars", name: "Robowars", genre: "action", color: "#5ec8f2", cover: "world/thumb-robowars.webp" },
+  { id: "zerogpool", name: "Zero G Pool", genre: "arcade", color: "#4fd8ff", cover: "hub/legacy-zerogpool.webp" }
+];
+// Highway Hustle's four Unity builds, one per mode (kult-games-v3 src/constants/highwayHustleModes.ts).
+export const HIGHWAY_MODES = [
+  { id: "one-way", url: "https://pub-0025cff360c44334b8cc47c146e9c55c.r2.dev/OneWay/9/index.html" },
+  { id: "two-way", url: "https://pub-0025cff360c44334b8cc47c146e9c55c.r2.dev/TwoWay/6/index.html" },
+  { id: "speed-run", url: "https://pub-0025cff360c44334b8cc47c146e9c55c.r2.dev/SpeedRun/5/index.html" },
+  { id: "time-bomb", url: "https://pub-0025cff360c44334b8cc47c146e9c55c.r2.dev/TimeBomb/5/index.html" }
+];
+
 // ------------------------------------------------------------------ live agents
 const TRAIT_KEY = { Aggression: "aggression", Precision: "precision", Adaptability: "adaptability", Creativity: "creativity", Patience: "patience", Resilience: "resilience", Deception: "deception", Loyalty: "loyalty" };
 

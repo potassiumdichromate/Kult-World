@@ -45,7 +45,7 @@ disc(CENTER[0], CENTER[1], 7.6, "p");      // Kult Plaza
 paint(12, 4, 15, 24, "p"); paint(4, 12, 24, 15, "p"); paint(4, 22, 24, 24, "p");
 paint(12, 24, 15, 27, "p"); paint(24, 12, 27, 15, "p");
 // Game Hub forecourt, Deal Room plaza and the path between them.
-paint(30, 16, 46, 19, "p"); paint(44, 11, 54, 14, "p"); paint(47, 14, 50, 19, "p");
+paint(30, 17, 46, 20, "p"); paint(44, 11, 54, 14, "p"); paint(47, 14, 50, 19, "p");
 // Market Street: the OKX.AI and Base A2A marketplaces share one forecourt.
 paint(3, 44, 27, 47, "p"); paint(3, 30, 27, 32, "p");
 export const POND = { x: 40, y: 40, r: 3.8 };
@@ -65,7 +65,7 @@ export const BUILDINGS = [
   { id: "create", kind: "biz", slot: "bld-gaming-studio", x0: 47, y0: 48, x1: 53, y1: 53, h: 12, door: [50, 53], color: "#ff7eb6", status: "open", isle: true },
   { id: "production", kind: "biz", slot: "bld-film", x0: 16, y0: 16, x1: 23, y1: 22, h: 10, door: [19, 22], color: "#ffc94d", status: "soon" },
   { id: "park", kind: "park", slot: "campus-gate", x0: 12, y0: 24, x1: 15, y1: 25, h: 8, door: [13, 25], color: "#ffc94d" },
-  { id: "hub", kind: "hub", slot: "bld-game-hub", x0: 33, y0: 5, x1: 43, y1: 16, h: 14, door: [37, 16], color: "#a96bff" },
+  { id: "hub", kind: "hub", slot: "bld-game-hub", x0: 31, y0: 2, x1: 44, y1: 17, h: 20, door: [37, 17], color: "#a96bff" },
   { id: "deal", kind: "deal", slot: "bld-deal-room", x0: 46, y0: 3, x1: 53, y1: 11, h: 18, door: [49, 11], color: "#ffc94d" },
   { id: "market", kind: "market", tab: "okx", slot: "bld-okx-market", x0: 4, y0: 34, x1: 14, y1: 44, h: 13, door: [9, 44], color: "#e8e8e8" },
   { id: "a2a", kind: "market", tab: "jobs", slot: "bld-base-market", x0: 16, y0: 34, x1: 26, y1: 44, h: 11, door: [21, 44], color: "#3d7bff" }

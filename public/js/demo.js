@@ -16,6 +16,19 @@ const GATEWAY = "https://aiarena-gateway.kult.games/v1/marketplace/okx";
 const USDT0 = "0x779ded0c9e1022225f8e0630b35a9b54be713736";
 const S = 1000, MIN = 60 * S, H = 60 * MIN, D = 24 * H;
 
+const LEGACY = [
+  { identification: "warzonewarriors", name: "Warzone Warriors", url: "https://pub-2c48e58780b648b7a2a77316f7b0aa2c.r2.dev/Game/WarzoneV2/index.html", isDownloadable: false, play_count: 180667, rating: 5 },
+  { identification: "highwayhustle", name: "Highway Hustle", url: "https://www.highwayhustle.xyz/", isDownloadable: false, play_count: 2860, rating: 4.5 },
+  { identification: "guesstheai", name: "Guess the AI", url: "https://guess-the-ai-frontend.rj838486.workers.dev/#/auto-login", isDownloadable: false, play_count: 2546, rating: 4.5 },
+  { identification: "zerogpool", name: "Zero G Pool", url: "https://pub-c57fda34f99145fc8d97b0a6b6faa237.r2.dev/v10/Game/index.html", isDownloadable: false, play_count: 2237, rating: 4.5 },
+  { identification: "zerodash", name: "Zero Dash", url: "https://pub-c51325b05b6848599be1cf2978bc4c0e.r2.dev/v14", isDownloadable: false, play_count: 1064, rating: 4.5 },
+  { identification: "robowars", name: "Robo Wars", url: "https://pub-b842f38bc1b84008a534b8287a939c55.r2.dev/do-backup/game-build/Robowars.zip", isDownloadable: true, play_count: 6, rating: 4 }
+];
+const CREATE_GAMES = [
+  ["Penalty Kings", "Pixel Pirates", 412, 38], ["Neon Drift", "Rift Studio", 365, 31], ["Crypt Crawler", "Lunar Labs", 290, 22],
+  ["Sky Hopper", "Nova Games", 241, 19], ["Bubble Siege", "Echo Works", 198, 14], ["Moon Miner", "Frost Forge", 150, 9]
+];
+
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const iso = (t) => new Date(t).toISOString();
 const hex = (n) => `0x${[...crypto.getRandomValues(new Uint8Array(n))].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
@@ -492,7 +505,15 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     if (path.startsWith("/player/nonce")) return ok({ data: { nonce: hex(8).slice(2) } });
     if (path === "/player/login") return ok({ data: { token: "demo-kult" } });
     if (path === "/player/profile") return ok({ data: { profile: { ...db.profile, walletAddress: WALLET } } });
+    // The legacy catalog: the real titles and their public game builds.
+    if (path === "/games/all") return ok({ ok: true, data: LEGACY });
     return fail(404, "Not found");
+  }
+
+  // Kult Create's public list. Demo studios' games have no build to play.
+  function create(path) {
+    if (path !== "/games/public") return fail(404, "Not found");
+    return ok({ games: CREATE_GAMES.map(([title, studio, plays, likes], i) => ({ id: `demo-${i + 1}`, rank: i + 1, title, studio, plays, likes, playUrl: null })) });
   }
 
   function arena(method, path, q, body) {
@@ -700,7 +721,7 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     await wait(120 + Math.random() * 240);
     tick();
     const u = new URL(path, "http://demo");
-    const r = base === "kult" ? kult(method, u.pathname, u.searchParams) : arena(method, u.pathname, u.searchParams, body);
+    const r = base === "create" ? create(u.pathname) : base === "kult" ? kult(method, u.pathname, u.searchParams) : arena(method, u.pathname, u.searchParams, body);
     save();
     // Callers get copies, as they would from the network.
     return { status: r.status, data: JSON.parse(JSON.stringify(r.data ?? null)) };

@@ -4,7 +4,8 @@
 //
 //   /api/arena/*  → AI Arena gateway (agents, battles, matchmaking, wallets,
 //                   the A2A marketplace and the Kult agencies)
-//   /api/kult/*   → Kult backend (player profile, KP, SIWE login)
+//   /api/kult/*   → Kult backend (player profile, KP, SIWE login, the game catalog)
+//   /api/create/* → Kult Create (the public list of games its studios made)
 //
 // The gateway only accepts browser calls from its own site, so Kult World
 // calls it server to server, as Kult Sports does for its Privy exchange.
@@ -21,6 +22,7 @@ const PORT = Number(process.env.PORT || 4500);
 const trim = (u) => String(u).replace(/\/+$/, "");
 const ARENA_API = trim(process.env.AI_ARENA_API_URL || "https://aiarena-gateway.kult.games");
 const KULT_API = trim(process.env.KULT_API_URL || "https://api-backend-v2.kult.games/api");
+const KULT_CREATE = trim(process.env.KULT_CREATE_URL || "https://kult-create.onrender.com");
 // DEAL_ROOM_API_URL: send Deal Room calls straight to an a2a-marketplace-service
 // (for example a local one) instead of through the gateway.
 const DEAL_ROOM_API = process.env.DEAL_ROOM_API_URL ? trim(process.env.DEAL_ROOM_API_URL) : null;
@@ -31,7 +33,8 @@ const CONFIG = JSON.stringify({
   kultApi: "/api/kult",
   agencyApi: process.env.AGENCY_API_URL || "/api/arena/v1/marketplace/agencies",
   unityBuildUrl: trim(process.env.UNITY_BUILD_URL || "https://pub-2c48e58780b648b7a2a77316f7b0aa2c.r2.dev/v4/WarzoneV4"),
-  kultCreateUrl: trim(process.env.KULT_CREATE_URL || "https://kult-create.onrender.com"),
+  kultCreateUrl: KULT_CREATE,
+  createApi: "/api/create",
   kultSportsUrl: trim(process.env.KULT_SPORTS_URL || "https://kult-sports.onrender.com"),
   // DEMO_MODE=1 (or "fresh": no agent yet, so minting is shown) runs the page
   // on js/demo.js instead of the KULT backends, for every visitor.
@@ -114,6 +117,8 @@ createServer(async (req, res) => {
   if (DEAL_ROOM_API && url.pathname.startsWith("/api/arena/v1/marketplace/deal-room/")) return proxy(req, res, DEAL_ROOM_API, url.pathname.slice("/api/arena/v1/marketplace".length) + url.search);
   if (url.pathname.startsWith("/api/arena/")) return proxy(req, res, ARENA_API, url.pathname.slice("/api/arena".length) + url.search);
   if (url.pathname.startsWith("/api/kult/")) return proxy(req, res, KULT_API, url.pathname.slice("/api/kult".length) + url.search);
+  // Only Kult Create's public game list; everything else there is reached directly.
+  if (url.pathname === "/api/create/games/public" && req.method === "GET") return proxy(req, res, KULT_CREATE, "/games/public" + url.search);
   let rel = decodeURIComponent(url.pathname);
   if (rel.endsWith("/")) rel += "index.html";
   if (rel === "/index.html") return sendPage(res);

@@ -235,31 +235,80 @@
   </div>
 
   <!-- Game Hub -->
-  <div id="hub" class="overlay place" hidden>
-    <div class="place-sheet glass wide" style="--accent:#ff4fa3">
-      <button type="button" class="close" id="hub-close" aria-label="Close">×</button>
-      <div id="hub-list">
-        <p class="eyebrow" data-i18n="hub.eyebrow">Kult Game Hub</p>
-        <h2 class="place-title" data-i18n="hub.title">AI vs AI arena</h2>
-        <p class="muted" data-i18n="hub.desc">Pick a game. Your agent is matched against another agent and plays it out live.</p>
-        <div id="hub-modes" class="seg-chips hub-modes"></div>
-        <div id="game-grid" class="game-grid"></div>
-      </div>
-      <div id="hub-match" class="arcade-match" hidden>
-        <div class="monitor">
-          <div class="monitor-bezel">
-            <div class="monitor-titlebar"><span class="dots"><i></i><i></i><i></i></span><span id="monitor-title">KULT-OS</span><span class="mt-right" id="monitor-clock"></span><span class="led" id="monitor-led"></span></div>
-            <div class="monitor-screen" id="monitor-screen">
-              <canvas id="game-canvas" width="320" height="180" hidden></canvas>
-              <div id="screen-ui" class="screen-ui"></div>
-              <div class="scanlines" aria-hidden="true"></div>
-            </div>
+  <!-- Game Hub: KULT-OS, the hub's console screen (js/hubos.js) -->
+  <div id="hub" class="overlay hubos" hidden>
+    <div class="os-frame">
+      <i class="os-corner tl" aria-hidden="true"></i><i class="os-corner tr" aria-hidden="true"></i><i class="os-corner bl" aria-hidden="true"></i><i class="os-corner br" aria-hidden="true"></i>
+      <div class="os-screen" id="os-screen">
+        <div class="os-wall" aria-hidden="true"><i class="os-grid-floor"></i><i class="os-crystal"></i></div>
+        <header class="os-bar">
+          <span class="os-brand"><b>KULT-OS</b><span id="os-path"></span></span>
+          <span class="os-agent" id="os-agent"></span>
+          <span class="os-right">
+            <button type="button" class="os-kp" id="os-kp"><img id="os-kp-img" src="art/world/token-kp.png" alt=""><b id="os-kp-n">—</b><small>KP</small><small class="os-kp-r" id="os-kp-r"></small></button>
+            <span class="os-clock" id="os-clock"></span>
+            <button type="button" class="os-x" id="hub-close" aria-label="Close" data-i18n-attr="title:os.exit;aria-label:os.exit" title="Leave the Game Hub">×</button>
+          </span>
+        </header>
+        <div class="os-desktop" id="os-desktop">
+          <p class="os-hello" data-i18n="os.hello">Pick a folder to play</p>
+          <div class="os-folders" id="os-folders"></div>
+          <div class="os-apps" id="os-apps"></div>
+        </div>
+        <section class="os-win" id="os-win" hidden>
+          <div class="os-win-bar">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <button type="button" class="os-wb" id="os-back" aria-label="Back">‹</button>
+            <span class="os-win-title" id="os-win-title"></span>
+            <button type="button" class="os-wb" id="os-win-close" aria-label="Close">×</button>
           </div>
+          <div class="os-win-body" id="os-win-body">
+            <div id="os-ai" class="os-pane" hidden>
+              <div id="hub-list">
+                <p class="eyebrow" data-i18n="hub.eyebrow">0G Gaming Hub</p>
+                <h2 class="place-title" data-i18n="hub.title">AI vs AI arena</h2>
+                <p class="muted" data-i18n="hub.desc">Pick a game. Your agent is matched against another agent and plays it out live.</p>
+                <div id="hub-modes" class="seg-chips hub-modes"></div>
+                <div id="game-grid" class="game-grid"></div>
+              </div>
+              <div id="hub-match" class="arcade-match" hidden>
+                <div class="monitor">
+                  <div class="monitor-bezel">
+                    <div class="monitor-titlebar"><span class="dots"><i></i><i></i><i></i></span><span id="monitor-title">KULT-OS</span><span class="mt-right" id="monitor-clock"></span><span class="led" id="monitor-led"></span></div>
+                    <div class="monitor-screen" id="monitor-screen">
+                      <canvas id="game-canvas" width="320" height="180" hidden></canvas>
+                      <div id="screen-ui" class="screen-ui"></div>
+                      <div class="scanlines" aria-hidden="true"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="match-actions">
+                  <button type="button" id="match-back" class="btn ghost" data-i18n="hub.back">‹ Back to games</button>
+                  <button type="button" id="match-skip" class="btn" hidden data-i18n="hub.skip">Skip to result</button>
+                </div>
+              </div>
+            </div>
+            <div id="os-legacy" class="os-pane" hidden></div>
+            <div id="os-create" class="os-pane" hidden></div>
+            <div id="os-board" class="os-pane leaderboard" hidden></div>
+          </div>
+        </section>
+        <section class="os-player" id="os-player" hidden>
+          <div class="os-player-bar">
+            <button type="button" class="os-wb" id="os-player-close" aria-label="Back">‹</button>
+            <span class="os-live" aria-hidden="true"></span>
+            <span class="os-player-title" id="os-player-title"></span>
+            <a class="os-wb" id="os-newtab" target="_blank" rel="noopener" data-i18n-attr="title:os.newtab;aria-label:os.newtab" title="Open in a new tab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg></a>
+            <button type="button" class="os-wb" id="os-full" data-i18n-attr="title:os.full;aria-label:os.full" title="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+          </div>
+          <iframe id="os-iframe" title="Game" allow="autoplay; fullscreen; gamepad; clipboard-write; accelerometer; gyroscope" allowfullscreen></iframe>
+        </section>
+        <div class="os-boot" id="os-boot" hidden>
+          <div class="os-emblem" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+          <p class="os-boot-t">KULT-OS</p>
+          <p class="os-boot-s" data-i18n="os.booting">Booting the game console…</p>
         </div>
-        <div class="match-actions">
-          <button type="button" id="match-back" class="btn ghost" data-i18n="hub.back">‹ Back to games</button>
-          <button type="button" id="match-skip" class="btn" hidden data-i18n="hub.skip">Skip to result</button>
-        </div>
+        <i class="os-scan" aria-hidden="true"></i>
       </div>
     </div>
   </div>

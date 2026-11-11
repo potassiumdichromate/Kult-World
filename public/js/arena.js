@@ -103,7 +103,9 @@ export function createArena(ctx) {
   const clanChip = (id) => { const c = clanOf(id); return c ? el("span", { class: "lb-clan", style: `--c:${c.color}`, title: c.name }, el("img", { src: `art/partners/${c.logo}.webp`, alt: c.name })) : el("span", { class: "lb-clan" }); };
   const badge = (elo) => { const r = rankOf(elo); return el("span", { class: "lb-league", style: `color:${r.color}` }, el("img", { src: `art/${r.badge}`, alt: "" }), el("span", {}, r.name)); };
 
-  async function board(root) {
+  // mode ("arena" or "kp") picks the tab; without it the last one stays.
+  async function board(root, mode) {
+    if (mode === "arena" || mode === "kp") { s.mode = mode; s.page = 1; s.kpPage = 1; }
     const run = ++s.run;
     const tabs = el("div", { class: "lb-tabs", role: "tablist" },
       [["arena", t("lb.arena")], ["kp", t("lb.kp")]].map(([m, label]) => el("button", { type: "button", role: "tab", class: s.mode === m ? "on" : "", "aria-selected": String(s.mode === m), onclick: () => { s.mode = m; s.page = 1; s.kpPage = 1; sound.play("pop"); board(root); } }, label)));
