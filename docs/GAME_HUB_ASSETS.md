@@ -399,7 +399,7 @@ and adding Wager is optional.
     is given, and the game signs in and saves by itself. The old
     `/player/game-sync` route is gone.
   - **Guess the AI** (`api-guesstheai.kult.games`) and **Warzone Warriors**
-    (`api-warzonewarriors.kult.games`) never had one: their games use the
+    (`api-warzone.kult.games`, which the game build itself calls) never had one: their games use the
     Kult token in the link.
 
 **Kult Create Games.** These are hosted the way Creator Studio's player
