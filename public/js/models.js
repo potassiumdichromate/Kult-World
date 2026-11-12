@@ -23,6 +23,7 @@ export const SLOTS = {
   "bld-deal-room": { size: [7, 8], height: 20 },
   "bld-okx-market": { size: [10, 10], height: 13 },
   "bld-base-market": { size: [10, 10], height: 11 },
+  "bld-syndicate": { size: [7, 5], height: 9 },
   "fountain": { size: [4.4, 4.4], height: 6 },
   "spawn-pad": { size: [2.4, 2.4], height: 0.4 },
   "tree": { size: [1.6, 1.6], height: 4 },
@@ -352,6 +353,53 @@ function dealRoom({ W, D }) {
   return g;
 }
 
+// Kult Syndicates: a rail depot. A sawtooth-roof warehouse, a lit freight
+// door, track in the yard, stacked containers and a signal mast whose light
+// sweeps between amber and red.
+function switchyard({ W, D }) {
+  const g = new THREE.Group(), rust = std("#5a2a20", { roughness: 0.75, metalness: 0.3 }), steel = M.metal();
+  g.add(box(W, 0.5, D, M.stoneDark()));
+  // The warehouse, back two thirds of the lot.
+  const bw = W * 0.7, bd = D * 0.62, bx = -W * 0.12, bz = -D * 0.16;
+  g.add(box(bw, 5.2, bd, rust, bx, 0.5, bz));
+  for (let i = 0; i < 4; i++) {
+    const tooth = new THREE.Mesh(new THREE.CylinderGeometry(0.01, bd / 2 + 0.1, bw / 4, 3, 1), steel);
+    tooth.rotation.z = Math.PI / 2; tooth.rotation.x = Math.PI / 2;
+    tooth.position.set(bx - bw / 2 + bw / 8 + (i * bw) / 4, 6.1, bz); g.add(tooth);
+    g.add(box(bw / 4 - 0.3, 0.9, 0.12, M.glow("#ffb070", 1.1), bx - bw / 2 + bw / 8 + (i * bw) / 4, 5.75, bz + bd / 2 + 0.02));
+  }
+  edgeGlow(g, bw, bd, 5.7, "#ff6a3d", bx, bz);
+  // The freight door: the entrance, lit from inside.
+  g.add(box(4.2, 3.8, 0.25, M.frame(), bx + bw * 0.12, 0.5, bz + bd / 2 + 0.1));
+  const door = box(3.6, 3.3, 0.2, M.glow("#ff8a4d", 1.4), bx + bw * 0.12, 0.6, bz + bd / 2 + 0.22); g.add(door);
+  for (let i = 0; i < 6; i++) g.add(box(3.6, 0.06, 0.24, M.frame(), bx + bw * 0.12, 0.9 + i * 0.5, bz + bd / 2 + 0.24));
+  // Track across the yard.
+  for (const dz of [-0.55, 0.55]) g.add(box(W * 0.96, 0.12, 0.14, steel, 0, 0.5, D * 0.33 + dz));
+  for (let i = 0; i < 14; i++) g.add(box(0.35, 0.08, 1.6, std("#3a2a1e"), -W * 0.46 + (i * W * 0.92) / 13, 0.48, D * 0.33));
+  // Containers stacked on the right.
+  const COLS = ["#c0392b", "#1f6f8b", "#d68910", "#6c3483", "#117a65"];
+  let k = 0;
+  for (const [cx, cz, levels] of [[W * 0.36, -D * 0.25, 3], [W * 0.36, D * 0.02, 2], [W * 0.22, -D * 0.38, 1]]) {
+    for (let l = 0; l < levels; l++) {
+      const c = box(2.6, 1.15, 1.1, std(COLS[k++ % COLS.length], { roughness: 0.7, metalness: 0.4 }), cx, 0.5 + l * 1.2, cz); g.add(c);
+      for (let r = 0; r < 5; r++) g.add(box(0.06, 1.0, 0.04, M.frame(), cx - 1.1 + r * 0.55, 0.58 + l * 1.2, cz + 0.56));
+    }
+  }
+  // Signal mast.
+  g.add(cyl(0.12, 0.16, 6, steel, 6, -W * 0.44, 0.5, D * 0.12));
+  const lamp = ico(0.42, M.glow("#ffb347", 3), -W * 0.44, 6.7, D * 0.12, 1); g.add(lamp);
+  const halo = new THREE.PointLight("#ff8a3d", 6, 10, 2); halo.position.set(-W * 0.44, 6.7, D * 0.12); g.add(halo);
+  const s = sign([["sign.syndicate", "SYNDICATES"], "THE SWITCHYARD"], bw * 0.92, bw * 0.24, { colors: ["#ff8a4d", "#ffffff"] });
+  s.position.set(bx, 7.4, bz + bd / 2 - 0.2); g.add(s);
+  const red = new THREE.Color("#ff3b2f"), amber = new THREE.Color("#ffb347"), mix = new THREE.Color();
+  animate(g, (t) => {
+    const k2 = (Math.sin(t * 1.6) + 1) / 2;
+    mix.copy(amber).lerp(red, k2); lamp.material.emissive.copy(mix); halo.color.copy(mix);
+    door.material.emissiveIntensity = 1.2 + Math.sin(t * 2.3) * 0.25;
+  });
+  return g;
+}
+
 const STALLS = ["ANALYST", "ARTIST", "TRADER", "CODER", "SCOUT", "EDITOR"];
 function marketplace({ W, D, slot }) {
   const g = new THREE.Group();
@@ -543,7 +591,7 @@ export function capsuleAgent(color) {
 // ------------------------------------------------------------------ registry
 const BUILDERS = {
   "bld-gaming-studio": gamingStudio, "bld-sports": sportsAgency, "bld-dex": dexTower, "bld-film": filmStudio,
-  "campus-gate": campusGate, monument, "bld-game-hub": gameHub, "bld-deal-room": dealRoom,
+  "campus-gate": campusGate, monument, "bld-game-hub": gameHub, "bld-deal-room": dealRoom, "bld-syndicate": switchyard,
   "bld-okx-market": (o) => marketplace({ ...o, slot: "bld-okx-market" }), "bld-base-market": (o) => marketplace({ ...o, slot: "bld-base-market" }),
   fountain, "spawn-pad": spawnPad, tree, pine, blossom, bush, flowers, lamp, bench, billboard, car: hoverCar, crane
 };

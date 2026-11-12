@@ -19,6 +19,7 @@ import { readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createSyndicates } from "./syndicates/syndicates.mjs";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "public");
 const PORT = Number(process.env.PORT || 4500);
@@ -39,6 +40,9 @@ const CREATE_ROUTE = /^\/api\/create\/games\/(?:public|[A-Za-z0-9_-]{1,64}\/(?:v
 // DEAL_ROOM_API_URL: send Deal Room calls straight to an a2a-marketplace-service
 // (for example a local one) instead of through the gateway.
 const DEAL_ROOM_API = process.env.DEAL_ROOM_API_URL ? trim(process.env.DEAL_ROOM_API_URL) : null;
+// Kult Syndicates: the Switchyard district, mounted at /world/syndicates/
+// (syndicates/syndicates.mjs). Off until SYNDICATES_URL is set.
+const SYNDICATES = createSyndicates({ arenaApi: ARENA_API, root: fileURLToPath(new URL(".", import.meta.url)) });
 const CONFIG = JSON.stringify({
   privyAppId: process.env.PRIVY_APP_ID || "cmhfx1cl20001l10d4l0w8u4j",
   privyClientId: process.env.PRIVY_CLIENT_ID || undefined,
@@ -47,6 +51,7 @@ const CONFIG = JSON.stringify({
   agencyApi: process.env.AGENCY_API_URL || "/api/arena/v1/marketplace/agencies",
   unityBuildUrl: trim(process.env.UNITY_BUILD_URL || "https://pub-2c48e58780b648b7a2a77316f7b0aa2c.r2.dev/v4/WarzoneV4"),
   kultCreateUrl: KULT_CREATE,
+  syndicates: SYNDICATES.enabled,
   createApi: "/api/create",
   kultSportsUrl: trim(process.env.KULT_SPORTS_URL || "https://kult-sports.onrender.com"),
   // DEMO_MODE=1 (or "fresh": no agent yet, so minting is shown) runs the page
@@ -133,6 +138,7 @@ createServer(async (req, res) => {
   // Kult Create's public game routes only; everything else there is reached directly.
   if (CREATE_ROUTE.test(url.pathname) && (req.method === "GET" || req.method === "POST")) return proxy(req, res, KULT_CREATE, url.pathname.slice("/api/create".length) + url.search);
   if (req.method === "POST" && LEGACY[url.pathname]) return proxy(req, res, LEGACY[url.pathname], "");
+  if (await SYNDICATES.handle(req, res, url)) return;
   // The game build editor (public/admin/).
   if (url.pathname === "/admin") { res.writeHead(301, { Location: `/admin/${url.search}` }); return res.end(); }
   let rel = decodeURIComponent(url.pathname);

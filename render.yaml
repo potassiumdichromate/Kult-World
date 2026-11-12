@@ -12,6 +12,9 @@
 #     lists world.kult.games).
 #   - Kult Create: add this origin to its ALLOWED_ORIGINS so the Gaming Studio
 #     opens inside Kult World.
+#   - Kult Syndicates: deploy Kult-Syndicate's render.world.yaml, then set the
+#     SYNDICATES_* values below (docs/SYNDICATES.md). The disk keeps the
+#     Agents' verified Syndicates receipts across deploys.
 
 services:
   - type: web
@@ -22,6 +25,10 @@ services:
     buildCommand: npm ci && npm run build
     startCommand: node server.mjs
     healthCheckPath: /health
+    disk:
+      name: kult-world-data
+      mountPath: /var/data
+      sizeGB: 1
     autoDeployTrigger: commit
     envVars:
       - key: NODE_VERSION
@@ -38,3 +45,16 @@ services:
         value: https://kult-create.onrender.com
       - key: KULT_SPORTS_URL
         value: https://kult-sports.onrender.com
+      # Kult Syndicates (the Switchyard), served at /world/syndicates/
+      - key: SYNDICATES_URL
+        value: https://kult-syndicates-world.onrender.com
+      - key: KULT_WORLD_ORIGIN
+        value: https://world.kult.games
+      - key: SYNDICATES_STORE
+        value: /var/data/syndicates-receipts.json
+      - key: SYNDICATES_LAUNCH_SECRET
+        sync: false
+      - key: SYNDICATES_CALLBACK_SECRET
+        sync: false
+      - key: SYNDICATES_PUBLIC_KEY
+        sync: false

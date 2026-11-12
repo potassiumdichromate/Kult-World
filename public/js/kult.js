@@ -328,6 +328,26 @@ export const kultApi = {
   }
 };
 
+// ------------------------------------------------------------------ Kult Syndicates
+// The Switchyard (syndicates/syndicates.mjs on the server): a signed launch
+// for the player's own Agent, and that Agent's Syndicates receipts. Both are
+// checked against AI Arena with the player's token.
+async function syndicatesCall(path, opts = {}) {
+  if (session.arena && session.arena.expiresAt - Date.now() < 30_000) await refreshArena();
+  try { return await call("", path, { ...opts, token: session.arena?.accessToken }); }
+  catch (e) {
+    if (e.status !== 401 || !session.arena) throw e;
+    await refreshArena();
+    return call("", path, { ...opts, token: session.arena?.accessToken });
+  }
+}
+export const syndicatesApi = {
+  /** { launchUrl }: the Switchyard, signed in as this Agent (one use, 90 s). */
+  launch: async (agentId) => (demo ? { launchUrl: "/world/syndicates/?embed=1", sandbox: true } : syndicatesCall("/api/syndicates/launch", { method: "POST", body: { agentId } })),
+  /** The Agent's verified receipts, newest first (at most 50). */
+  record: async (agentId) => (demo ? demo.syndicateRecord(agentId) : (await syndicatesCall(`/api/syndicates/record${q({ agentId })}`))?.receipts ?? [])
+};
+
 // ------------------------------------------------------------------ admin
 // The game build editor (public/admin/). The Kult backend lets in only the
 // wallets in its ADMIN_WALLETS.

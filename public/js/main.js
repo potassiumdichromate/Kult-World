@@ -23,6 +23,7 @@ import { createQuickStart } from "./quickstart.js";
 import { createDealRoom } from "./dealroom.js";
 import { createArena, arenaAmount } from "./arena.js";
 import { createHubOS } from "./hubos.js";
+import { createSyndicates } from "./syndicates.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES,
   agentFromApi, loadProgress, saveProgress
@@ -409,6 +410,7 @@ async function refreshLive() {
   if (battles.status === "fulfilled") p.battles = battles.value;
   if (agent.status === "fulfilled" && agent.value?.id) { p.raw = agent.value; p.agent = agentFromApi(agent.value); }
   if (state.inWorld) { renderPassport(); renderQuests(); }
+  void syndicates.sync();
 }
 
 function setArena(v) {
@@ -561,7 +563,7 @@ function enterWorld(fresh) {
 }
 
 // ------------------------------------------------------------------ passport drawer
-const STAMPS = [["park", "PARK", "#ffc94d"], ["hub", "HUB", "#ff4fa3"], ["create", "CREATE", "#ff7eb6"], ["sports", "SPORTS", "#3ddc84"], ["deal", "DEAL", "#ffd27a"], ["market", "OKX", "#e8e8e8"], ["a2a", "A2A", "#3d7bff"], ["dex", "DEX", "#5ec8f2"], ["production", "FILM", "#ffc94d"]];
+const STAMPS = [["syndicate", "SYNDICATE", "#ff6a3d"], ["park", "PARK", "#ffc94d"], ["hub", "HUB", "#ff4fa3"], ["create", "CREATE", "#ff7eb6"], ["sports", "SPORTS", "#3ddc84"], ["deal", "DEAL", "#ffd27a"], ["market", "OKX", "#e8e8e8"], ["a2a", "A2A", "#3d7bff"], ["dex", "DEX", "#5ec8f2"], ["production", "FILM", "#ffc94d"]];
 const STAMP_ART = { hub: "arcade" };
 const balText = (v) => (v === null || v === undefined ? "—" : fmt(v));
 function battleLine(b, me) {
@@ -633,6 +635,7 @@ function renderPassport() {
         el("div", { style: "min-width:0" }, el("div", { class: "bn" }, t(`biz.${b.id}.name`)), el("div", { class: "bs" }, t(b.status === "open" ? "biz.openIt" : "biz.soonSub", { brand: b.brand }))),
         el("span", { class: `st ${b.status}` }, t(b.status === "open" ? "st.open" : "st.soon"))))),
       el("button", { type: "button", class: "btn ghost small", onclick: () => { togglePassport(false); openOkxOwner(); } }, t("okx.manage"))),
+    syndicates.section(section),
     section(t("pp.quests"), t("pp.questsLocal"), p.quests.map((q) => el("div", { class: `quest${q.progress >= q.target ? " done" : ""}` },
       el("div", { class: "qh" }, el("span", { class: "ic ic-quest" }, t(`quest.${q.id}`)), el("span", { class: "qr" }, `+${q.reward} XP`)),
       el("div", { class: "bar" }, el("i", { style: `--c:var(--green);width:${Math.round((Math.min(q.progress, q.target) / q.target) * 100)}%` })),
@@ -714,7 +717,7 @@ addEventListener("keydown", (e) => {
   if (e.key === "Escape") { if (hubos.back()) return; if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
   if (anyOpen()) return;
   const k = e.key.toLowerCase();
-  const go = { 1: "create", 2: "park", 3: "hub", 4: "deal", 5: "market", 6: "a2a" }[k];
+  const go = { 1: "create", 2: "park", 3: "hub", 4: "deal", 5: "market", 6: "a2a", 7: "syndicate" }[k];
   if (go) travel(go); else if (k === "q") openQuickStart(); else if (k === "p") togglePassport(); else if (k === "c") world.recenter(); else if (k === "l") openBoard(); else if (k === "h") setHand(!handOn);
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
@@ -745,6 +748,7 @@ function openPlace(b, then) {
   else if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); quest("visit-park"); }
   if (b.kind === "hub") { openHub(then); stamp("hub"); }
   if (b.kind === "deal") { show("deal"); stamp("deal"); void dealRoom.open($("deal-body")); }
+  if (b.kind === "syndicate") void syndicates.enter();
   if (b.kind === "market") { marketTab = b.tab; renderMarket(); show("market"); stamp(b.id); }
   commit();
 }
@@ -822,7 +826,7 @@ async function openApp(b) {
   }
   commit();
 }
-$("app-back").addEventListener("click", () => { show("app-frame", false); $("app-iframe").src = "about:blank"; toast(t("toast.back")); });
+$("app-back").addEventListener("click", () => { show("app-frame", false); $("app-iframe").src = "about:blank"; toast(t("toast.back")); syndicates.left(); });
 
 // ------------------------------------------------------------------ game hub
 // Real AI Arena battles (js/battle.js): matchmaking, the Unity builds and the
@@ -969,6 +973,16 @@ const hubos = createHubOS({
   goStudio: () => { hubos.close(); travel("create"); },
   refreshLive: () => refreshLive().then(() => hubos.refresh()),
   onPlay: (name) => { if (!state.player) return; addActivity(t("act.played", { game: name })); commit(); }
+});
+// Kult Syndicates: the Switchyard depot opens the district signed in as the
+// player's Agent (js/syndicates.js); its receipts fill the Passport and 0G memory.
+const syndicates = createSyndicates({
+  el, t, toast, sound, ago, show,
+  player: () => state.player,
+  onEnter: () => { stamp("syndicate"); addActivity(t("act.syndicate")); commit(); },
+  onReceipt: (r, mission, outcome) => { addActivity(t("act.synReceipt", { mission, outcome })); commit(); },
+  onRecord: () => { if (state.inWorld) renderPassport(); },
+  goSwitchyard: () => { togglePassport(false); travel("syndicate"); }
 });
 // Entering the hub boots KULT-OS on its desktop; a challenge, or the quick
 // start's Play, goes straight to the AI Gaming folder.

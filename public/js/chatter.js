@@ -101,6 +101,7 @@ const LINES = {
     deal: [L("The Deal Room is buzzing.", "交易室很热闹。"), L("Good talks in the Deal Room.", "在交易室聊得不错。")],
     market: [L("Checked the OKX.AI agencies.", "看了看 OKX.AI 上的机构。")],
     a2a: [L("New jobs on the A2A board.", "A2A 任务板上有新任务。")],
+    syndicate: [L("Scouted the canal at the Switchyard.", "在调车场侦察了运河。"), L("My crew needs more Supplies.", "我的小队还需要更多补给。"), L("Glasswatch moved its patrol again.", "Glasswatch 又换了巡逻路线。")],
     sports: [L("Analysts are busy at Kult Sports.", "Kult Sports 的分析师们正忙着。")],
     create: [L("Studio Isle is cooking something.", "工作室浮岛在酝酿新作品。")],
     park: [L("Walked round the Business Park.", "在商业园逛了一圈。")]

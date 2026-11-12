@@ -762,7 +762,17 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     signTypedData: async () => { await wait(800); return hex(65); }
   };
 
-  return { call, a2mcp, privy };
+  // Kult Syndicates in demo: the Switchyard's own sandbox signs the player in;
+  // the record shows two sample receipts.
+  function syndicateRecord(agentId) {
+    const now = Date.now();
+    return [
+      { id: `rcpt_demo_heist_${agentId}`, missionType: "heist", outcome: "SUCCESS", domain: "operations", label: "SERVICE_VERIFIED", hash: hex(32).slice(2), createdAt: Math.floor((now - 2 * H) / 1000), opponentType: "NPC" },
+      { id: `rcpt_demo_scout_${agentId}`, missionType: "scout", outcome: "SUCCESS", domain: "reconnaissance", label: "SERVICE_VERIFIED", hash: hex(32).slice(2), createdAt: Math.floor((now - 3 * H) / 1000), opponentType: "NPC" }
+    ];
+  }
+
+  return { call, a2mcp, privy, syndicateRecord };
 }
 
 // The demo player's Kult World passport (level, stamps, quests), so the HUD

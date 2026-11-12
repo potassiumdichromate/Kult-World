@@ -32,6 +32,8 @@ export const DISTRICTS = [
   { id: "hub", x0: 30, y0: 2, x1: 45, y1: 26 },
   { id: "deal", x0: 45, y0: 2, x1: 55, y1: 26 },
   { id: "market", x0: 2, y0: 30, x1: 27, y1: 55 },
+  // The Switchyard: Kult Syndicates' rail depot, the front-left of the gardens.
+  { id: "switchyard", x0: 30, y0: 43, x1: 39, y1: 56 },
   { id: "garden", x0: 30, y0: 30, x1: 55, y1: 55 }
 ];
 
@@ -52,6 +54,7 @@ export const POND = { x: 40, y: 40, r: 3.8 };
 disc(POND.x, POND.y, POND.r, "w");
 paint(41, 30, 44, 37, "p");                // garden path to the pond
 paint(48, 31, 51, 40, "p");                // garden path to the Studio Isle bridge
+paint(30, 50, 38, 53, "p");                // the Switchyard's forecourt, off the north-south avenue
 // Studio Isle: a path from the bridge round the studio to its forecourt.
 paint(46, 46, 54, 48, "p"); paint(46, 48, 47, 53, "p"); paint(53, 48, 54, 53, "p"); paint(46, 53, 54, 56, "p");
 
@@ -68,7 +71,9 @@ export const BUILDINGS = [
   { id: "hub", kind: "hub", slot: "bld-game-hub", x0: 31, y0: 2, x1: 44, y1: 17, h: 20, door: [37, 17], color: "#a96bff" },
   { id: "deal", kind: "deal", slot: "bld-deal-room", x0: 46, y0: 3, x1: 53, y1: 11, h: 18, door: [49, 11], color: "#ffc94d" },
   { id: "market", kind: "market", tab: "okx", slot: "bld-okx-market", x0: 4, y0: 34, x1: 14, y1: 44, h: 13, door: [9, 44], color: "#e8e8e8" },
-  { id: "a2a", kind: "market", tab: "jobs", slot: "bld-base-market", x0: 16, y0: 34, x1: 26, y1: 44, h: 11, door: [21, 44], color: "#3d7bff" }
+  { id: "a2a", kind: "market", tab: "jobs", slot: "bld-base-market", x0: 16, y0: 34, x1: 26, y1: 44, h: 11, door: [21, 44], color: "#3d7bff" },
+  // Kult Syndicates (the Switchyard), served at /world/syndicates/. Kept clear of Studio Isle's ring of sky.
+  { id: "syndicate", kind: "syndicate", slot: "bld-syndicate", x0: 31, y0: 45, x1: 38, y1: 50, h: 9, door: [34, 50], color: "#ff6a3d" }
 ];
 export const ENTERABLE = BUILDINGS;
 export const FOUNTAIN = { x: CENTER[0], y: CENTER[1], r: 2.2 };

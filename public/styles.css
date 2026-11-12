@@ -1768,3 +1768,12 @@ body:has(#hub:not([hidden])) .corner-tools { display: none; }
 .os-lb .r { font: 700 12px var(--display); color: var(--muted); }
 .os-lb .s { font: 700 13px var(--display); color: var(--gd); font-variant-numeric: tabular-nums; }
 .os-lbtn[aria-pressed="true"] { filter: brightness(1.35) drop-shadow(0 0 8px rgba(242, 193, 78, 0.7)); }
+
+/* Passport: the Agent's Kult Syndicates record (js/syndicates.js) */
+.syn-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.syn-list li { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 7px 10px; border-radius: 8px; font-size: 12px; background: rgba(255, 106, 61, 0.07); border: 1px solid rgba(255, 106, 61, 0.22); }
+.syn-list b { font: 700 13px var(--display); }
+.syn-list .syn-o { font: 700 11px var(--display); letter-spacing: 0.06em; color: var(--muted); }
+.syn-list .o-success .syn-o { color: var(--green); }
+.syn-list .o-miss .syn-o { color: var(--red); }
+.syn-list time { color: var(--dim); font-size: 11px; }
