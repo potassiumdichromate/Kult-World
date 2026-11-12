@@ -506,7 +506,9 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     if (path === "/player/login") return ok({ data: { token: "demo-kult" } });
     if (path === "/player/profile") return ok({ data: { profile: { ...db.profile, walletAddress: WALLET } } });
     // The legacy catalog: the real titles and their public game builds.
-    if (path === "/games/all") return ok({ ok: true, data: LEGACY });
+    // The list has no play links; one game's record has its build.
+    if (path === "/games/all") return ok({ ok: true, data: LEGACY.map(({ url, ...g }) => g) });
+    { const g = /^\/games\/([^/]+)$/.exec(path) && LEGACY.find((x) => x.identification === path.slice(7)); if (g) return ok({ ok: true, data: { game: g } }); }
     return fail(404, "Not found");
   }
 

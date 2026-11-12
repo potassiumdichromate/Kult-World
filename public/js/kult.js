@@ -264,6 +264,21 @@ export const explorer = {
 };
 
 // ------------------------------------------------------------------ Kult backend
+const gameText = (v) => (typeof v === "string" ? v : v?.en ?? Object.values(v ?? {})[0] ?? "");
+// A Kult backend game in Kult World's shape (kult-games-v3 src/api/gamesApi.ts
+// normalizeGame and src/lib/gameDownload.ts).
+function gameFromApi(g) {
+  const md = g.metadata ?? {};
+  const download = Boolean(g.isDownloadable ?? g.is_downloadable);
+  return {
+    id: String(g.identification ?? g.slug ?? g.id ?? "").toLowerCase().replace(/[\s_-]+/g, ""),
+    name: gameText(g.name),
+    url: (download ? md.download_url || md.downloadUrl : md.play_url) || g.url || null,
+    download,
+    plays: pickNum(g.play_count, g.plays),
+    rating: pickNum(g.rating)
+  };
+}
 const pickNum = (...v) => { for (const x of v) { const n = Number(x); if (x !== null && x !== undefined && x !== "" && Number.isFinite(n)) return n; } return null; };
 export const kultApi = {
   /** The KP leaderboard (public). Same call as kult-games-v3 src/api/leaderboardApi.ts. */
@@ -283,18 +298,21 @@ export const kultApi = {
     };
   },
   /** The legacy game catalog (public): GET /games/all, as kult-games-v3 src/api/gamesApi.ts reads it. */
+  /** The legacy game list (public). It has no play links: those come from game(). */
   games: async () => {
     const d = await kult("/games/all", { auth: false });
     const list = Array.isArray(d?.data) ? d.data : Array.isArray(d?.data?.games) ? d.data.games : Array.isArray(d) ? d : [];
-    const text = (v) => (typeof v === "string" ? v : v?.en ?? Object.values(v ?? {})[0] ?? "");
-    return list.map((g) => ({
-      id: String(g.identification ?? g.slug ?? g.id ?? "").toLowerCase().replace(/[\s_-]+/g, ""),
-      name: text(g.name),
-      url: g.metadata?.play_url || g.url || null,
-      download: Boolean(g.isDownloadable ?? g.is_downloadable),
-      plays: pickNum(g.play_count, g.plays),
-      rating: pickNum(g.rating)
-    }));
+    return list.map(gameFromApi);
+  },
+  /**
+   * One legacy game with its build: url is the game's play page (or Unity
+   * build folder), or the file to download. The old browser's play page reads
+   * it from here too (kult-games-v3 gamesApi.getById, GET /games/:id).
+   */
+  game: async (id) => {
+    const d = await kult(`/games/${enc(id)}`, { auth: false });
+    const raw = d?.data?.game ?? d?.data ?? d?.game ?? d;
+    return raw && typeof raw === "object" ? gameFromApi(raw) : null;
   },
   profile: async () => {
     const d = await kult("/player/profile");

@@ -164,12 +164,16 @@ export function createHubOS(ctx) {
   }
 
   // ---------------------------------------------------------------- legacy games
+  // Each legacy game's own record carries its build (the list has none), so
+  // every game is fetched by id, as the old browser's play page does.
   async function loadLegacy(force = false) {
     if (!force && legacy && Date.now() - legacyAt < 5 * 60_000) return legacy;
-    const live = await kultApi.games().catch((e) => { console.warn("[kult-world] game catalog", e.message); return null; });
-    const byId = new Map((live || []).map((g) => [g.id, g]));
-    legacy = { offline: !live, list: LEGACY_GAMES.map((g) => ({ ...g, live: byId.get(g.id) || null })) };
-    legacyAt = Date.now();
+    const got = await Promise.allSettled(LEGACY_GAMES.map((g) => kultApi.game(g.id)));
+    const failed = got.filter((r) => r.status === "rejected");
+    if (failed.length) console.warn("[kult-world] game catalog", failed[0].reason?.message);
+    legacy = { offline: failed.length === got.length, list: LEGACY_GAMES.map((g, i) => ({ ...g, live: got[i].status === "fulfilled" ? got[i].value : null })) };
+    // A game that failed is tried again next time the folder opens.
+    legacyAt = failed.length ? 0 : Date.now();
     return legacy;
   }
   const head = (key, extra = null) => el("div", { class: "os-head" },
