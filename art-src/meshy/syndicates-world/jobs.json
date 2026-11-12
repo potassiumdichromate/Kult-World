@@ -10,7 +10,9 @@
         "01a1cf6c-7ad5-73c9-9100-958278cbe29a"
       ],
       "pick": "01a1cf6c-777a-70cb-a9b3-eb37db09067e",
-      "model": "01a1cf6d-fc34-7698-b155-8882e456c383"
+      "model": "01a1cf6d-fc34-7698-b155-8882e456c383",
+      "remesh": "01a1cf9b-04f8-7254-abd1-248dd03ccb8a",
+      "remeshPolycount": 6000
     },
     {
       "name": "tile-road",
@@ -21,7 +23,9 @@
         "01a1cf6c-7d46-7529-a9ac-f00ae49d74ac"
       ],
       "pick": "01a1cf6c-7d46-7529-a9ac-f00ae49d74ac",
-      "model": "01a1cf6e-025c-7765-8d34-3ba8a84c3f30"
+      "model": "01a1cf6e-025c-7765-8d34-3ba8a84c3f30",
+      "remesh": "01a1cf9e-b445-7157-b546-5bb935c3e7ad",
+      "remeshPolycount": 6000
     },
     {
       "name": "tile-junction",
@@ -32,7 +36,9 @@
         "01a1cf6c-7fb4-7497-ae82-41a06c56dd91"
       ],
       "pick": "01a1cf6c-7e6c-71cf-a11d-611778e49d2b",
-      "model": "01a1cf6e-05a3-76d7-8736-8e83e8e41768"
+      "model": "01a1cf6e-05a3-76d7-8736-8e83e8e41768",
+      "remesh": "01a1cf9e-b791-7461-8859-86384f853e49",
+      "remeshPolycount": 6000
     },
     {
       "name": "tile-rail",
@@ -43,7 +49,9 @@
         "01a1cf6c-82a2-73a6-9470-bff8f395cce8"
       ],
       "pick": "01a1cf6c-80eb-75ee-b0cb-c81a6c9cb1e7",
-      "model": "01a1cf6e-0a97-7589-be0f-6eeb0de4e1ad"
+      "model": "01a1cf6e-0a97-7589-be0f-6eeb0de4e1ad",
+      "remesh": "01a1cf9e-b8e1-7682-ab78-2d26e3148d44",
+      "remeshPolycount": 6000
     },
     {
       "name": "tile-canal",
@@ -54,7 +62,9 @@
         "01a1cf6c-8502-7518-9ea4-4d29fd9946b5"
       ],
       "pick": "01a1cf6c-8502-7518-9ea4-4d29fd9946b5",
-      "model": "01a1cf6e-0e76-7558-a0a8-c375ac4acb0a"
+      "model": "01a1cf6e-0e76-7558-a0a8-c375ac4acb0a",
+      "remesh": "01a1cf9e-ba2d-7390-96ca-b88feddec130",
+      "remeshPolycount": 6000
     },
     {
       "name": "tile-bridge",
@@ -65,7 +75,9 @@
         "01a1cf6c-8763-75f2-9ae7-77b8452178dc"
       ],
       "pick": "01a1cf6c-863b-7386-a430-97472f03b308",
-      "model": "01a1cf6e-1241-715c-8945-16fdc0679d3a"
+      "model": "01a1cf6e-1241-715c-8945-16fdc0679d3a",
+      "remesh": "01a1cf9e-bb85-71a1-8349-ca25cc72185f",
+      "remeshPolycount": 10000
     },
     {
       "name": "island-rock",
@@ -76,7 +88,9 @@
         "01a1cf6c-89c0-766c-87ba-7b849336c779"
       ],
       "pick": "01a1cf6c-888f-71b0-a9ba-d38e07e00ac8",
-      "model": "01a1cf6e-1701-70f4-acc6-662f6f2cd765"
+      "model": "01a1cf6e-1701-70f4-acc6-662f6f2cd765",
+      "remesh": "01a1cf9e-bcc4-74aa-83d2-106d3719ff3f",
+      "remeshPolycount": 20000
     },
     {
       "name": "prop-locomotive",
@@ -86,7 +100,9 @@
         "01a1cf6c-8aed-713b-a17b-41c27e779647"
       ],
       "pick": "01a1cf6c-8aed-713b-a17b-41c27e779647",
-      "model": "01a1cf6e-1b9f-776c-afe5-943c60e8ee6a"
+      "model": "01a1cf6e-1b9f-776c-afe5-943c60e8ee6a",
+      "remesh": "01a1cf9e-be0d-7672-b967-afee9e52be2f",
+      "remeshPolycount": 15000
     },
     {
       "name": "prop-containers",
@@ -96,7 +112,9 @@
         "01a1cf6c-8c19-70a7-b4eb-2f121fb24dbf"
       ],
       "pick": "01a1cf6c-8c19-70a7-b4eb-2f121fb24dbf",
-      "model": "01a1cf6e-20c8-713a-b304-47430e8868f5"
+      "model": "01a1cf6e-20c8-713a-b304-47430e8868f5",
+      "remesh": "01a1cf9e-bf61-74c5-8d29-850e8566ae72",
+      "remeshPolycount": 12000
     },
     {
       "name": "prop-signal",
@@ -106,7 +124,9 @@
         "01a1cf6c-8d3a-71c5-a297-b8af9c0c9fd4"
       ],
       "pick": "01a1cf6c-8d3a-71c5-a297-b8af9c0c9fd4",
-      "model": "01a1cf6e-2513-7296-9bfb-1a38c94c570f"
+      "model": "01a1cf6e-2513-7296-9bfb-1a38c94c570f",
+      "remesh": "01a1cf9e-c0bd-72a8-970b-3414d52258ca",
+      "remeshPolycount": 12000
     },
     {
       "name": "prop-crates",
@@ -116,7 +136,9 @@
         "01a1cf6c-8e5b-7177-89e8-a68e644cffcc"
       ],
       "pick": "01a1cf6c-8e5b-7177-89e8-a68e644cffcc",
-      "model": "01a1cf6e-28de-74d4-83f1-f208695043c2"
+      "model": "01a1cf6e-28de-74d4-83f1-f208695043c2",
+      "remesh": "01a1cf9e-c215-744f-9887-b13e585640ea",
+      "remeshPolycount": 12000
     },
     {
       "name": "prop-barrier",
@@ -126,7 +148,9 @@
         "01a1cf6c-8f8a-75e5-ba68-92a06d3c9e77"
       ],
       "pick": "01a1cf6c-8f8a-75e5-ba68-92a06d3c9e77",
-      "model": "01a1cf6e-2cef-734d-8dfa-2c40015ec4ba"
+      "model": "01a1cf6e-2cef-734d-8dfa-2c40015ec4ba",
+      "remesh": "01a1cf9e-c369-713d-ad2c-24d857030d11",
+      "remeshPolycount": 12000
     },
     {
       "name": "prop-water-tower",
@@ -136,7 +160,9 @@
         "01a1cf6c-90b5-7106-bba7-7775a746de27"
       ],
       "pick": "01a1cf6c-90b5-7106-bba7-7775a746de27",
-      "model": "01a1cf6e-3073-737f-91be-e0ff929f7983"
+      "model": "01a1cf6e-3073-737f-91be-e0ff929f7983",
+      "remesh": "01a1cf9e-c4b2-7270-bbd6-f89f7f20a93a",
+      "remeshPolycount": 12000
     },
     {
       "name": "prop-gantry",
@@ -146,7 +172,9 @@
         "01a1cf6c-91d6-7033-ba26-0b6e6aacbce0"
       ],
       "pick": "01a1cf6c-91d6-7033-ba26-0b6e6aacbce0",
-      "model": "01a1cf6e-369c-741b-95f1-41976572220d"
+      "model": "01a1cf6e-369c-741b-95f1-41976572220d",
+      "remesh": "01a1cf9e-c5fc-7211-b192-9e4a30cebc91",
+      "remeshPolycount": 12000
     }
   ]
 }

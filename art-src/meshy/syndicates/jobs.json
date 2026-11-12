@@ -10,7 +10,9 @@
         "01a1ced5-d7ba-756c-b485-51bf53f20ae2"
       ],
       "pick": "01a1ced5-d47a-7195-b5eb-941272675bf7",
-      "model": "01a1ced7-626a-7269-87f4-382b7e7569c0"
+      "model": "01a1ced7-626a-7269-87f4-382b7e7569c0",
+      "remesh": "01a1cf9e-c745-7333-abba-01a5577a264f",
+      "remeshPolycount": 40000
     },
     {
       "name": "lantern-house",
@@ -19,7 +21,9 @@
         "01a1ced5-d8f2-771f-a635-5e1d4bb89378"
       ],
       "pick": "01a1ced5-d8f2-771f-a635-5e1d4bb89378",
-      "model": "01a1ced7-686f-75d4-968b-ed419ec060eb"
+      "model": "01a1ced7-686f-75d4-968b-ed419ec060eb",
+      "remesh": "01a1cf9e-c8a2-7597-8adf-1c52c7124acf",
+      "remeshPolycount": 30000
     },
     {
       "name": "canal-watch",
@@ -28,7 +32,9 @@
         "01a1ced5-da27-73cc-8647-8832f5e874de"
       ],
       "pick": "01a1ced5-da27-73cc-8647-8832f5e874de",
-      "model": "01a1ced7-6bec-774a-8e27-f08ddfac370e"
+      "model": "01a1ced7-6bec-774a-8e27-f08ddfac370e",
+      "remesh": "01a1cf9e-c9ee-70e5-bedd-42003e45da5d",
+      "remeshPolycount": 30000
     },
     {
       "name": "union-crossing",
@@ -37,7 +43,9 @@
         "01a1ced5-db4d-74c6-97ad-181322203d51"
       ],
       "pick": "01a1ced5-db4d-74c6-97ad-181322203d51",
-      "model": "01a1ced7-705e-72c2-af03-fc7512644d6a"
+      "model": "01a1ced7-705e-72c2-af03-fc7512644d6a",
+      "remesh": "01a1cf9e-cb39-7189-9b0c-0a1ff303eaa4",
+      "remeshPolycount": 30000
     },
     {
       "name": "midnight-depot",
@@ -46,7 +54,9 @@
         "01a1ced5-dc80-75c0-82eb-7c09a6ae6636"
       ],
       "pick": "01a1ced5-dc80-75c0-82eb-7c09a6ae6636",
-      "model": "01a1ced7-7470-7183-9053-4dc9efb7fbc7"
+      "model": "01a1ced7-7470-7183-9053-4dc9efb7fbc7",
+      "remesh": "01a1cf9e-cc78-7791-a89d-d4b98f33845f",
+      "remeshPolycount": 30000
     },
     {
       "name": "signal-gate",
@@ -55,7 +65,9 @@
         "01a1ced5-ddaf-75d8-960a-9d8c7fb4cb94"
       ],
       "pick": "01a1ced5-ddaf-75d8-960a-9d8c7fb4cb94",
-      "model": "01a1ced7-78c2-775c-a519-b3ba3e8e067f"
+      "model": "01a1ced7-78c2-775c-a519-b3ba3e8e067f",
+      "remesh": "01a1cf9e-cdcd-7185-bfb8-4f865f5d0d95",
+      "remeshPolycount": 30000
     },
     {
       "name": "copper-workshop",
@@ -64,7 +76,9 @@
         "01a1ced5-decc-76b0-810d-305f06616107"
       ],
       "pick": "01a1ced5-decc-76b0-810d-305f06616107",
-      "model": "01a1ced7-7ce6-73c0-9362-68d30ee3ecc4"
+      "model": "01a1ced7-7ce6-73c0-9362-68d30ee3ecc4",
+      "remesh": "01a1cf9e-cf15-755c-ab21-8daef98c9e33",
+      "remeshPolycount": 30000
     },
     {
       "name": "rooftop-garden",
@@ -73,7 +87,9 @@
         "01a1ced5-dff6-701b-8023-b9408c235235"
       ],
       "pick": "01a1ced5-dff6-701b-8023-b9408c235235",
-      "model": "01a1ced7-814b-752a-b22e-bcab628aa9fe"
+      "model": "01a1ced7-814b-752a-b22e-bcab628aa9fe",
+      "remesh": "01a1cf9e-d05a-75b7-805c-3956d8b3e0c9",
+      "remeshPolycount": 30000
     }
   ]
 }
