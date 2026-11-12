@@ -73,7 +73,7 @@ export const BUILDINGS = [
   { id: "market", kind: "market", tab: "okx", slot: "bld-okx-market", x0: 4, y0: 34, x1: 14, y1: 44, h: 13, door: [9, 44], color: "#e8e8e8" },
   { id: "a2a", kind: "market", tab: "jobs", slot: "bld-base-market", x0: 16, y0: 34, x1: 26, y1: 44, h: 11, door: [21, 44], color: "#3d7bff" },
   // Kult Syndicates (the Switchyard), served at /world/syndicates/. Kept clear of Studio Isle's ring of sky.
-  { id: "syndicate", kind: "syndicate", slot: "bld-syndicate", x0: 31, y0: 45, x1: 38, y1: 50, h: 9, door: [34, 50], color: "#ff6a3d" }
+  { id: "syndicate", kind: "syndicate", slot: "bld-syndicate", x0: 31, y0: 44, x1: 38, y1: 50, h: 10, door: [34, 50], color: "#ff6a3d" }
 ];
 export const ENTERABLE = BUILDINGS;
 export const FOUNTAIN = { x: CENTER[0], y: CENTER[1], r: 2.2 };

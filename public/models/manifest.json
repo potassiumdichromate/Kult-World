@@ -24,5 +24,6 @@
   "agent-hybrid": "agent-hybrid.glb",
   "agent-support": "agent-support.glb",
   "bld-okx-market": "bld-okx-market.glb",
-  "bld-base-market": "bld-base-market.glb"
+  "bld-base-market": "bld-base-market.glb",
+  "bld-syndicate": "bld-syndicate.glb"
 }

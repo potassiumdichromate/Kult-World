@@ -5,3 +5,5 @@ art-src/characters/*/*.glb
 # built by npm run build (privy-login/)
 public/privy/
 data/
+art-src/meshy/syndicates/*.glb
+art-src/meshy/syndicates/out/

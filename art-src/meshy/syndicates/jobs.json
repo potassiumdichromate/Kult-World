@@ -1,0 +1,79 @@
+{
+  "dir": "art-src/meshy/syndicates",
+  "jobs": [
+    {
+      "name": "syndicates-hq",
+      "variants": 2,
+      "prompt": "Stylized 3D game building, isometric three-quarter view from the front-right with the main entrance facing the viewer, a single building isolated on a pure black background. KULT SYNDICATES HEADQUARTERS: a converted rail depot turned underground syndicate headquarters. A wide brick-and-dark-steel warehouse with a sawtooth roof and glowing skylights, a huge glowing hot-orange freight door as the main entrance, a rooftop water tower wearing a glowing neon crest of an interlocked chain link, stacked shipping containers on the right side, a short rail track crossing the front with a small parked locomotive, catwalks, a signal mast with a red lamp, warm string lights. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal walls (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights, warm amber windows, every light and sign glowing. No text, no letters, no logos, no people, no large ground plane.",
+      "concepts": [
+        "01a1ced5-d47a-7195-b5eb-941272675bf7",
+        "01a1ced5-d7ba-756c-b485-51bf53f20ae2"
+      ],
+      "pick": "01a1ced5-d47a-7195-b5eb-941272675bf7",
+      "model": "01a1ced7-626a-7269-87f4-382b7e7569c0"
+    },
+    {
+      "name": "lantern-house",
+      "prompt": "Stylized 3D game building, isometric three-quarter view from the front-right with the door facing the viewer, a single small building isolated on a pure black background. LANTERN HOUSE, a syndicate safehouse: a narrow three-storey townhouse of dark brick, a big glowing hot-orange paper lantern hanging over the front door, warm amber windows, a rooftop with a small antenna and a satellite dish, ivy on one wall, a little stoop with steps. Chunky toy-like proportions, bevelled edges, clean silhouette. Night 'Neon Dusk' palette: deep violet and gunmetal (#2a1650, #1b1838) with glowing hot orange (#ff6a3d), magenta (#ff4fa3) and cyan (#4fd8ff) neon accents. No text, no letters, no people.",
+      "concepts": [
+        "01a1ced5-d8f2-771f-a635-5e1d4bb89378"
+      ],
+      "pick": "01a1ced5-d8f2-771f-a635-5e1d4bb89378",
+      "model": "01a1ced7-686f-75d4-968b-ed419ec060eb"
+    },
+    {
+      "name": "canal-watch",
+      "prompt": "Stylized 3D game building, isometric three-quarter view from the front-right, a single small structure isolated on a pure black background. CANAL WATCH: a lookout tower on steel stilts standing over a short stretch of glowing cyan canal water in a stone channel, a glass lookout cabin on top with a rotating searchlight, a small drone docking pad, a ladder and a narrow footbridge. Chunky toy-like proportions, bevelled edges, clean silhouette. Night 'Neon Dusk' palette: deep violet and gunmetal (#2a1650, #1b1838), glowing cyan (#4fd8ff) water and searchlight, hot orange (#ff6a3d) warning lights. No text, no letters, no people.",
+      "concepts": [
+        "01a1ced5-da27-73cc-8647-8832f5e874de"
+      ],
+      "pick": "01a1ced5-da27-73cc-8647-8832f5e874de",
+      "model": "01a1ced7-6bec-774a-8e27-f08ddfac370e"
+    },
+    {
+      "name": "union-crossing",
+      "prompt": "Stylized 3D game building, isometric three-quarter view from the front-right, a single small structure isolated on a pure black background. UNION CROSSING, a neutral meeting point: an open market pavilion sitting on a small arched stone footbridge, a round table with chairs under a glowing teal-green canopy, hanging plants and lanterns, small stalls with awnings. Chunky toy-like proportions, bevelled edges, clean silhouette. Night 'Neon Dusk' palette: deep violet and stone (#2a1650, #5d5592) with glowing teal green (#3ddc84), gold (#ffc94d) and magenta (#ff4fa3) accents. No text, no letters, no people.",
+      "concepts": [
+        "01a1ced5-db4d-74c6-97ad-181322203d51"
+      ],
+      "pick": "01a1ced5-db4d-74c6-97ad-181322203d51",
+      "model": "01a1ced7-705e-72c2-af03-fc7512644d6a"
+    },
+    {
+      "name": "midnight-depot",
+      "prompt": "Stylized 3D game building, isometric three-quarter view from the front-right with the loading bay facing the viewer, a single small building isolated on a pure black background. MIDNIGHT DEPOT, a guarded freight depot: a squat armoured warehouse with a heavy vault-like loading bay door, stacked wooden crates and a cargo container, a small gantry crane, two sweeping searchlights, glowing cyan security scanners and laser gates. Chunky toy-like proportions, bevelled edges, clean silhouette. Night 'Neon Dusk' palette: dark gunmetal and violet (#1b1838, #2a1650) with glowing cyan (#4fd8ff) security lights and hot orange (#ff6a3d) hazard stripes. No text, no letters, no people.",
+      "concepts": [
+        "01a1ced5-dc80-75c0-82eb-7c09a6ae6636"
+      ],
+      "pick": "01a1ced5-dc80-75c0-82eb-7c09a6ae6636",
+      "model": "01a1ced7-7470-7183-9053-4dc9efb7fbc7"
+    },
+    {
+      "name": "signal-gate",
+      "prompt": "Stylized 3D game structure, isometric three-quarter view from the front-right, a single structure isolated on a pure black background. SIGNAL GATE: a fortified steel archway spanning a short stretch of railway track, two big railway signal lamps glowing red and amber, sandbag and concrete barricades, a small control booth with a lit window, warning chevrons. Chunky toy-like proportions, bevelled edges, clean silhouette. Night 'Neon Dusk' palette: gunmetal and violet (#1b1838, #2a1650) with glowing red (#ff3b2f), amber (#ffb347) and hot orange (#ff6a3d) lights. No text, no letters, no people.",
+      "concepts": [
+        "01a1ced5-ddaf-75d8-960a-9d8c7fb4cb94"
+      ],
+      "pick": "01a1ced5-ddaf-75d8-960a-9d8c7fb4cb94",
+      "model": "01a1ced7-78c2-775c-a519-b3ba3e8e067f"
+    },
+    {
+      "name": "copper-workshop",
+      "prompt": "Stylized 3D game building, isometric three-quarter view from the front-right with the door facing the viewer, a single small building isolated on a pure black background. COPPER WORKSHOP: a small brick workshop with a patinated copper roof, a tall chimney with a faint glow, a big open door showing a glowing furnace, copper pipes and big gears on the walls, a workbench with tools outside. Chunky toy-like proportions, bevelled edges, clean silhouette. Night 'Neon Dusk' palette: violet brick (#2a1650) with copper (#c8763c) and glowing hot orange (#ff6a3d) furnace light and small cyan (#4fd8ff) accents. No text, no letters, no people.",
+      "concepts": [
+        "01a1ced5-decc-76b0-810d-305f06616107"
+      ],
+      "pick": "01a1ced5-decc-76b0-810d-305f06616107",
+      "model": "01a1ced7-7ce6-73c0-9362-68d30ee3ecc4"
+    },
+    {
+      "name": "rooftop-garden",
+      "prompt": "Stylized 3D game building, isometric three-quarter view from the front-right, a single small building isolated on a pure black background. ROOFTOP GARDEN: a two-storey building crowned by a glass greenhouse dome full of lush plants under glowing magenta and green grow lights, terraced planters spilling greenery down the walls, a small water tank, string lights. Chunky toy-like proportions, bevelled edges, clean silhouette. Night 'Neon Dusk' palette: violet and gunmetal (#2a1650, #1b1838) with glowing magenta (#ff4fa3), green (#3ddc84) and warm amber accents. No text, no letters, no people.",
+      "concepts": [
+        "01a1ced5-dff6-701b-8023-b9408c235235"
+      ],
+      "pick": "01a1ced5-dff6-701b-8023-b9408c235235",
+      "model": "01a1ced7-814b-752a-b22e-bcab628aa9fe"
+    }
+  ]
+}

@@ -982,7 +982,20 @@ const syndicates = createSyndicates({
   onEnter: () => { stamp("syndicate"); addActivity(t("act.syndicate")); commit(); },
   onReceipt: (r, mission, outcome) => { addActivity(t("act.synReceipt", { mission, outcome })); commit(); },
   onRecord: () => { if (state.inWorld) renderPassport(); },
-  goSwitchyard: () => { togglePassport(false); travel("syndicate"); }
+  goSwitchyard: () => { togglePassport(false); travel("syndicate"); },
+  // The player's Agent as the Switchyard shows it (Kult-Syndicate web/kult-agent.js).
+  agentBridge: () => {
+    const a = state.player?.agent;
+    if (!a) return null;
+    const arch = archetype(a.archetype), r = rankOf(a.elo), clan = CLANS.find((c) => c.id === String(a.clan || "").toUpperCase());
+    const abs = (u) => (u ? new URL(u, location.href).href : null);
+    return { version: 1, agent: {
+      id: a.id, name: a.name, archetype: arch.id, archetypeName: arch.name, color: arch.color, elo: a.elo, wins: a.wins, losses: a.losses, inft: a.inft || null,
+      rank: { name: r.name, color: r.color, badge: abs(`art/${r.badge}`) },
+      clan: clan ? { id: clan.id, name: clan.name, color: clan.color, logo: abs(`art/partners/${clan.logo}.webp`) } : null,
+      portrait: abs(portraitUrl(arch.id)), model: abs(`models/agent-${arch.id}.glb`)
+    } };
+  }
 });
 // Entering the hub boots KULT-OS on its desktop; a challenge, or the quick
 // start's Play, goes straight to the AI Gaming folder.

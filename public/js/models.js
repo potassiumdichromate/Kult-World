@@ -23,7 +23,7 @@ export const SLOTS = {
   "bld-deal-room": { size: [7, 8], height: 20 },
   "bld-okx-market": { size: [10, 10], height: 13 },
   "bld-base-market": { size: [10, 10], height: 11 },
-  "bld-syndicate": { size: [7, 5], height: 9 },
+  "bld-syndicate": { size: [7, 6], height: 10 },
   "fountain": { size: [4.4, 4.4], height: 6 },
   "spawn-pad": { size: [2.4, 2.4], height: 0.4 },
   "tree": { size: [1.6, 1.6], height: 4 },
@@ -666,7 +666,9 @@ function neonMask(map, gold = false, bright = false) {
   masks.set(key, tex);
   return tex;
 }
-const GOLD = new Set(["bld-deal-room", "monument", "campus-gate"]), BRIGHT = new Set(["lamp"]);
+const GOLD = new Set(["bld-deal-room", "monument", "campus-gate"]), BRIGHT = new Set(["lamp", "bld-syndicate"]);
+// Models generated facing another way: a turn about Y so the entrance faces +Z (south, the camera).
+const TURN = { "bld-syndicate": -Math.PI / 2 };
 // Painted yellow/neon-free props that should not glow.
 const NO_GLOW = new Set(["crane"]);
 export function addGlow(obj, slot) {
@@ -733,7 +735,9 @@ export function build(slot, opts) {
   holder.userData.slot = slot;
   if (provided[slot]) {
     loadGLB(`models/${provided[slot]}`).then((gl) => {
-      const m = fit(gl.scene.clone(true), slot);
+      const src = gl.scene.clone(true);
+      if (TURN[slot]) src.rotation.y = TURN[slot];
+      const m = fit(src, slot);
       addGlow(m, slot);
       if (SCALED.has(slot) && typeof opts === "number") m.scale.setScalar(opts);
       if (holder.userData.noShadow) m.traverse((o) => { o.castShadow = false; });
