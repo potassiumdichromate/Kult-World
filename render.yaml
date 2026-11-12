@@ -47,7 +47,7 @@ services:
         value: https://kult-sports.onrender.com
       # Kult Syndicates (the Switchyard), served at /world/syndicates/
       - key: SYNDICATES_URL
-        value: https://kult-syndicates-world.onrender.com
+        value: https://kult-syndicates-kp5f.onrender.com
       - key: KULT_WORLD_ORIGIN
         value: https://world.kult.games
       - key: SYNDICATES_STORE

@@ -42,7 +42,7 @@ one Agent per owner and never merges histories.
 
 | Env var | Value |
 |---|---|
-| `SYNDICATES_URL` | The Syndicates service, e.g. `https://kult-syndicates-world.onrender.com`. Unset turns the district off. |
+| `SYNDICATES_URL` | The Syndicates service, e.g. `https://kult-syndicates-kp5f.onrender.com`. Unset turns the district off. |
 | `KULT_WORLD_ORIGIN` | `https://world.kult.games`, used in launch links. |
 | `SYNDICATES_LAUNCH_SECRET` | 32+ random characters; the same as Syndicates' `KULT_SYNDICATES_LAUNCH_SECRET`. |
 | `SYNDICATES_CALLBACK_SECRET` | 32+ random characters; the same as Syndicates' `KULT_SYNDICATES_CALLBACK_SECRET`. |

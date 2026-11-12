@@ -21,7 +21,10 @@ import { dirname, join } from "node:path";
 
 const adapter = createRequire(import.meta.url)("./world-adapter.cjs");
 const HOP = new Set(["connection", "keep-alive", "transfer-encoding", "upgrade", "proxy-authenticate", "proxy-authorization", "te", "trailer", "host", "content-length", "accept-encoding"]);
-const BACK_SKIP = new Set(["connection", "keep-alive", "transfer-encoding", "content-encoding", "content-length", "set-cookie"]);
+// Hop-by-hop headers, plus the Syndicates host's own edge headers (its
+// Cloudflare and Render ones), which don't belong on Kult World's responses.
+const BACK_SKIP = new Set(["connection", "keep-alive", "transfer-encoding", "content-encoding", "content-length", "set-cookie",
+  "server", "date", "alt-svc", "cf-ray", "cf-cache-status", "nel", "report-to", "rndr-id", "x-render-origin-server", "x-render-routing"]);
 const MAX_BODY = 64 * 1024;
 
 export function createSyndicates({ arenaApi, env = process.env, root }) {
