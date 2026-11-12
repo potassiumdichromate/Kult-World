@@ -7,3 +7,5 @@ public/privy/
 data/
 art-src/meshy/syndicates/*.glb
 art-src/meshy/syndicates/out/
+art-src/meshy/syndicates-world/*.glb
+art-src/meshy/syndicates-world/out/

@@ -1,0 +1,152 @@
+{
+  "dir": "art-src/meshy/syndicates-world",
+  "jobs": [
+    {
+      "name": "tile-plaza",
+      "prompt": "Stylized 3D game asset: a single square modular ground tile for a tile-based isometric city, isometric three-quarter view from above, isolated on a pure black background. A thick square block exactly as wide as it is deep, perfectly flat top surface, straight vertical sides with a thin bevelled top edge, so identical tiles sit side by side seamlessly. TOP: dark violet cobblestone pavers in a herringbone pattern, a few thin glowing hot-orange inlay strips, a small drain grate, light wear. SIDES: layered dark violet stone. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 2,
+      "concepts": [
+        "01a1cf6c-777a-70cb-a9b3-eb37db09067e",
+        "01a1cf6c-7ad5-73c9-9100-958278cbe29a"
+      ],
+      "pick": "01a1cf6c-777a-70cb-a9b3-eb37db09067e",
+      "model": "01a1cf6d-fc34-7698-b155-8882e456c383"
+    },
+    {
+      "name": "tile-road",
+      "prompt": "Stylized 3D game asset: a single square modular ground tile for a tile-based isometric city, isometric three-quarter view from above, isolated on a pure black background. A thick square block exactly as wide as it is deep, perfectly flat top surface, straight vertical sides with a thin bevelled top edge, so identical tiles sit side by side seamlessly. TOP: a straight two-lane asphalt road running from the front-left edge to the back-right edge, dark gunmetal asphalt, a dashed glowing orange centre line, narrow raised violet kerbs along the two other edges, one manhole cover. SIDES: layered dark violet stone. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 2,
+      "concepts": [
+        "01a1cf6c-7c07-7060-9bb6-98d9604af492",
+        "01a1cf6c-7d46-7529-a9ac-f00ae49d74ac"
+      ],
+      "pick": "01a1cf6c-7d46-7529-a9ac-f00ae49d74ac",
+      "model": "01a1cf6e-025c-7765-8d34-3ba8a84c3f30"
+    },
+    {
+      "name": "tile-junction",
+      "prompt": "Stylized 3D game asset: a single square modular ground tile for a tile-based isometric city, isometric three-quarter view from above, isolated on a pure black background. A thick square block exactly as wide as it is deep, perfectly flat top surface, straight vertical sides with a thin bevelled top edge, so identical tiles sit side by side seamlessly. TOP: a four-way asphalt crossroads, the roads reaching the middle of all four edges, glowing orange stop lines and pale lilac zebra crossing stripes, small raised violet kerb corners. SIDES: layered dark violet stone. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 2,
+      "concepts": [
+        "01a1cf6c-7e6c-71cf-a11d-611778e49d2b",
+        "01a1cf6c-7fb4-7497-ae82-41a06c56dd91"
+      ],
+      "pick": "01a1cf6c-7e6c-71cf-a11d-611778e49d2b",
+      "model": "01a1cf6e-05a3-76d7-8736-8e83e8e41768"
+    },
+    {
+      "name": "tile-rail",
+      "prompt": "Stylized 3D game asset: a single square modular ground tile for a tile-based isometric city, isometric three-quarter view from above, isolated on a pure black background. A thick square block exactly as wide as it is deep, perfectly flat top surface, straight vertical sides with a thin bevelled top edge, so identical tiles sit side by side seamlessly. TOP: a straight railway track running from the front-left edge to the back-right edge, two dark steel rails on wooden sleepers over grey-violet gravel ballast, small glowing hot-orange marker lights between the sleepers. SIDES: layered dark violet stone. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 2,
+      "concepts": [
+        "01a1cf6c-80eb-75ee-b0cb-c81a6c9cb1e7",
+        "01a1cf6c-82a2-73a6-9470-bff8f395cce8"
+      ],
+      "pick": "01a1cf6c-80eb-75ee-b0cb-c81a6c9cb1e7",
+      "model": "01a1cf6e-0a97-7589-be0f-6eeb0de4e1ad"
+    },
+    {
+      "name": "tile-canal",
+      "prompt": "Stylized 3D game asset: a single square modular ground tile for a tile-based isometric city, isometric three-quarter view from above, isolated on a pure black background. A thick square block exactly as wide as it is deep, perfectly flat top surface, straight vertical sides with a thin bevelled top edge, so identical tiles sit side by side seamlessly. TOP: a straight canal running from the front-left edge to the back-right edge, glowing cyan water sunk between two narrow stone walkways along the other edges, iron mooring rings and one bollard. SIDES: layered dark violet stone. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 2,
+      "concepts": [
+        "01a1cf6c-83d7-7063-9a85-5901782bdc05",
+        "01a1cf6c-8502-7518-9ea4-4d29fd9946b5"
+      ],
+      "pick": "01a1cf6c-8502-7518-9ea4-4d29fd9946b5",
+      "model": "01a1cf6e-0e76-7558-a0a8-c375ac4acb0a"
+    },
+    {
+      "name": "tile-bridge",
+      "prompt": "Stylized 3D game asset, isometric three-quarter view from above, isolated on a pure black background: a square modular tile holding a short arched stone and dark-steel road bridge over a canal. The glowing cyan canal water runs left to right under the arch, the bridge deck runs front to back with railings and glowing orange lamps, flat bottom, square footprint. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 2,
+      "concepts": [
+        "01a1cf6c-863b-7386-a430-97472f03b308",
+        "01a1cf6c-8763-75f2-9ae7-77b8452178dc"
+      ],
+      "pick": "01a1cf6c-863b-7386-a430-97472f03b308",
+      "model": "01a1cf6e-1241-715c-8945-16fdc0679d3a"
+    },
+    {
+      "name": "island-rock",
+      "prompt": "Stylized 3D game asset isolated on a pure black background: the underside of a floating sky island, a large inverted craggy rock mass with a perfectly flat horizontal top face and a wide square-ish outline, tapering down to a rough point, faceted violet and dark slate rock with glowing magenta and cyan crystal veins, a few hanging roots, small floating rock chunks below. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 2,
+      "concepts": [
+        "01a1cf6c-888f-71b0-a9ba-d38e07e00ac8",
+        "01a1cf6c-89c0-766c-87ba-7b849336c779"
+      ],
+      "pick": "01a1cf6c-888f-71b0-a9ba-d38e07e00ac8",
+      "model": "01a1cf6e-1701-70f4-acc6-662f6f2cd765"
+    },
+    {
+      "name": "prop-locomotive",
+      "prompt": "Stylized 3D game prop, isometric three-quarter view from the front-right, a single object isolated on a pure black background: a small chunky freight locomotive coupled to one flat wagon carrying a shipping container, dark gunmetal body with hot-orange stripes, a glowing headlamp and side lamps, on a short piece of rail. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1cf6c-8aed-713b-a17b-41c27e779647"
+      ],
+      "pick": "01a1cf6c-8aed-713b-a17b-41c27e779647",
+      "model": "01a1cf6e-1b9f-776c-afe5-943c60e8ee6a"
+    },
+    {
+      "name": "prop-containers",
+      "prompt": "Stylized 3D game prop, isometric three-quarter view from the front-right, a single object isolated on a pure black background: a stack of four shipping containers in two layers, corrugated steel painted deep violet, rust orange and teal, cargo straps, a small glowing hot-orange beacon on top. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1cf6c-8c19-70a7-b4eb-2f121fb24dbf"
+      ],
+      "pick": "01a1cf6c-8c19-70a7-b4eb-2f121fb24dbf",
+      "model": "01a1cf6e-20c8-713a-b304-47430e8868f5"
+    },
+    {
+      "name": "prop-signal",
+      "prompt": "Stylized 3D game prop, isometric three-quarter view from the front-right, a single object isolated on a pure black background: a tall railway signal mast with three round lamps glowing red, amber and cyan, a little ladder and a junction box at the base, dark steel. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1cf6c-8d3a-71c5-a297-b8af9c0c9fd4"
+      ],
+      "pick": "01a1cf6c-8d3a-71c5-a297-b8af9c0c9fd4",
+      "model": "01a1cf6e-2513-7296-9bfb-1a38c94c570f"
+    },
+    {
+      "name": "prop-crates",
+      "prompt": "Stylized 3D game prop, isometric three-quarter view from the front-right, a single object isolated on a pure black background: a cluster of wooden crates, steel barrels and a canvas-covered pallet, one crate with a glowing hot-orange band, a small lantern on top. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1cf6c-8e5b-7177-89e8-a68e644cffcc"
+      ],
+      "pick": "01a1cf6c-8e5b-7177-89e8-a68e644cffcc",
+      "model": "01a1cf6e-28de-74d4-83f1-f208695043c2"
+    },
+    {
+      "name": "prop-barrier",
+      "prompt": "Stylized 3D game prop, isometric three-quarter view from the front-right, a single object isolated on a pure black background: a straight section of chain-link security fence between two dark steel posts, a glowing hot-orange warning light on each post, concrete feet, about four times as long as it is tall. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1cf6c-8f8a-75e5-ba68-92a06d3c9e77"
+      ],
+      "pick": "01a1cf6c-8f8a-75e5-ba68-92a06d3c9e77",
+      "model": "01a1cf6e-2cef-734d-8dfa-2c40015ec4ba"
+    },
+    {
+      "name": "prop-water-tower",
+      "prompt": "Stylized 3D game prop, isometric three-quarter view from the front-right, a single object isolated on a pure black background: a rail-yard water tower on four steel legs, a round dark wooden tank with iron bands, a swinging spout and a ladder, a glowing magenta neon ring around the tank. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1cf6c-90b5-7106-bba7-7775a746de27"
+      ],
+      "pick": "01a1cf6c-90b5-7106-bba7-7775a746de27",
+      "model": "01a1cf6e-3073-737f-91be-e0ff929f7983"
+    },
+    {
+      "name": "prop-gantry",
+      "prompt": "Stylized 3D game prop, isometric three-quarter view from the front-right, a single object isolated on a pure black background: a rail-yard container gantry crane spanning a short track, two steel legs on wheels, an orange beam with a hanging container spreader, glowing warning lights. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable silhouette. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838), glowing neon accents in hot orange (#ff6a3d) and magenta pink (#ff4fa3) with small cyan (#4fd8ff) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1cf6c-91d6-7033-ba26-0b6e6aacbce0"
+      ],
+      "pick": "01a1cf6c-91d6-7033-ba26-0b6e6aacbce0",
+      "model": "01a1cf6e-369c-741b-95f1-41976572220d"
+    }
+  ]
+}

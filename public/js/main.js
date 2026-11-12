@@ -136,6 +136,9 @@ let last = performance.now(), slowAt = 0, frames = 0;
 function tick(now) {
   // A frame stamped before the loop started would make dt (and the clock) negative.
   const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
+  // A full-screen app (a game, the Switchyard) covers the city: let its own
+  // 3D have the GPU instead of drawing a world nobody can see.
+  if (!$("app-frame").hidden) { requestAnimationFrame(tick); return; }
   world.update(dt); world.draw();
   if (state.inWorld) {
     world.autoQuality(dt);
