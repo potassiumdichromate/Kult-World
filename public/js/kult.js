@@ -339,11 +339,10 @@ export const createApi = {
 // ------------------------------------------------------------------ legacy games
 // The session-start call each legacy game's backend records on-chain when a
 // signed-in player starts it, as the old Kult browser made it.
+// Zero Dash has none: its backend accepts the Kult token the game is given.
 const LEGACY_SESSION = {
   highwayhustle: (w) => ["/api/legacy/highwayhustle/player/login", { walletAddress: w.toLowerCase() }, {}],
-  zerogpool: (w) => ["/api/legacy/zerogpool/player/auth/login", { walletAddress: w }, {}],
-  // No score or coins: the backend would overwrite the saved coins with them.
-  zerodash: (w) => ["/api/legacy/zerodash/player/game-sync", { client: "kult-world-start", ts: Date.now() }, { Authorization: `Bearer ${w}` }]
+  zerogpool: (w) => ["/api/legacy/zerogpool/auth/login", { walletAddress: w }, {}]
 };
 export const legacyApi = {
   sessionStart: async (gameId, wallet) => {

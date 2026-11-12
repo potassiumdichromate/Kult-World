@@ -27,12 +27,13 @@ const ARENA_API = trim(process.env.AI_ARENA_API_URL || "https://aiarena-gateway.
 const KULT_API = trim(process.env.KULT_API_URL || "https://api-backend-v2.kult.games/api");
 const KULT_CREATE = trim(process.env.KULT_CREATE_URL || "https://kult-create.onrender.com");
 // The legacy games' session-start calls (kult-games-v3 src/api/highwayHustleApi.ts,
-// zerogpoolApi.ts, zerodashApi.ts), made server to server so no game backend
-// has to allow this site's origin.
+// zerogpoolApi.ts), made server to server so no game backend has to allow
+// this site's origin. Zero Dash needs none: its backend takes the Kult token
+// the game is given, and the game signs in and saves by itself.
 const LEGACY = {
-  "/api/legacy/highwayhustle/player/login": `${trim(process.env.HIGHWAY_HUSTLE_API_URL || "https://highway-hustle-backend.onrender.com/api")}/player/login`,
-  "/api/legacy/zerogpool/player/auth/login": `${trim(process.env.ZEROGPOOL_API_URL || "https://zerogpoolgame-jhjr.onrender.com/api")}/player/auth/login`,
-  "/api/legacy/zerodash/player/game-sync": `${trim(process.env.ZERODASH_API_URL || "https://zerodashbackend.onrender.com")}/player/game-sync`
+  "/api/legacy/highwayhustle/player/login": `${trim(process.env.HIGHWAY_HUSTLE_API_URL || "https://api-highwayhustle.kult.games/api")}/player/login`,
+  // Zero G Pool v3 moved its wallet login from /player/auth/login to /auth/login.
+  "/api/legacy/zerogpool/auth/login": `${trim(process.env.ZEROGPOOL_API_URL || "https://api-zerogpool.kult.games/api")}/auth/login`
 };
 const CREATE_ROUTE = /^\/api\/create\/games\/(?:public|[A-Za-z0-9_-]{1,64}\/(?:view|play|score|leaderboard))$/;
 // DEAL_ROOM_API_URL: send Deal Room calls straight to an a2a-marketplace-service

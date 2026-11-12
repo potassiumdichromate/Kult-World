@@ -387,14 +387,20 @@ and adding Wager is optional.
 - Session start: Play also makes the call each game's backend records
   on-chain, through Kult World's server (`/api/legacy/*`):
 
-  | Game | Call |
-  |---|---|
-  | Highway Hustle | `POST /player/login` |
-  | Zero G Pool | `POST /player/auth/login` |
-  | Zero Dash | `POST /player/game-sync` (Zero Dash's in-game score sync goes the same way) |
+  | Game | Backend | Call |
+  |---|---|---|
+  | Highway Hustle | `api-highwayhustle.kult.games` | `POST /api/player/login` |
+  | Zero G Pool | `api-zerogpool.kult.games` | `POST /api/auth/login` (v3; it was `/player/auth/login`) |
 
-  Their addresses are the `HIGHWAY_HUSTLE_API_URL`, `ZEROGPOOL_API_URL` and
-  `ZERODASH_API_URL` env vars.
+  The defaults can be overridden with `HIGHWAY_HUSTLE_API_URL` and `ZEROGPOOL_API_URL`.
+
+  Some games need no call:
+  - **Zero Dash** (`api-zerodash.kult.games`) accepts the Kult token the game
+    is given, and the game signs in and saves by itself. The old
+    `/player/game-sync` route is gone.
+  - **Guess the AI** (`api-guesstheai.kult.games`) and **Warzone Warriors**
+    (`api-warzonewarriors.kult.games`) never had one: their games use the
+    Kult token in the link.
 
 **Kult Create Games.** These are hosted the way Creator Studio's player
 hosted them (`creator-studio-frontend-tg`).
