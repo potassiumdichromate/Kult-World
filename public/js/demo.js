@@ -510,10 +510,20 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     return fail(404, "Not found");
   }
 
-  // Kult Create's public list. Demo studios' games have no build to play.
-  function create(path) {
-    if (path !== "/games/public") return fail(404, "Not found");
-    return ok({ games: CREATE_GAMES.map(([title, studio, plays, likes], i) => ({ id: `demo-${i + 1}`, rank: i + 1, title, studio, plays, likes, playUrl: null })) });
+  // Kult Create's public list and a player's activity. Demo studios' games
+  // have no build to play; scores land on a per-game board in the tab.
+  function create(method, path, q, body) {
+    if (path === "/games/public") return ok({ games: CREATE_GAMES.map(([title, studio, plays, likes], i) => ({ id: `demo-${i + 1}`, rank: i + 1, title, studio, plays, likes, cover: null, runner: "studio", playUrl: null })) });
+    const m = /^\/games\/([^/]+)\/(view|play|score|leaderboard)$/.exec(path);
+    if (!m) return fail(404, "Not found");
+    const [, id, what] = m;
+    db.createScores ||= {};
+    const board = (db.createScores[id] ||= [{ username: "PixelPirate", score: 4200 }, { username: "RiftRunner", score: 3100 }, { username: "LunaLabs", score: 1800 }]);
+    if (what === "view") return ok({ gameId: id, views: 1 });
+    if (what === "play") return ok({ qualified: true, points: { awarded: true, kp: 30, playerKp: { awarded: true, kp: 30 } } });
+    if (what === "score" && method === "POST") { board.push({ userId: body?.userId, username: body?.username, score: Number(body?.score) || 0 }); }
+    const entries = [...board].sort((a, b) => b.score - a.score).slice(0, Number(q.get("limit") || 10)).map((e, i) => ({ rank: i + 1, ...e }));
+    return ok({ gameId: id, entries });
   }
 
   function arena(method, path, q, body) {
@@ -721,7 +731,7 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     await wait(120 + Math.random() * 240);
     tick();
     const u = new URL(path, "http://demo");
-    const r = base === "create" ? create(u.pathname) : base === "kult" ? kult(method, u.pathname, u.searchParams) : arena(method, u.pathname, u.searchParams, body);
+    const r = base === "create" ? create(method, u.pathname, u.searchParams, body) : base === "kult" ? kult(method, u.pathname, u.searchParams) : arena(method, u.pathname, u.searchParams, body);
     save();
     // Callers get copies, as they would from the network.
     return { status: r.status, data: JSON.parse(JSON.stringify(r.data ?? null)) };

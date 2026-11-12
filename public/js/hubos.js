@@ -13,7 +13,7 @@
 // art/world/manifest.json replaces its stand-in.
 
 import { LEGACY_GAMES, HIGHWAY_MODES, GAMES, archetype, rankOf } from "./data.js";
-import { kultApi, createApi, session, config } from "./kult.js";
+import { kultApi, createApi, legacyApi, session, config } from "./kult.js";
 
 export const FOLDERS = [
   { id: "ai", color: "#5ec8f2" },
@@ -92,7 +92,7 @@ export function createHubOS(ctx) {
       ["t", "r", "b", "l"].forEach((k, i) => { set(root, `--th-${k}`, `${tile.hole[i]}%`); set(root, `--tp-${k}`, `${tile.plate[i]}%`); if (on?.box) set(root, `--ts-${k}`, `-${on.box[i]}%`); });
     }
     // Window and player controls use the icon set.
-    for (const [id, key] of [["os-back", "back"], ["os-win-close", "close"], ["os-player-close", "back"], ["os-newtab", "newtab"], ["os-full", "full"], ["hub-close", "close"]]) {
+    for (const [id, key] of [["os-back", "back"], ["os-win-close", "close"], ["os-player-close", "back"], ["os-newtab", "newtab"], ["os-full", "full"], ["os-lbtn", "trophy"], ["hub-close", "close"]]) {
       const v = url(`hubos-icon-${key}`);
       set($(id), "--ic", v); $(id).classList.toggle("art", Boolean(v));
     }
@@ -239,10 +239,21 @@ export function createHubOS(ctx) {
     if (withSession && session.kult?.token) { u.searchParams.set("jwt", session.kult.token); u.searchParams.set("source", "browser"); }
     return u.href;
   }
-  function playLegacy(g, mode = null) {
+  // As in the old browser, a legacy game starts signed in to Kult: a player
+  // whose Kult sign-in did not finish is asked for it once, then plays either way.
+  async function ensureKult() {
+    if (ctx.isDemo() || session.kult?.token || !session.signedIn) return;
+    toast(t("os.kultSign"));
+    try { await session.retryKult(); await ctx.refreshLive?.(); }
+    catch (e) { console.warn("[kult-world] Kult sign-in", e.message); toast(t("os.kultSkip"), "bad"); }
+  }
+  async function playLegacy(g, mode = null) {
     const raw = mode ? mode.url : g.live?.url;
     if (!raw) return toast(t("os.noUrl"), "bad");
+    await ensureKult();
     const withSession = !ctx.isDemo();
+    // The game's own backend records the session on-chain (Highway Hustle, Zero G Pool, Zero Dash).
+    if (withSession) void legacyApi.sessionStart(g.id, session.kult?.walletAddress || session.wallet);
     let src, newtab;
     if (g.engine === "zerodash") {
       const page = (s) => { const u = new URL("play/zerodash.html", location.href); u.searchParams.set("build", raw); if (s) { const w = session.kult?.walletAddress || session.wallet; if (w) u.searchParams.set("wallet", w); if (session.kult?.token) u.searchParams.set("jwt", session.kult.token); } return u.href; };
@@ -251,6 +262,8 @@ export function createHubOS(ctx) {
     openPlayer({ title: mode ? `${g.name} · ${t(`os.hh.${mode.id}`)}` : g.name, src, newtab, color: g.color });
     ctx.onPlay?.(g.name);
   }
+  const playerId = () => (session.kult?.walletAddress || session.wallet || "").toLowerCase() || null;
+  const playerName = () => { const p = ctx.player(); const w = playerId(); return String(p?.profile?.username || p?.agent?.name || (w ? `${w.slice(0, 6)}…${w.slice(-4)}` : "Player")).slice(0, 50); };
 
   // ---------------------------------------------------------------- Kult Create games
   async function renderCreate(force = false) {
@@ -280,34 +293,106 @@ export function createHubOS(ctx) {
     fill(body, head("create"),
       ctx.isDemo() ? el("p", { class: "os-note" }, t("os.createDemo")) : null,
       el("div", { class: "os-grid" }, make, games.map((g, i) => el("button", { type: "button", class: "os-tile", style: `--c:hsl(${hue(g.id)} 80% 70%);--h:${hue(g.id)};--i:${i + 1}`, onclick: () => playCreate(g) },
-        el("span", { class: "tl-cover cc" }, coverArt ? el("img", { src: coverArt, alt: "", draggable: "false", loading: "lazy", style: `filter:hue-rotate(${(hue(g.id) + 60) % 360}deg)` }) : null,
-          coverArt ? null : el("span", { class: "cc-mono", "aria-hidden": "true" }, (g.title.match(/[A-Za-z0-9一-鿿]/)?.[0] || "K").toUpperCase()), g.rank <= 3 ? el("span", { class: "tl-rank" }, `#${g.rank}`) : null),
+        el("span", { class: "tl-cover cc" }, g.cover ? el("img", { src: g.cover, alt: "", draggable: "false", loading: "lazy", referrerpolicy: "no-referrer" })
+          : coverArt ? el("img", { src: coverArt, alt: "", draggable: "false", loading: "lazy", style: `filter:hue-rotate(${(hue(g.id) + 60) % 360}deg)` }) : null,
+          g.cover || coverArt ? null : el("span", { class: "cc-mono", "aria-hidden": "true" }, (g.title.match(/[A-Za-z0-9一-鿿]/)?.[0] || "K").toUpperCase()), g.rank <= 3 ? el("span", { class: "tl-rank" }, `#${g.rank}`) : null),
         el("span", { class: "tl-plate" },
           el("span", { class: "tl-genre" }, g.studio ? t("os.by", { studio: g.studio }) : "KULT CREATE"),
           el("b", { class: "tl-name" }, g.title),
           el("span", { class: "tl-meta" }, t("os.plays", { n: compact(g.plays || 0) }), el("span", { class: "tl-star" }, `♥ ${compact(g.likes || 0)}`)))))),
       games.length ? null : el("div", { class: "os-empty center" }, artImg("hubos-empty", "os-empty-art"), el("p", { class: "muted" }, t("os.createEmpty"))));
   }
+  // A studio game runs in Kult Create's sandboxed runner (Creator Studio's
+  // harness: opaque origin, in-memory storage, the score bridge). A game only
+  // its compute pipeline can play opens that page instead.
   async function playCreate(g) {
-    const url = g.playUrl || (ctx.isDemo() ? null : await createApi.playPage(g.id));
-    if (!url) return toast(t("os.createDemoPlay"));
-    openPlayer({ title: g.studio ? `${g.title} · ${t("os.by", { studio: g.studio })}` : g.title, src: url, newtab: url, color: `hsl(${hue(g.id)} 80% 70%)` });
+    if (ctx.isDemo() && !g.runUrl) return toast(t("os.createDemoPlay"));
+    const studioRun = g.runner !== "compute";
+    const src = g.runUrl || (studioRun ? await createApi.runUrl(g.id) : g.playUrl);
+    if (!src) return toast(t("os.noUrl"), "bad");
+    const newtab = studioRun ? await createApi.playPage(g.id) : g.playUrl;
+    openPlayer({ title: g.studio ? `${g.title} · ${t("os.by", { studio: g.studio })}` : g.title, src, newtab, color: `hsl(${hue(g.id)} 80% 70%)`, sandbox: studioRun, game: g });
     ctx.onPlay?.(g.title);
   }
 
+  // A Kult Create play, tracked as Creator Studio's player tracks it: a view
+  // at the start, a qualified play after 30 s (KP for the player, creator
+  // score for the studio; once per game per tab), and every score the game
+  // reports goes to its leaderboard.
+  let run = null;
+  function startRun(g) {
+    const userId = playerId();
+    void createApi.view(g.id, userId).catch(() => {});
+    run = { game: g, userId, started: Date.now(), timer: null, last: { score: -1, at: 0 } };
+    const key = `kult-qualified-play-${g.id}`;
+    let done = false;
+    try { done = Boolean(sessionStorage.getItem(key)); } catch { /* storage blocked */ }
+    if (!userId || done) return;
+    const sessionId = `${g.id}:${userId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+    const mine = run;
+    run.timer = setTimeout(async () => {
+      if (run !== mine) return;
+      const r = await createApi.qualifyPlay(g.id, { userId, sessionId, durationSeconds: Math.floor((Date.now() - mine.started) / 1000) }).catch(() => null);
+      if (!r?.qualified) return;
+      try { sessionStorage.setItem(key, "1"); } catch { /* storage blocked */ }
+      const kp = Number(r.points?.kp ?? r.points?.playerKp?.kp ?? 0);
+      if (r.points?.playerKp?.awarded || kp > 0) toast(t("os.kpEarned", { n: kp || "" }), "good");
+    }, 30_000);
+  }
+  function endRun() { if (run?.timer) clearTimeout(run.timer); run = null; }
+  addEventListener("message", (e) => {
+    if (!run || e.source !== $("os-iframe").contentWindow) return;
+    const score = e.data?.__kultGameScore;
+    if (typeof score !== "number" || !Number.isFinite(score) || score < 0) return;
+    const now = Date.now();
+    if (score === run.last.score && now - run.last.at < 3000) return;
+    run.last = { score, at: now };
+    if (!run.userId) return toast(t("os.scoreSignIn"));
+    const g = run.game;
+    void createApi.score(g.id, { userId: run.userId, username: playerName(), score: Math.floor(score) })
+      .then(() => { toast(t("os.scoreSent", { n: Math.floor(score).toLocaleString() }), "good"); if (!$("os-lb").hidden) void renderBoard(g); })
+      .catch(() => toast(t("os.scoreFail"), "bad"));
+  });
+
+  // The game's own leaderboard, beside the player.
+  async function renderBoard(g) {
+    const list = $("os-lb-list");
+    list.replaceChildren(el("li", { class: "muted" }, t("os.loading")));
+    let entries;
+    try { entries = await createApi.leaderboard(g.id, 10); }
+    catch { list.replaceChildren(el("li", { class: "muted" }, t("os.lbOff"))); return; }
+    const me = playerId();
+    list.replaceChildren(...(entries.length ? entries.map((e, i) => el("li", { class: me && String(e.userId || "").toLowerCase() === me ? "me" : "" },
+      el("span", { class: "r" }, `#${e.rank ?? i + 1}`), el("b", {}, e.username || "—"), el("span", { class: "s" }, Number(e.score || 0).toLocaleString())))
+      : [el("li", { class: "muted" }, t("os.lbEmpty"))]));
+  }
+  $("os-lbtn").addEventListener("click", () => {
+    const lb = $("os-lb"), on = lb.hidden;
+    lb.hidden = !on; $("os-lbtn").setAttribute("aria-pressed", String(on));
+    if (on && run) void renderBoard(run.game);
+  });
+
   // ---------------------------------------------------------------- the game player
-  function openPlayer({ title, src, newtab, color }) {
+  function openPlayer({ title, src, newtab, color, sandbox = false, game = null }) {
     sound.play("whoosh");
+    endRun();
     $("os-player-title").textContent = title;
     $("os-newtab").href = newtab;
     $("os-player").style.setProperty("--c", color || "#5ec8f2");
-    $("os-iframe").src = src;
+    // The sandbox has to be set before the frame navigates; studio games get
+    // scripts only (no same-origin), like Creator Studio's player.
+    const frame = $("os-iframe");
+    if (sandbox) frame.setAttribute("sandbox", "allow-scripts"); else frame.removeAttribute("sandbox");
+    show("os-lbtn", Boolean(game)); show("os-lb", false); $("os-lbtn").setAttribute("aria-pressed", "false");
+    if (game) startRun(game);
+    frame.src = src;
     show("os-player");
-    $("os-iframe").focus();
+    frame.focus();
   }
   function closePlayer() {
     if ($("os-player").hidden) return false;
     if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    endRun();
     $("os-iframe").src = "about:blank"; show("os-player", false); sound.play("close");
     return true;
   }
@@ -353,5 +438,5 @@ export function createHubOS(ctx) {
     if (pane) { const keep = pane; pane = null; openWin(keep, undefined, true); }
   }
 
-  return { open, close, back, openWin, relabel, applyArt, refresh: renderBar, get ready() { return ready; }, get pane() { return pane; }, get isOpen() { return !$("hub").hidden; } };
+  return { open, close, back, openWin, relabel, applyArt, playCreate, refresh: renderBar, get ready() { return ready; }, get pane() { return pane; }, get isOpen() { return !$("hub").hidden; } };
 }

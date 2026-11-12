@@ -967,6 +967,7 @@ const hubos = createHubOS({
   leaveAi: () => { cancelMatch(); show("hub-match", false); show("hub-list"); $("monitor-led").className = "led"; },
   board: (root, mode) => arena.board(root, mode),
   goStudio: () => { hubos.close(); travel("create"); },
+  refreshLive: () => refreshLive().then(() => hubos.refresh()),
   onPlay: (name) => { if (!state.player) return; addActivity(t("act.played", { game: name })); commit(); }
 });
 // Entering the hub boots KULT-OS on its desktop; a challenge, or the quick
@@ -1123,7 +1124,7 @@ await loadArt();
 hubos.applyArt();
 void populateCity();
 // ?debug: enter with an existing AI Arena session, without the Privy modal.
-if (window.kw) { window.kw.enter = async () => { await loadPlayer(); if (state.player) enterWorld(false); else openMint(); }; window.kw.openMint = openMint; window.kw.stage = () => stage; }
+if (window.kw) { window.kw.enter = async () => { await loadPlayer(); if (state.player) enterWorld(false); else openMint(); }; window.kw.openMint = openMint; window.kw.stage = () => stage; window.kw.hubos = hubos; }
 void introDone.then(() => { if (!state.inWorld && $("mint").hidden) show("landing"); });
 // ?dealroom=<match id>: a shared Deal Room result, open to anyone.
 {

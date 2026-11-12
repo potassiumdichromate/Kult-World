@@ -377,17 +377,46 @@ and adding Wager is optional.
 
   | Game | What it needs |
   |---|---|
-  | Zero G Pool | A fixed R2 URL (`…r2.dev/v9/Game/index.html`). |
+  | Zero G Pool | Its R2 build URL comes from the catalog (now `v10`). |
   | Highway Hustle | 4 mode URLs: One Way, Two Way, Speed Run, Time Bomb. |
-  | Zero Dash | Runs as a Unity build in the page, with the `zeroDashBridge` score bridge, not an iframe. Port `ZeroDashUnityPlayer`. |
+  | Zero Dash | Runs as a Unity build with the `zeroDashBridge` score bridge, on its own page (`public/play/zerodash.html`). |
   | Downloadable games | Show Download instead of Play. |
 
-**Kult Create Games.** There is no public list yet. The only list today is
-`GET /games/top` on kult-create, and it needs a signed-in studio owner
-(`requireAuth` + `needAgency`). A public endpoint such as `GET /games/public`
-is needed, so every player can browse. It would return id, title, studio,
-plays and cover. Games play at `/play/:gameId`. kult-create.onrender.com was
-returning 503 at the last check.
+- Sign-in: as in the old browser, a game starts signed in to Kult. A player
+  whose Kult sign-in did not finish is asked for it once, then plays either way.
+- Session start: Play also makes the call each game's backend records
+  on-chain, through Kult World's server (`/api/legacy/*`):
+
+  | Game | Call |
+  |---|---|
+  | Highway Hustle | `POST /player/login` |
+  | Zero G Pool | `POST /player/auth/login` |
+  | Zero Dash | `POST /player/game-sync` (Zero Dash's in-game score sync goes the same way) |
+
+  Their addresses are the `HIGHWAY_HUSTLE_API_URL`, `ZEROGPOOL_API_URL` and
+  `ZERODASH_API_URL` env vars.
+
+**Kult Create Games.** These are hosted the way Creator Studio's player
+hosted them (`creator-studio-frontend-tg`).
+
+- **List:** kult-create `GET /games/public`, Kult World `/api/create/games/public`.
+  It returns each game's id, title, studio, plays, likes, cover and runner.
+- **Running a game:**
+  - Studio games run in kult-create's runner, `/play/:gameId/game.html`.
+    This is Creator Studio's harness: an iframe with `sandbox="allow-scripts"`
+    (opaque origin), in-memory storage, and a score bridge.
+  - Games only the compute pipeline can play open its play page instead.
+- **Score bridge:** the game calls `window.reportScore(n)`. For older games,
+  the harness reads the score off the HUD when game-over text shows. Either
+  way it sends `postMessage({ __kultGameScore })` to the Game Hub.
+- **Play tracking:** the same calls Creator Studio's player makes. Kult Create
+  relays them to Creator Studio with the player's IP and device id, for its
+  anti-fraud.
+  - A view when the game starts.
+  - A qualified play after 30 s: KP for the player (+30 the first time, +5
+    after that) and creator score for the studio.
+  - Every score, to the game's leaderboard. The trophy in the player bar
+    shows its top scores.
 
 **Kult Points and leaderboard.** Already wired in Kult World:
 - KP balance and rank come from the Kult profile.

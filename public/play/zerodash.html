@@ -41,14 +41,15 @@
   if (!/^https:\/\//.test(build)) return fail("No game build was given.");
 
   // Unity calls window.zeroDashBridge.reportGameEnd at the end of a run; it
-  // posts the score to the Zero Dash backend, which records new highs on-chain.
+  // posts the score to the Zero Dash backend (through Kult World's server),
+  // which records new highs on-chain.
   function report(raw) {
     var w = (raw && typeof raw === "object" && typeof raw.wallet === "string" && raw.wallet) || wallet;
     if (!/^0x[a-fA-F0-9]{40}$/.test(w)) return Promise.resolve({ ok: false, reason: "no_wallet" });
     var data = raw;
     if (typeof raw === "string") { try { data = JSON.parse(raw); } catch (e) { return Promise.resolve({ ok: false, reason: "invalid_json" }); } }
     data = data || {};
-    return fetch("https://zerodashbackend.onrender.com/player/game-sync", {
+    return fetch("/api/legacy/zerodash/player/game-sync", {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + w },
       body: JSON.stringify({ highScore: data.highScore != null ? data.highScore : data.score != null ? data.score : data.bestScore, coins: data.coins != null ? data.coins : data.coin, client: "unity-webgl", ts: Date.now() })
     }).then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { ok: r.ok, body: b }; }); })

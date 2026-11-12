@@ -299,8 +299,10 @@
             <span class="os-live" aria-hidden="true"></span>
             <span class="os-player-title" id="os-player-title"></span>
             <a class="os-wb" id="os-newtab" target="_blank" rel="noopener" data-i18n-attr="title:os.newtab;aria-label:os.newtab" title="Open in a new tab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6"/></svg></a>
+            <button type="button" class="os-wb os-lbtn" id="os-lbtn" hidden aria-pressed="false" data-i18n-attr="title:os.lbTitle;aria-label:os.lbTitle" title="Top scores"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a2 2 0 0 0 0 4h3M16 6h3a2 2 0 0 1 0 4h-3M12 13v4M8 20h8l-1-3H9z"/></svg></button>
             <button type="button" class="os-wb" id="os-full" data-i18n-attr="title:os.full;aria-label:os.full" title="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
           </div>
+          <aside class="os-lb" id="os-lb" hidden><p class="eyebrow" data-i18n="os.lbTitle">Top scores</p><ol id="os-lb-list"></ol></aside>
           <iframe id="os-iframe" title="Game" allow="autoplay; fullscreen; gamepad; clipboard-write; accelerometer; gyroscope" allowfullscreen></iframe>
         </section>
         <div class="os-boot" id="os-boot" hidden>

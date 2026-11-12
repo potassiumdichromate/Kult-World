@@ -5,7 +5,10 @@
 //   /api/arena/*  → AI Arena gateway (agents, battles, matchmaking, wallets,
 //                   the A2A marketplace and the Kult agencies)
 //   /api/kult/*   → Kult backend (player profile, KP, SIWE login, the game catalog)
-//   /api/create/* → Kult Create (the public list of games its studios made)
+//   /api/create/* → Kult Create: the public list of games its studios made,
+//                   and a player's view, qualified play and score on one
+//   /api/legacy/* → the legacy games' own backends: the session-start call
+//                   each one records on-chain (as the old Kult browser made it)
 //
 // The gateway only accepts browser calls from its own site, so Kult World
 // calls it server to server, as Kult Sports does for its Privy exchange.
@@ -23,6 +26,15 @@ const trim = (u) => String(u).replace(/\/+$/, "");
 const ARENA_API = trim(process.env.AI_ARENA_API_URL || "https://aiarena-gateway.kult.games");
 const KULT_API = trim(process.env.KULT_API_URL || "https://api-backend-v2.kult.games/api");
 const KULT_CREATE = trim(process.env.KULT_CREATE_URL || "https://kult-create.onrender.com");
+// The legacy games' session-start calls (kult-games-v3 src/api/highwayHustleApi.ts,
+// zerogpoolApi.ts, zerodashApi.ts), made server to server so no game backend
+// has to allow this site's origin.
+const LEGACY = {
+  "/api/legacy/highwayhustle/player/login": `${trim(process.env.HIGHWAY_HUSTLE_API_URL || "https://highway-hustle-backend.onrender.com/api")}/player/login`,
+  "/api/legacy/zerogpool/player/auth/login": `${trim(process.env.ZEROGPOOL_API_URL || "https://zerogpoolgame-jhjr.onrender.com/api")}/player/auth/login`,
+  "/api/legacy/zerodash/player/game-sync": `${trim(process.env.ZERODASH_API_URL || "https://zerodashbackend.onrender.com")}/player/game-sync`
+};
+const CREATE_ROUTE = /^\/api\/create\/games\/(?:public|[A-Za-z0-9_-]{1,64}\/(?:view|play|score|leaderboard))$/;
 // DEAL_ROOM_API_URL: send Deal Room calls straight to an a2a-marketplace-service
 // (for example a local one) instead of through the gateway.
 const DEAL_ROOM_API = process.env.DEAL_ROOM_API_URL ? trim(process.env.DEAL_ROOM_API_URL) : null;
@@ -51,7 +63,7 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 
 // Request headers worth forwarding; everything else (cookies, origin, host)
 // stays here.
-const FORWARD = ["authorization", "content-type", "accept", "idempotency-key", "payment-signature", "x-payment", "x-kult-access-token", "x-payment-tx-hash", "x-payment-agent-id", "x-training-source", "x-kult-world"];
+const FORWARD = ["authorization", "content-type", "accept", "idempotency-key", "payment-signature", "x-payment", "x-kult-access-token", "x-payment-tx-hash", "x-payment-agent-id", "x-training-source", "x-kult-world", "x-device-id"];
 const RETURN = ["content-type", "payment-required", "x-payment-response", "retry-after", "cache-control"];
 
 async function readBody(req) {
@@ -117,8 +129,9 @@ createServer(async (req, res) => {
   if (DEAL_ROOM_API && url.pathname.startsWith("/api/arena/v1/marketplace/deal-room/")) return proxy(req, res, DEAL_ROOM_API, url.pathname.slice("/api/arena/v1/marketplace".length) + url.search);
   if (url.pathname.startsWith("/api/arena/")) return proxy(req, res, ARENA_API, url.pathname.slice("/api/arena".length) + url.search);
   if (url.pathname.startsWith("/api/kult/")) return proxy(req, res, KULT_API, url.pathname.slice("/api/kult".length) + url.search);
-  // Only Kult Create's public game list; everything else there is reached directly.
-  if (url.pathname === "/api/create/games/public" && req.method === "GET") return proxy(req, res, KULT_CREATE, "/games/public" + url.search);
+  // Kult Create's public game routes only; everything else there is reached directly.
+  if (CREATE_ROUTE.test(url.pathname) && (req.method === "GET" || req.method === "POST")) return proxy(req, res, KULT_CREATE, url.pathname.slice("/api/create".length) + url.search);
+  if (req.method === "POST" && LEGACY[url.pathname]) return proxy(req, res, LEGACY[url.pathname], "");
   let rel = decodeURIComponent(url.pathname);
   if (rel.endsWith("/")) rel += "index.html";
   if (rel === "/index.html") return sendPage(res);

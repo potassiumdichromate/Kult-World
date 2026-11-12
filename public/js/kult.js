@@ -308,14 +308,51 @@ export const kultApi = {
 };
 
 // ------------------------------------------------------------------ Kult Create
-// The public list of games players' studios made (kult-create GET /games/public).
+// The games players' studios made, and a player's activity on one: the same
+// calls Creator Studio's own player makes (creator-studio-frontend-tg
+// src/lib/api/social.ts and leaderboards.ts), relayed by Kult Create.
+// A random id per browser goes along as x-device-id for its anti-fraud.
+function deviceId() {
+  try {
+    let id = localStorage.getItem("kw.device");
+    if (!id) { id = `kw-${crypto.randomUUID()}`; localStorage.setItem("kw.device", id); }
+    return id;
+  } catch { return undefined; }
+}
+const createCall = async (path, body) => {
+  const c = await config(), id = deviceId();
+  return call(c.createApi, path, body === undefined ? {} : { method: "POST", body, headers: id ? { "x-device-id": id } : {} });
+};
 export const createApi = {
-  games: async (limit = 30) => {
-    const c = await config();
-    return (await call(c.createApi, `/games/public${q({ limit })}`))?.games ?? [];
-  },
-  /** Kult Create's own play page for a game, used when the list gives no URL. */
-  playPage: async (id) => `${(await config()).kultCreateUrl}/play?gameId=${enc(id)}`
+  games: async (limit = 30) => (await createCall(`/games/public${q({ limit })}`))?.games ?? [],
+  /** The sandboxed runner for a studio game: it runs the game with the score bridge. */
+  runUrl: async (id) => `${(await config()).kultCreateUrl}/play/${enc(id)}/game.html`,
+  /** Kult Create's own play page for a game, for opening in a new tab. */
+  playPage: async (id) => `${(await config()).kultCreateUrl}/play?gameId=${enc(id)}`,
+  view: (id, userId) => createCall(`/games/${enc(id)}/view`, userId ? { userId } : {}),
+  /** After 30 s of play: KP for the player, creator score for the studio. */
+  qualifyPlay: (id, body) => createCall(`/games/${enc(id)}/play`, body),
+  score: (id, body) => createCall(`/games/${enc(id)}/score`, body),
+  leaderboard: async (id, limit = 10) => (await createCall(`/games/${enc(id)}/leaderboard${q({ limit })}`))?.entries ?? []
+};
+
+// ------------------------------------------------------------------ legacy games
+// The session-start call each legacy game's backend records on-chain when a
+// signed-in player starts it, as the old Kult browser made it.
+const LEGACY_SESSION = {
+  highwayhustle: (w) => ["/api/legacy/highwayhustle/player/login", { walletAddress: w.toLowerCase() }, {}],
+  zerogpool: (w) => ["/api/legacy/zerogpool/player/auth/login", { walletAddress: w }, {}],
+  // No score or coins: the backend would overwrite the saved coins with them.
+  zerodash: (w) => ["/api/legacy/zerodash/player/game-sync", { client: "kult-world-start", ts: Date.now() }, { Authorization: `Bearer ${w}` }]
+};
+export const legacyApi = {
+  sessionStart: async (gameId, wallet) => {
+    const make = LEGACY_SESSION[gameId];
+    if (!make || !wallet || demo) return;
+    const [path, body, headers] = make(wallet);
+    try { await fetch(path, { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) }); }
+    catch (e) { console.warn(`[kult-world] ${gameId} session start failed`, e.message); }
+  }
 };
 
 // ------------------------------------------------------------------ A2A marketplace

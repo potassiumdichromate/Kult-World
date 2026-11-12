@@ -1755,3 +1755,16 @@ body:has(#hub:not([hidden])) .corner-tools { display: none; }
   .hubos.art-tile .tl-name { font-size: 13px; }
   .tl-kind { top: 5px; right: 5px; padding: 2px 5px; font-size: 7px; letter-spacing: 0.1em; }
 }
+
+/* KULT-OS player: a Kult Create game's top scores beside it */
+.os-player { position: absolute; }
+.os-lb { position: absolute; z-index: 2; top: 44px; right: 0; bottom: 0; width: min(280px, 80%); padding: 16px 14px; overflow-y: auto; background: rgba(10, 6, 26, 0.94); border-left: 1px solid color-mix(in srgb, var(--c) 45%, transparent); backdrop-filter: blur(10px); animation: os-win 0.25s ease-out; }
+.os-lb .eyebrow { color: var(--gd); }
+.os-lb ol { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.os-lb li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; font-size: 13px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--stroke); }
+.os-lb li.muted { display: block; border-style: dashed; }
+.os-lb li.me { border-color: var(--gd); background: rgba(242, 193, 78, 0.08); }
+.os-lb li b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.os-lb .r { font: 700 12px var(--display); color: var(--muted); }
+.os-lb .s { font: 700 13px var(--display); color: var(--gd); font-variant-numeric: tabular-nums; }
+.os-lbtn[aria-pressed="true"] { filter: brightness(1.35) drop-shadow(0 0 8px rgba(242, 193, 78, 0.7)); }
