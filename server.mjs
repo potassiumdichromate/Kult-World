@@ -133,6 +133,8 @@ createServer(async (req, res) => {
   // Kult Create's public game routes only; everything else there is reached directly.
   if (CREATE_ROUTE.test(url.pathname) && (req.method === "GET" || req.method === "POST")) return proxy(req, res, KULT_CREATE, url.pathname.slice("/api/create".length) + url.search);
   if (req.method === "POST" && LEGACY[url.pathname]) return proxy(req, res, LEGACY[url.pathname], "");
+  // The game build editor (public/admin/).
+  if (url.pathname === "/admin") { res.writeHead(301, { Location: `/admin/${url.search}` }); return res.end(); }
   let rel = decodeURIComponent(url.pathname);
   if (rel.endsWith("/")) rel += "index.html";
   if (rel === "/index.html") return sendPage(res);

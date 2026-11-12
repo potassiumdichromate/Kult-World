@@ -336,6 +336,24 @@ from `kult-games-v3` at the same time.
 
 ## 8. Build notes (for the code side, no art needed)
 
+**Where the legacy game builds are set: the admin page.** Kult World's
+`/admin/` edits each game's record in the Kult backend (MongoDB
+`kultbrowser_games`). The Game Hub and the Kult browser both read that record,
+so a saved change reaches players on their next play. These fields can be edited:
+
+| Field | What it is |
+|---|---|
+| `url` | The build: a play page, a Unity build folder (Zero Dash) or a download file (Robowars). |
+| Play link override | `metadata.play_url`, used instead of `url` for playing. |
+| Download override | `metadata.download_url`, used instead of `url` for a download. |
+| Downloadable | `isDownloadable`: the game is a download, not played in the browser. |
+| Builds per mode | `metadata.modes`: `[{ id, url, name? }]`. When this is empty, Highway Hustle uses `HIGHWAY_MODES` in `public/js/data.js`. |
+
+Only wallets in the Kult backend's `ADMIN_WALLETS` env var can load or save.
+Sign in with the same KULT login as Kult World. Every save is recorded in the
+game's `buildHistory` with the admin's wallet.
+
+
 **Status (2026-11-12): all 18 assets are imported.** To bring in new or
 changed art, re-run the importer (it needs Pillow and numpy):
 

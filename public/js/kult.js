@@ -30,7 +30,7 @@ const write = (k, v) => { try { v ? localStorage.setItem(k, JSON.stringify(v)) :
 // ?demo=0 turns it off.
 let cfg = null, cfgLoading = null, demo = null;
 export function config() {
-  cfgLoading ||= fetch("config.json", { cache: "no-store" }).then((r) => r.json()).then(async (c) => {
+  cfgLoading ||= fetch("/config.json", { cache: "no-store" }).then((r) => r.json()).then(async (c) => {
     const params = new URLSearchParams(location.search), asked = params.get("demo");
     const mode = asked ?? c.demo;
     c.demo = mode && mode !== "0" ? mode : false;
@@ -270,10 +270,13 @@ const gameText = (v) => (typeof v === "string" ? v : v?.en ?? Object.values(v ??
 function gameFromApi(g) {
   const md = g.metadata ?? {};
   const download = Boolean(g.isDownloadable ?? g.is_downloadable);
+  // A game with one build per mode (Highway Hustle), set in the admin page.
+  const modes = Array.isArray(md.modes) ? md.modes.filter((m) => m && typeof m.id === "string" && /^https:\/\//.test(String(m.url))) : [];
   return {
     id: String(g.identification ?? g.slug ?? g.id ?? "").toLowerCase().replace(/[\s_-]+/g, ""),
     name: gameText(g.name),
     url: (download ? md.download_url || md.downloadUrl : md.play_url) || g.url || null,
+    modes: modes.length ? modes.map((m) => ({ id: m.id, url: m.url, name: typeof m.name === "string" ? m.name : null })) : null,
     download,
     plays: pickNum(g.play_count, g.plays),
     rating: pickNum(g.rating)
@@ -323,6 +326,15 @@ export const kultApi = {
       totalGamesPlayed: Number(p.totalGamesPlayed ?? p.total_games_played ?? 0), completedQuests: Number(p.completedQuests ?? p.completed_quests ?? 0)
     };
   }
+};
+
+// ------------------------------------------------------------------ admin
+// The game build editor (public/admin/). The Kult backend lets in only the
+// wallets in its ADMIN_WALLETS.
+export const kultAdmin = {
+  games: async () => (await kult("/admin/games"))?.data?.games ?? [],
+  /** body: any of { url, playUrl, downloadUrl, isDownloadable, modes } */
+  updateGame: async (id, body) => (await kult(`/admin/games/${enc(id)}`, { method: "PUT", body }))?.data?.game ?? null
 };
 
 // ------------------------------------------------------------------ Kult Create

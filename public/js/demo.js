@@ -494,7 +494,7 @@ export function createDemo({ fresh = false, reset = false } = {}) {
   const fail = (status, message) => ({ status, data: { error: message } });
   const scopeOf = { POSTED: "open", NEGOTIATING: "open", ESCROWED: "active", EXECUTING: "active", DELIVERED: "active" };
 
-  function kult(method, path, q) {
+  function kult(method, path, q, body) {
     if (path === "/leaderboard/global") {
       const size = Number(q.get("limit") || 20), page = Number(q.get("page") || 1), total = 185377;
       const me = { walletAddress: WALLET, kultPoints: db.profile.kultPoints, level: db.profile.level };
@@ -506,10 +506,22 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     if (path === "/player/login") return ok({ data: { token: "demo-kult" } });
     if (path === "/player/profile") return ok({ data: { profile: { ...db.profile, walletAddress: WALLET } } });
     // The legacy catalog: the real titles and their public game builds.
+    // The admin build editor, on an in-tab copy of the catalog.
+    if (path === "/admin/games" || path.startsWith("/admin/games/")) return adminGames(method, path, body);
     // The list has no play links; one game's record has its build.
     if (path === "/games/all") return ok({ ok: true, data: LEGACY.map(({ url, ...g }) => g) });
     { const g = /^\/games\/([^/]+)$/.exec(path) && LEGACY.find((x) => x.identification === path.slice(7)); if (g) return ok({ ok: true, data: { game: g } }); }
     return fail(404, "Not found");
+  }
+
+  function adminGames(method, path, body) {
+    db.adminGames ||= LEGACY.map((g) => ({ identification: g.identification, name: g.name, released: true, isDownloadable: g.isDownloadable, url: g.url, playUrl: null, downloadUrl: null, modes: null, updatedAt: null, lastChange: null }));
+    if (method === "GET") return ok({ ok: true, data: { games: db.adminGames } });
+    const g = db.adminGames.find((x) => x.identification === decodeURIComponent(path.split("/").pop()));
+    if (!g) return fail(404, "Game not found");
+    for (const k of ["url", "playUrl", "downloadUrl", "isDownloadable", "modes"]) if (body && k in body) g[k] = body[k] === "" || (Array.isArray(body[k]) && !body[k].length) ? null : body[k];
+    g.updatedAt = new Date().toISOString(); g.lastChange = { at: g.updatedAt, by: WALLET };
+    return ok({ ok: true, data: { game: g } });
   }
 
   // Kult Create's public list and a player's activity. Demo studios' games
@@ -733,7 +745,7 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     await wait(120 + Math.random() * 240);
     tick();
     const u = new URL(path, "http://demo");
-    const r = base === "create" ? create(method, u.pathname, u.searchParams, body) : base === "kult" ? kult(method, u.pathname, u.searchParams) : arena(method, u.pathname, u.searchParams, body);
+    const r = base === "create" ? create(method, u.pathname, u.searchParams, body) : base === "kult" ? kult(method, u.pathname, u.searchParams, body) : arena(method, u.pathname, u.searchParams, body);
     save();
     // Callers get copies, as they would from the network.
     return { status: r.status, data: JSON.parse(JSON.stringify(r.data ?? null)) };

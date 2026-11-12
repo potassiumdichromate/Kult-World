@@ -202,10 +202,12 @@ export function createHubOS(ctx) {
     sound.play("pop");
     const live = g.live, body = $("os-legacy");
     const actions = [];
-    if (g.modes) {
+    // Builds per mode: the ones set in the admin page, else Highway Hustle's built-in four.
+    const modes = live?.modes?.length ? live.modes : g.modes ? HIGHWAY_MODES : null;
+    if (modes) {
       actions.push(el("p", { class: "label" }, t("os.hh.pick")),
-        el("div", { class: "os-modes" }, HIGHWAY_MODES.map((m) => el("button", { type: "button", class: "os-mode", onclick: () => playLegacy(g, m) },
-          el("b", {}, t(`os.hh.${m.id}`)), el("small", {}, t(`os.hh.${m.id}Sub`))))));
+        el("div", { class: "os-modes" }, modes.map((m) => el("button", { type: "button", class: "os-mode", onclick: () => playLegacy(g, m) },
+          el("b", {}, modeName(m)), el("small", {}, t(`os.hh.${m.id}Sub`) === `os.hh.${m.id}Sub` ? "" : t(`os.hh.${m.id}Sub`))))));
     } else if (live?.download) {
       actions.push(el("div", { class: "os-actions" },
         el("a", { class: "btn primary", href: live.url, target: "_blank", rel: "noopener", onclick: () => ctx.onPlay?.(g.name) }, svgEl("span", { class: "bi" }, icon("download")), t("os.download")),
@@ -232,6 +234,9 @@ export function createHubOS(ctx) {
           ...actions)));
     $("os-win-body").scrollTop = 0;
   }
+
+  // A mode's label: our translation for the four Highway Hustle modes, else its name from the admin page.
+  const modeName = (m) => (t(`os.hh.${m.id}`) !== `os.hh.${m.id}` ? t(`os.hh.${m.id}`) : m.name || m.id);
 
   // The Kult backend's games take the player's Kult session in the URL, as
   // kult-games-v3 src/lib/buildGameIframeUrl.ts sends it.
@@ -263,7 +268,7 @@ export function createHubOS(ctx) {
       const page = (s) => { const u = new URL("play/zerodash.html", location.href); u.searchParams.set("build", raw); if (s) { const w = session.kult?.walletAddress || session.wallet; if (w) u.searchParams.set("wallet", w); if (session.kult?.token) u.searchParams.set("jwt", session.kult.token); } return u.href; };
       src = page(withSession); newtab = page(false);
     } else { src = gameUrl(raw, { mode: mode?.id, withSession }); newtab = gameUrl(raw, { mode: mode?.id, withSession: false }); }
-    openPlayer({ title: mode ? `${g.name} · ${t(`os.hh.${mode.id}`)}` : g.name, src, newtab, color: g.color });
+    openPlayer({ title: mode ? `${g.name} · ${modeName(mode)}` : g.name, src, newtab, color: g.color });
     ctx.onPlay?.(g.name);
   }
   const playerId = () => (session.kult?.walletAddress || session.wallet || "").toLowerCase() || null;
