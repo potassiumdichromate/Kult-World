@@ -37,10 +37,18 @@ export function createOkx(ctx) {
     catch (e) { root.replaceChildren(el("div", { class: "ag-error" }, el("b", {}, t("okx.offline")), el("small", { class: "muted" }, e.message))); return; }
     if (focusId) { const p = list.find((x) => x.id === focusId); if (p) return hire(root, p.id); }
     const shown = list.filter((p) => s.filter === "ALL" || p.business === s.filter);
-    root.replaceChildren(
+    const head = [
       el("div", { class: "market-head" },
         el("div", {}, el("h2", { class: "place-title" }, t("okx.title")), el("p", { class: "muted" }, t("okx.desc")))),
-      el("div", { class: "okx-how" }, ["okx.how1", "okx.how2", "okx.how3", "okx.how4"].map((k, i) => el("div", {}, el("i", {}, String(i + 1)), t(k)))),
+      el("div", { class: "okx-how" }, ["okx.how1", "okx.how2", "okx.how3", "okx.how4"].map((k, i) => el("div", {}, el("i", {}, String(i + 1)), t(k))))];
+    // Nothing is live yet: say so to buyers, and show builders the way in.
+    if (!list.length) {
+      return root.replaceChildren(...head, el("div", { class: "okx-empty" },
+        el("div", {}, el("b", {}, t("okx.emptyBuyer")), el("p", { class: "muted" }, t("okx.emptyBuyerText"))),
+        el("div", {}, el("b", {}, t("okx.emptyBuilder")), el("p", { class: "muted" }, t("okx.emptyBuilderText")),
+          el("button", { type: "button", class: "btn primary small", onclick: () => ctx.openOwner?.() }, t("okx.prepare")))));
+    }
+    root.replaceChildren(...head,
       el("div", { class: "seg-chips" }, [["ALL", "okx.all"], ["CREATE", "okx.studios"], ["SPORTS", "okx.agencies"]].map(([k, label]) => el("button", { type: "button", style: "--c:#9fe8ff", "aria-pressed": s.filter === k ? "true" : "false", onclick: () => { s.filter = k; directory(root); } }, el("i"), label && t(label)))),
       shown.length ? el("div", { class: "agency-grid" }, shown.map((p) => el("div", { class: "agency-card", style: `--c:${KIND[p.business].color}` },
         el("div", { class: "ag-top" }, kindChip(p.business), el("span", { class: "kind", style: "--c:#9fe8ff" }, "A2MCP")),
@@ -49,7 +57,7 @@ export function createOkx(ctx) {
         p.services.map((sv) => el("div", { class: "ag-svc" }, el("b", {}, sv.name), el("small", { class: "muted" }, sv.summary))),
         el("div", { class: "ag-foot" },
           el("div", {}, el("b", {}, `${money(p.services[0].price)} USDT`), el("small", { class: "muted" }, `${t("okx.perCall")} · ${stars(p.stats.rating)} · ${t("okx.jobs", { n: p.stats.jobs })}`)),
-          el("button", { type: "button", class: "btn primary small", onclick: () => hire(root, p.id) }, t("okx.hire")))))) : el("p", { class: "muted" }, t("okx.none")));
+          el("button", { type: "button", class: "btn primary small", onclick: () => hire(root, p.id) }, t("okx.hire")))))) : el("p", { class: "muted" }, t("okx.noneKind")));
   }
 
   // ------------------------------------------------------------------ hire (the A2MCP call)

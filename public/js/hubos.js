@@ -242,6 +242,9 @@ export function createHubOS(ctx) {
   // kult-games-v3 src/lib/buildGameIframeUrl.ts sends it.
   function gameUrl(raw, { mode, withSession }) {
     const u = new URL(raw);
+    // An auto-login page (Guess the AI's #/auto-login) waits forever without a
+    // Kult token: open the game's own home, where the player can sign in.
+    if (!(withSession && session.kult?.token) && /auto-login/i.test(u.hash)) u.hash = "#/";
     if (mode) u.searchParams.set("mode", mode);
     const wallet = session.kult?.walletAddress || session.wallet;
     if (withSession && wallet) u.searchParams.set("wallet", wallet);
@@ -267,7 +270,10 @@ export function createHubOS(ctx) {
     if (g.engine === "zerodash") {
       const page = (s) => { const u = new URL("play/zerodash.html", location.href); u.searchParams.set("build", raw); if (s) { const w = session.kult?.walletAddress || session.wallet; if (w) u.searchParams.set("wallet", w); if (session.kult?.token) u.searchParams.set("jwt", session.kult.token); } return u.href; };
       src = page(withSession); newtab = page(false);
-    } else { src = gameUrl(raw, { mode: mode?.id, withSession }); newtab = gameUrl(raw, { mode: mode?.id, withSession: false }); }
+    } else {
+      src = gameUrl(raw, { mode: mode?.id, withSession }); newtab = gameUrl(raw, { mode: mode?.id, withSession: false });
+      if (withSession && !session.kult?.token && /auto-login/i.test(raw)) toast(t("os.signInGame"));
+    }
     openPlayer({ title: mode ? `${g.name} · ${modeName(mode)}` : g.name, src, newtab, color: g.color });
     ctx.onPlay?.(g.name);
   }

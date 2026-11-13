@@ -221,7 +221,9 @@ const enc = encodeURIComponent;
 
 // ------------------------------------------------------------------ AI Arena
 export const arenaApi = {
-  myAgents: async () => (await arena(`/v1/agents/mine${q({ page: 1, pageSize: 50 })}`))?.agents ?? [],
+  /** includeRetired: also the owner's retired agents (they still count toward the one-per-wallet limit). */
+  myAgents: async (includeRetired = false) => (await arena(`/v1/agents/mine${q({ page: 1, pageSize: 50, includeRetired: includeRetired ? 1 : undefined })}`))?.agents ?? [],
+  restoreAgent: async (id) => { const d = await arena(`/v1/agents/${enc(id)}/restore`, { method: "POST", body: {} }); return d?.agent ?? d; },
   agent: async (id) => { const d = await arena(`/v1/agents/${enc(id)}`); return d?.agent ?? d; },
   agents: (page = 1, pageSize = 20) => arena(`/v1/agents${q({ page, pageSize })}`),
   createAgent: async (body) => { const d = await arena("/v1/agents", { method: "POST", body }); return d?.agent ?? d; },

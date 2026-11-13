@@ -121,12 +121,15 @@ export function agentFromApi(a) {
 // ------------------------------------------------------------------ Kult World progression
 // Level, XP, stamps and quests are Kult World's own game layer. No KULT
 // backend tracks them, so they live in this browser, keyed by wallet.
+// First steps, in order: meet the agent, see it do one verified piece of
+// work, then build, hire or play. Kult World is an agent economy with games
+// in it, so a battle is one choice among them, not the entry requirement.
 const QUESTS = [
-  { id: "visit-park", target: 1, reward: 50 },
-  { id: "arcade-win", target: 3, reward: 150 },
+  { id: "meet-agent", target: 1, reward: 50 },
+  { id: "verified-action", target: 1, reward: 120 },
   { id: "open-business", target: 1, reward: 100 },
-  { id: "close-deal", target: 1, reward: 80 },
-  { id: "hire-agent", target: 1, reward: 100 }
+  { id: "hire-agent", target: 1, reward: 100 },
+  { id: "arcade-win", target: 1, reward: 80 }
 ];
 const progressKey = (wallet) => `kw.progress.v2.${String(wallet || "anon").toLowerCase()}`;
 
@@ -134,8 +137,8 @@ export function loadProgress(wallet) {
   let p = null;
   try { p = JSON.parse(localStorage.getItem(progressKey(wallet)) || "null"); } catch { /* storage optional */ }
   p ||= { citizenSince: new Date().toISOString(), level: 1, xp: 0, xpToNext: 500, stamps: [], quests: [], activity: [] };
-  for (const q of QUESTS) if (!p.quests.some((x) => x.id === q.id)) p.quests.push({ ...q, progress: 0 });
-  p.quests = p.quests.filter((q) => QUESTS.some((x) => x.id === q.id)).map((q) => ({ ...q, reward: QUESTS.find((x) => x.id === q.id).reward }));
+  // The definitions set the order, target and reward; a save only keeps progress.
+  p.quests = QUESTS.map((q) => { const had = p.quests.find((x) => x.id === q.id); return { ...q, progress: Math.min(q.target, had?.progress ?? 0) }; });
   return p;
 }
 export function saveProgress(wallet, p) {

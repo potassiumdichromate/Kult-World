@@ -49,6 +49,12 @@ export class World {
     this.quality = 2;
 
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+    // A lost WebGL context (GPU reset, driver crash, too many tabs) blanks the
+    // canvas while the page's HTML (toasts, HUD) stays. three.js asks the
+    // browser for it back; until then, don't draw and let the page say so.
+    this.contextLost = false;
+    canvas.addEventListener("webglcontextlost", (e) => { e.preventDefault(); this.contextLost = true; this.onContextLost?.(); });
+    canvas.addEventListener("webglcontextrestored", () => { this.contextLost = false; r.shadowMap.needsUpdate = true; this.onContextRestored?.(); });
     r.outputColorSpace = THREE.SRGBColorSpace;
     r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.1;
     r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.shadowMap.autoUpdate = false;
@@ -87,6 +93,11 @@ export class World {
   async init() {
     await loadProvided();
     this.populate();
+    // Compile every shader now, off the first frame: drawing the whole city
+    // for the first time used to compile them all at once and freeze the
+    // loader part-way (KHR_parallel_shader_compile lets the GPU do it in the
+    // background where the browser supports it).
+    try { await this.renderer.compileAsync(this.scene, this.camera); } catch (e) { console.warn("[world] shader precompile", e?.message || e); }
     const allOwn = ["berserker", "tactician", "defender", "assassin", "support", "hybrid"].every((k) => providedModel(`agent-${k}`));
     const url = providedModel("agent") ? `models/${providedModel("agent")}` : AGENT_PLACEHOLDER_URL;
     if (!allOwn) loadGLB(url).then((g) => { this.agentGLB = g; for (const a of this.agents.values()) this.dressAgent(a); })
@@ -495,7 +506,7 @@ export class World {
   showInside(id) {
     const chip = this.bld?.get(id)?.chip, n = this.inside.get(id) || 0;
     if (!chip) return;
-    chip.hidden = !n; chip.querySelector("span").textContent = this.tr("bld.inside").replace("{n}", n);
+    chip.hidden = !n; chip.querySelector("span").textContent = this.tr(n === 1 ? "bld.inside1" : "bld.inside").replace("{n}", n);
     chip.classList.remove("ping"); void chip.offsetWidth; chip.classList.add("ping");
   }
   // Name tags never pile up: the player's, a talking agent's and the hovered
@@ -731,6 +742,7 @@ export class World {
   }
 
   draw() {
+    if (this.contextLost) return;
     this.frame = (this.frame || 0) + 1;
     if (this.quality !== 0 && this.frame % (this.quality === 1 ? 4 : 2) === 0) this.renderer.shadowMap.needsUpdate = true;
     this.composer.render(); this.labels.render(this.scene, this.camera);

@@ -76,7 +76,8 @@
     <div id="location" class="location glass"><span class="dot"></span><span id="location-text">Kult Plaza</span></div>
     <div class="hud-right">
       <button type="button" id="bal-arena-btn" class="pill glass arena" data-i18n-attr="title:aw.pill"><i></i><b id="bal-arena">0</b></button>
-      <span class="pill glass kp" title="Kult Points"><i></i><b id="bal-kp">0</b></span>
+      <button type="button" id="kp-pill" class="pill glass kp" data-i18n-attr="title:units.kpPill"><i></i><b id="bal-kp">0</b></button>
+      <button type="button" id="units-btn" class="icon-btn glass units-btn" data-i18n-attr="aria-label:units.title;title:units.title"><svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3" /><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6" /></svg></button>
       <button type="button" id="menu-btn" class="icon-btn glass" aria-haspopup="true" data-i18n-attr="aria-label:menu;title:menu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
       </button>
@@ -92,6 +93,8 @@
         <button type="button" data-goto="tower" data-i18n="bld.tower">Kult Agent Tower</button>
         <button type="button" data-act="board" data-i18n="lb.title">Leaderboard</button>
         <button type="button" data-act="wallet" data-i18n="aw.title">$ARENA Wallet</button>
+        <button type="button" data-act="txs" data-i18n="menu.txs">My transactions ↗</button>
+        <button type="button" data-act="units" data-i18n="units.title">Units &amp; currencies</button>
         <button type="button" id="sign-out" data-i18n="pp.signout">Sign out</button>
       </div>
       <button type="button" id="logout-btn" class="icon-btn glass logout-btn" data-i18n-attr="aria-label:logout;title:logout"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" /></svg><span data-i18n="logout.confirm">Log out?</span></button>
@@ -203,6 +206,7 @@
       </div>
       <form id="mint-form" class="cs-panel glass">
         <div id="cs-form" class="cs-form">
+          <div id="mint-existing" class="mint-existing" hidden></div>
           <div class="field"><span class="label" data-i18n="mint.clan">Clan</span><div id="mint-clans" class="clan-chips"></div></div>
           <label class="field"><span class="label" data-i18n="mint.name">Name</span>
             <span class="name-row"><input id="mint-name" maxlength="24" required autocomplete="off" spellcheck="false"><button type="button" id="mint-dice" class="dice" data-i18n-attr="aria-label:mint.random;title:mint.random"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4" /><circle cx="9" cy="9" r="1.2" /><circle cx="15" cy="15" r="1.2" /><circle cx="15" cy="9" r="1.2" /><circle cx="9" cy="15" r="1.2" /></svg></button></span></label>
@@ -228,7 +232,7 @@
       <p class="eyebrow" data-i18n="park.eyebrow">Kult Business Park</p>
       <h2 class="place-title" data-i18n="park.title">Choose a business</h2>
       <p class="muted" data-i18n="park.desc">Your agent runs every business as CEO. Open one to start building.</p>
-      <button type="button" id="okx-owner-btn" class="okx-cta glass"><b data-i18n="okx.cta">Sell your businesses on OKX.AI</b><span data-i18n="okx.ctaSub">Link your OKX.AI identity and let OKX users hire your AI team, paid per call in USDT.</span></button>
+      <button type="button" id="okx-owner-btn" class="okx-cta glass"><b data-i18n="okx.cta">Prepare your OKX.AI listing</b><span data-i18n="okx.ctaSub">Link your OKX.AI identity, then put a business live so OKX users can hire its AI team, paid per call in USDT.</span></button>
       <div id="biz-grid" class="biz-grid"></div>
     </div>
   </div>
@@ -332,6 +336,18 @@
   </div>
 
   <!-- Agentic Marketplace -->
+  <!-- Units & currencies: which numbers are money and which are game values -->
+  <div id="units" class="overlay place" hidden>
+    <div class="place-sheet glass" style="--accent:#4fd8ff">
+      <button type="button" class="close" data-close="units" aria-label="Close">×</button>
+      <div class="units-body">
+        <p class="eyebrow" data-i18n="units.eyebrow">Know your numbers</p>
+        <h2 class="place-title" data-i18n="units.title">Units &amp; currencies</h2>
+        <p class="muted" data-i18n="units.lead">These are not interchangeable. Only the tokens are money; everything else is a rating or a game value inside one experience.</p>
+        <div id="units-list" class="units-list"></div>
+      </div>
+    </div>
+  </div>
   <div id="wallet" class="overlay place" hidden>
     <div class="place-sheet glass wide" style="--accent:#ffc94d">
       <button type="button" class="close" data-close="wallet" aria-label="Close">×</button>
@@ -387,6 +403,7 @@
   </div>
 
   <div id="toast" class="glass" role="status" hidden></div>
+  <div id="gl-lost" class="gl-lost glass" role="alert" hidden><b data-i18n="gl.lost">Restoring the city's graphics…</b><span data-i18n="gl.lostSub">Your browser reset the 3D view. Your progress is safe.</span><button type="button" id="gl-lost-reload" class="btn gold small" data-i18n="gl.reload" hidden>Reload Kult World</button></div>
   <script type="module" src="js/intro.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>

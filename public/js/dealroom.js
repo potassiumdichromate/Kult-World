@@ -24,6 +24,18 @@ export function createDealRoom(ctx) {
   const s = { tab: "arena", info: null, prof: null, root: null, run: 0, minNeg: 0, minRel: 0 };
   const alive = (run) => run === s.run && s.root?.isConnected && !s.root.closest("[hidden]");
   const err = (e) => el("div", { class: "ag-error" }, el("b", {}, t("dr.offline")), el("small", { class: "muted" }, e.message));
+  // Percentages from a handful of tests read as guarantees ("Reliability
+  // 100%" after one match). Below MIN_SAMPLE, show the count and say so.
+  const MIN_SAMPLE = 5;
+  const rates = (x) => {
+    const n = Number(x.verifiedMatches) || 0;
+    if (n < MIN_SAMPLE) {
+      const won = x.successRate === null || x.successRate === undefined ? null : Math.round(x.successRate * n);
+      return [el("span", {}, t("dr.success"), " ", el("b", {}, won === null ? "—" : t("dr.ofTests", { k: won, n }))),
+        el("span", { class: "dr-few" }, t("dr.fewTests", { n: MIN_SAMPLE }))];
+    }
+    return [el("span", {}, t("dr.success"), " ", el("b", {}, pct(x.successRate))), el("span", {}, t("dr.reliability"), " ", el("b", {}, pct(x.reliability)))];
+  };
   const confChip = (c) => el("span", { class: `dr-conf ${c ? c.toLowerCase() : "none"}` }, c ? t(`dr.conf.${c.toLowerCase()}`) : t("dr.unrated"));
   const dimName = (d) => t(`dr.dim.${d}`);
   /** Native append prints null; skip the empty slots. */
@@ -75,8 +87,7 @@ export function createDealRoom(ctx) {
         return el("div", { class: "dr-dim" }, el("span", {}, dimName(d)), el("div", { class: "bar" }, el("i", { style: `--c:var(--gold);width:${r ?? 0}%` })), el("b", {}, num(r)));
       })),
       el("div", { class: "dr-cap-foot" },
-        el("span", {}, t("dr.success"), " ", el("b", {}, pct(c.successRate))),
-        el("span", {}, t("dr.reliability"), " ", el("b", {}, pct(c.reliability))),
+        ...rates(c),
         s.prof.hirePriceArena ? el("span", {}, t("dr.hireable"), " ", el("b", {}, `${s.prof.hirePriceArena} $ARENA`)) : el("span", { class: "muted" }, t("dr.notHireable"))));
   }
 
@@ -334,7 +345,7 @@ export function createDealRoom(ctx) {
       portrait(a.archetype, "lf"),
       el("div", { class: "dr-hire-who" }, el("b", {}, a.name, mine ? el("em", { class: "lb-you" }, t("lb.you")) : null), el("small", {}, `${archetype(a.archetype).name} · ${a.clan}`)),
       el("div", { class: "dr-hire-cap" }, el("b", {}, num(n.rating)), confChip(n.confidence), el("small", {}, t("dr.matches", { n: n.verifiedMatches }))),
-      el("div", { class: "dr-hire-stats" }, el("span", {}, t("dr.success"), " ", el("b", {}, pct(n.successRate))), el("span", {}, t("dr.reliability"), " ", el("b", {}, pct(n.reliability)))),
+      el("div", { class: "dr-hire-stats" }, ...rates(n)),
       mine ? el("span", { class: "muted tiny" }, t("dr.yours")) : el("button", { type: "button", class: "btn gold small", onclick: () => hireForm(row, x) }, t("dr.hireFor", { n: x.hirePriceArena })));
     return row;
   }

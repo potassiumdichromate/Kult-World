@@ -29,7 +29,7 @@ import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES,
   agentFromApi, loadProgress, saveProgress
 } from "./data.js";
-import { config, privyClient, session, arenaApi, kultApi, a2aApi, okxApi, chainApi, isDemo } from "./kult.js";
+import { config, privyClient, session, arenaApi, kultApi, a2aApi, okxApi, chainApi, explorer, isDemo } from "./kult.js";
 import { findMatch, challenge as directChallenge, loadBattle, playUnity, playLauncher, report, Cancelled, LAUNCHER_DOWNLOAD } from "./battle.js";
 
 const $ = (id) => document.getElementById(id);
@@ -134,12 +134,19 @@ function resize() { world.resize(innerWidth, innerHeight, Math.min(1.5, devicePi
 addEventListener("resize", resize);
 resize();
 let last = performance.now(), slowAt = 0, frames = 0;
+let frameError = false;
 function tick(now) {
+  // The next frame is booked first: an error in one frame used to end the
+  // loop for good, leaving a frozen or empty city behind the HUD and toasts.
+  requestAnimationFrame(tick);
+  try { frame(now); } catch (e) { if (!frameError) { frameError = true; console.error("[kult-world] frame", e); } }
+}
+function frame(now) {
   // A frame stamped before the loop started would make dt (and the clock) negative.
   const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
   // A full-screen app (a game, the Switchyard) covers the city: let its own
   // 3D have the GPU instead of drawing a world nobody can see.
-  if (!$("app-frame").hidden) { requestAnimationFrame(tick); return; }
+  if (!$("app-frame").hidden) return;
   world.update(dt); world.draw();
   if (state.inWorld) {
     world.autoQuality(dt);
@@ -148,10 +155,18 @@ function tick(now) {
   }
   if (++frames === 3) firstFrames();
   if (state.inWorld && now - slowAt > 100) { slowAt = now; updateLocation(); updatePrompt(); world.minimap($("minimap")); checkIsle(); greetNearby(); }
-  requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
 const worldReady = world.init();
+// The GPU dropped the city's WebGL context: say so, and offer a reload if the
+// browser doesn't hand it back.
+let glTimer = null;
+world.onContextLost = () => {
+  show("gl-lost"); $("gl-lost-reload").hidden = true;
+  clearTimeout(glTimer); glTimer = setTimeout(() => { $("gl-lost-reload").hidden = false; }, 5000);
+};
+world.onContextRestored = () => { clearTimeout(glTimer); show("gl-lost", false); };
+$("gl-lost-reload").addEventListener("click", () => location.reload());
 // The city's other agents are real AI Arena agents walking the streets; the
 // player's own are left out. With AI Arena unreachable the streets stay empty.
 async function populateCity() {
@@ -382,7 +397,13 @@ const agentPrefKey = () => `kw.agent.${String(session.wallet).toLowerCase()}`;
 /** The signed-in player: their AI Arena agents, then balances and history. */
 async function loadPlayer(preferId) {
   state.agents = await arenaApi.myAgents();
-  if (!state.agents.length) { state.player = null; return null; }
+  state.existing = null;
+  if (!state.agents.length) {
+    // A wallet holds one agent and a retired one still counts: offer it back
+    // rather than a mint AI Arena would refuse.
+    state.existing = (await arenaApi.myAgents(true).catch(() => [])).find((a) => a.isRetired) || null;
+    state.player = null; return null;
+  }
   let saved = preferId;
   try { saved ||= localStorage.getItem(agentPrefKey()); } catch { /* optional */ }
   const raw = state.agents.find((a) => a.id === saved) || [...state.agents].sort((a, b) => (b.eloRating ?? 0) - (a.eloRating ?? 0))[0];
@@ -459,11 +480,42 @@ function openMint() {
   $("mint-name").value = randomName();
   $("mint-story").value = t("mint.storyDefault");
   setMinting(false);
+  renderExisting();
   show("mint");
   stage ||= new CharacterStage($("cs-stage"));
   stage.setMode("idle"); stage.start();
   renderMint(true);
   tour.offer("mint-go", forceTour);
+}
+// The wallet already has an agent AI Arena didn't list (retired): restore it.
+function renderExisting(note) {
+  const box = $("mint-existing"), a = state.existing;
+  $("mint").classList.toggle("has-existing", Boolean(a || note));
+  box.hidden = !(a || note);
+  if (!a && !note) return box.replaceChildren();
+  box.replaceChildren(
+    el("b", {}, a ? t("mint.retiredTitle", { name: a.name }) : t("mint.existsTitle")),
+    el("p", {}, a ? t("mint.retiredText") : note),
+    a ? el("button", { type: "button", class: "btn gold big", onclick: (e) => restoreExisting(e.currentTarget) }, t("mint.restore", { name: a.name }))
+      : el("button", { type: "button", class: "btn ghost", onclick: (e) => retryExisting(e.currentTarget) }, t("mint.lookAgain")));
+}
+async function restoreExisting(btn) {
+  const a = state.existing;
+  btn.disabled = true;
+  try {
+    await arenaApi.restoreAgent(a.id);
+    await loadPlayer(a.id);
+    if (!state.player) throw new Error(t("mint.failed"));
+  } catch (e) { btn.disabled = false; return toast(e.status === 404 ? t("mint.restoreMissing") : e.message, "bad"); }
+  stage?.stop(); show("mint", false);
+  addActivity(t("act.restored", { name: state.player.agent.name }));
+  enterWorld(false);
+}
+async function retryExisting(btn) {
+  btn.disabled = true;
+  try { await loadPlayer(); } catch (e) { btn.disabled = false; return toast(e.message, "bad"); }
+  if (state.player) { stage?.stop(); show("mint", false); return enterWorld(false); }
+  btn.disabled = false; renderExisting(t("mint.existsText"));
 }
 function closeMint() {
   if (minting) return;
@@ -533,6 +585,13 @@ $("mint-form").addEventListener("submit", async (e) => {
   }
   if (failure || !created?.id) {
     setMinting(false); stage?.setMode("idle");
+    // AI Arena allows one agent per wallet: this one has an agent already.
+    if (failure?.status === 409) {
+      try { await loadPlayer(); } catch { /* shown below */ }
+      if (state.player) { stage?.stop(); show("mint", false); return enterWorld(false); }
+      if (!state.existing && failure.body?.code === "AGENT_RETIRED" && failure.body.agentId) state.existing = { id: failure.body.agentId, name: t("mint.yourAgent"), isRetired: true };
+      return renderExisting(state.existing ? undefined : t("mint.existsText"));
+    }
     return toast(failure?.message || t("mint.failed"), "bad");
   }
   stage?.setMode("done"); sound.play("level");
@@ -600,8 +659,10 @@ function renderPassport() {
       el("div", { class: "pp-id" }, p.passport.id),
       el("dl", { class: "pp-rows" },
         el("dt", {}, t("pp.citizen")), el("dd", {}, p.passport.username),
-        el("dt", {}, t("pp.wallet")), el("dd", { title: p.wallet || "" }, p.passport.wallet),
-        el("dt", {}, t("pp.since")), el("dd", {}, new Date(p.passport.citizenSince).toLocaleDateString(getLang() === "zh" ? "zh-CN" : undefined))),
+        el("dt", {}, t("pp.wallet")), el("dd", { title: p.wallet || "" }, p.passport.wallet,
+          p.wallet ? el("a", { class: "pp-txs", href: explorer.address(p.wallet), target: "_blank", rel: "noopener" }, t("pp.txs")) : null),
+        // A long date: "7/12/2026" reads as July or December depending on the reader.
+        el("dt", {}, t("pp.since")), el("dd", {}, new Date(p.passport.citizenSince).toLocaleDateString(getLang() === "zh" ? "zh-CN" : "en-GB", { day: "numeric", month: "short", year: "numeric" }))),
       el("div", { class: "pp-level" }, el("span", { class: "lv ic xp" }, t("pp.level", { n: p.passport.level })), el("span", { class: "muted" }, `${fmt(p.passport.xp)} / ${fmt(p.passport.xpToNext)} XP`)),
       el("div", { class: "bar" }, el("i", { style: `width:${Math.round((p.passport.xp / p.passport.xpToNext) * 100)}%` })),
       el("div", { class: "stamps", title: t("pp.visited") }, STAMPS.map(([id, label, c]) => {
@@ -693,13 +754,19 @@ function commit() { if (!state.player) return; saveProgress(state.player.wallet,
 // A demo stays a demo after logging out.
 async function signOut() { await session.signOut(); const d = new URLSearchParams(location.search).get("demo"); location.href = location.pathname + (d ? `?demo=${encodeURIComponent(d)}` : ""); }
 
-function togglePassport(force) { const o = $("passport").classList.toggle("open", force); $("passport-toggle").setAttribute("aria-expanded", String(o)); }
+function togglePassport(force) {
+  const o = $("passport").classList.toggle("open", force); $("passport-toggle").setAttribute("aria-expanded", String(o));
+  if (o && state.player?.quests.some((q) => q.id === "meet-agent" && q.progress < q.target)) { quest("meet-agent"); commit(); }
+}
 $("passport-toggle").addEventListener("click", () => togglePassport());
 $("hud-player").addEventListener("click", () => togglePassport());
 for (const b of document.querySelectorAll("[data-act]")) b.addEventListener("click", () => {
   const act = b.dataset.act;
   show("menu", false);
-  if (act === "passport") togglePassport(); else if (act === "board") openBoard(); else if (act === "wallet") openWallet(); else world.recenter();
+  if (act === "passport") togglePassport(); else if (act === "board") openBoard(); else if (act === "wallet") openWallet();
+  else if (act === "units") openUnits();
+  else if (act === "txs") { if (state.player?.wallet) open(explorer.address(state.player.wallet), "_blank", "noopener"); }
+  else world.recenter();
 });
 $("menu-btn").addEventListener("click", () => show("menu", $("menu").hidden));
 for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("click", () => { show("menu", false); if (anyOpen()) closeOverlays(true); travel(b.dataset.goto); });
@@ -741,7 +808,7 @@ addEventListener("keydown", (e) => {
 });
 addEventListener("keyup", (e) => { const dir = KEY_DIR[e.key.toLowerCase()]; if (dir) { held.delete(dir); keyMove(); } });
 addEventListener("blur", () => { held.clear(); keyMove(); });
-function closeOverlays(quiet = false) { if (!quiet) sound.play("close"); cancelMatch(); hubos.close(); dealRoom.stop(); okx.stop(); a2a.stop(); for (const id of ["park", "deal", "market", "okx", "wallet", "board"]) show(id, false); }
+function closeOverlays(quiet = false) { if (!quiet) sound.play("close"); cancelMatch(); hubos.close(); dealRoom.stop(); okx.stop(); a2a.stop(); for (const id of ["park", "deal", "market", "okx", "wallet", "board", "units"]) show(id, false); }
 
 // ------------------------------------------------------------------ places
 function openPlace(b, then) {
@@ -750,8 +817,8 @@ function openPlace(b, then) {
   // Walking into an open business goes straight inside it; the campus gate
   // and the coming-soon buildings show the Business Park.
   const biz = b.kind === "biz" ? BUSINESSES.find((x) => x.id === b.id && x.status === "open") : null;
-  if (biz) { stamp("park"); quest("visit-park"); void openApp(biz); }
-  else if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); quest("visit-park"); }
+  if (biz) { stamp("park"); void openApp(biz); }
+  else if (b.kind === "biz" || b.kind === "park") { renderBiz(b.kind === "biz" ? b.id : null); show("park"); stamp("park"); }
   if (b.kind === "hub") { openHub(then); stamp("hub"); }
   if (b.kind === "deal") { show("deal"); stamp("deal"); void dealRoom.open($("deal-body")); }
   if (b.kind === "syndicate") void syndicates.enter();
@@ -987,7 +1054,7 @@ const syndicates = createSyndicates({
   el, t, toast, sound, ago, show,
   player: () => state.player,
   onEnter: () => { stamp("syndicate"); addActivity(t("act.syndicate")); commit(); },
-  onReceipt: (r, mission, outcome) => { addActivity(t("act.synReceipt", { mission, outcome })); commit(); },
+  onReceipt: (r, mission, outcome) => { quest("verified-action"); addActivity(t("act.synReceipt", { mission, outcome })); commit(); },
   onRecord: () => { if (state.inWorld) renderPassport(); },
   goSwitchyard: () => { togglePassport(false); travel("syndicate"); },
   agentBridge: () => agentBridge()
@@ -1012,7 +1079,7 @@ const tower = createTowerClient({
   el, t, toast, sound, ago, show,
   player: () => state.player,
   onEnter: () => { stamp("tower"); addActivity(t("act.tower")); commit(); },
-  onReceipt: (r) => { addActivity(t("act.towerReceipt", { n: r.shift, d: r.delivered })); commit(); },
+  onReceipt: (r) => { if (r.delivered > 0) quest("verified-action"); addActivity(t("act.towerReceipt", { n: r.shift, d: r.delivered })); commit(); },
   onRecord: () => { if (state.inWorld) renderPassport(); },
   goTower: () => { togglePassport(false); travel("tower"); },
   agentBridge
@@ -1031,6 +1098,23 @@ function openBoard() {
 }
 $("bal-arena-btn").addEventListener("click", openWallet);
 
+// Units & currencies: what each number is, where it lives, and whether it's money.
+const UNITS = [
+  ["arena", "token", "#ffc94d"], ["usdt", "token", "#26a17b"], ["usdc", "token", "#2775ca"],
+  ["elo", "rating", "#b072ff"], ["xp", "game", "#4fd8ff"], ["kp", "game", "#ff9f43"],
+  ["studio", "game", "#ff7eb6"], ["cr", "game", "#4fd8ff"], ["supplies", "game", "#6ff0a6"]
+];
+function openUnits() {
+  closeAgentCard(); togglePassport(false); sound.play("open");
+  $("units-list").replaceChildren(...UNITS.map(([id, kind, c]) => el("div", { class: "unit-row", style: `--c:${c}` },
+    el("div", { class: "unit-top" }, el("b", {}, t(`units.${id}`)), el("span", { class: `unit-kind ${kind}` }, t(`units.kind.${kind}`))),
+    el("small", { class: "unit-where" }, t(`units.${id}.where`)),
+    el("p", {}, t(`units.${id}.what`)))));
+  show("units");
+}
+$("units-btn").addEventListener("click", openUnits);
+$("kp-pill").addEventListener("click", openUnits);
+
 // ------------------------------------------------------------------ deal room
 // The first Verified Arena (Negotiation), js/dealroom.js. Matches are scored
 // on the server; only verified ones move the agent's reputation.
@@ -1039,7 +1123,7 @@ const dealRoom = createDealRoom({
   player: () => state.player,
   onMatch: (m) => {
     if (!state.player || m.agent?.id !== state.player.agent.id) return;
-    if (m.outcome === "DEAL") quest("close-deal");
+    if (m.kind === "VERIFIED") quest("verified-action");
     gainXp(m.kind === "VERIFIED" ? 70 : 25);
     addActivity(t(m.outcome === "DEAL" ? "act.drDeal" : "act.drMatch", { name: state.player.agent.name, n: m.negotiation ?? "—", asset: m.scenario.asset.name }));
     commit();
@@ -1058,6 +1142,7 @@ const okx = createOkx({
   signTypedData: async (chainId, typedData) => (await privyClient()).signTypedData(session.wallet, chainId, typedData),
   signMessage: async (address, message) => (await privyClient()).signMessage(address, message),
   openDirectory: (providerId) => { show("okx", false); marketTab = "okx"; renderMarket(providerId); show("market"); stamp("market"); },
+  openOwner: () => { show("market", false); openOkxOwner(); },
   onHired: (p, job) => {
     quest("hire-agent"); gainXp(60);
     addActivity(t("act.okxHire", { name: p.businessName, price: job.payment.amount })); commit();

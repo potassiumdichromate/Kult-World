@@ -124,7 +124,7 @@ export function createArena(ctx) {
   async function arenaBoard(main, side, run) {
     const key = s.period;
     if (s.entriesKey !== key || !s.entries) {
-      try { s.entries = await arenaApi.leaderboard(100, s.period); s.entriesKey = key; }
+      try { s.entries = await arenaApi.leaderboard(100, s.period); s.entriesKey = key; s.fetchedAt = new Date(); }
       catch (e) { if (run === s.run) main.replaceChildren(el("div", { class: "ag-error" }, el("b", {}, t("lb.offline")), el("small", { class: "muted" }, e.message))); return; }
     }
     if (run !== s.run) return;
@@ -165,7 +165,9 @@ export function createArena(ctx) {
         el("span", {}, winRate(e)),
         challenge(e)))) : el("p", { class: "muted lb-empty" }, t(s.tier === null ? "lb.empty" : "lb.emptyTier"));
 
-    main.replaceChildren(chips, podium || "", table, pager(s.page, pages, (n) => { s.page = n; arenaBoard(main, side, run); }));
+    // How places are decided and when, so the table and "your rank" can be checked against each other.
+    const note = el("p", { class: "muted tiny lb-note" }, t("lb.rule", { time: (s.fetchedAt || new Date()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) }));
+    main.replaceChildren(chips, podium || "", table, pager(s.page, pages, (n) => { s.page = n; arenaBoard(main, side, run); }), note);
     void arenaSide(side, run);
   }
 

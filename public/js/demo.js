@@ -795,9 +795,9 @@ function seedProgress(fresh) {
     localStorage.setItem(key, JSON.stringify({
       citizenSince: iso(now - 62 * D), level: 12, xp: 8940, xpToNext: 13572, stamps: ["park", "hub", "create", "sports", "deal", "market", "a2a"],
       quests: [
-        { id: "visit-park", target: 1, reward: 50, progress: 1 }, { id: "arcade-win", target: 3, reward: 150, progress: 2 },
-        { id: "open-business", target: 1, reward: 100, progress: 1 }, { id: "close-deal", target: 1, reward: 80, progress: 0 },
-        { id: "hire-agent", target: 1, reward: 100, progress: 0 }
+        { id: "meet-agent", target: 1, reward: 50, progress: 1 }, { id: "verified-action", target: 1, reward: 120, progress: 1 },
+        { id: "open-business", target: 1, reward: 100, progress: 1 }, { id: "hire-agent", target: 1, reward: 100, progress: 0 },
+        { id: "arcade-win", target: 1, reward: 80, progress: 0 }
       ],
       activity: [
         { at: iso(now - 3 * H), text: "Hired Golden Boot Analytics through OKX for 0.80 USDT" },
