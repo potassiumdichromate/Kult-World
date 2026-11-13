@@ -3,13 +3,19 @@
 //
 //   node scripts/meshy.mjs concepts <jobs.json>        start a concept per job
 //   node scripts/meshy.mjs models <jobs.json>          image-to-3D from each job's chosen concept
+//   node scripts/meshy.mjs remesh <jobs.json>          Meshy Remesh of each finished model
 //   node scripts/meshy.mjs status <jobs.json>          poll and download what finished
 //
+// Remesh gives clean, low-poly topology with the detail baked into a normal
+// map; decimating Meshy's dense meshes instead makes them look scanned.
+// Optimize remesh output without further simplification (--simplify false).
+//
 // jobs.json: { "dir": "art-src/meshy/syndicates", "jobs": [{ "name", "prompt",
-// "variants"?: n, "concepts"?: [taskIds], "pick"?: taskId, "model"?: taskId }] }.
+// "variants"?: n, "concepts"?: [taskIds], "pick"?: taskId, "model"?: taskId,
+// "polycount"?: n, "remesh"?: taskId }] }.
 // The script writes task ids back into the file, so it can be re-run safely.
 // Needs MESHY_API_KEY. Costs credits: nano-banana-pro concept 9, Meshy 7.1 with
-// a 4K Meshy 7 texture 30 (https://docs.meshy.ai/en/api/pricing).
+// a 4K Meshy 7 texture 30, remesh 5 (https://docs.meshy.ai/en/api/pricing).
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -52,6 +58,13 @@ if (cmd === "concepts") {
     j.model = result; save();
     console.log(`${j.name}: model ${result}`);
   }
+} else if (cmd === "remesh") {
+  for (const j of spec.jobs) {
+    if (j.remesh || !j.model) continue;
+    const { result } = await api("POST", "/remesh", { input_task_id: j.model, topology: "triangle", target_polycount: j.polycount || 30000, target_formats: ["glb"] });
+    j.remesh = result; save();
+    console.log(`${j.name}: remesh ${result} (${j.polycount || 30000} triangles)`);
+  }
 } else if (cmd === "status") {
   for (const j of spec.jobs) {
     for (const [i, id] of (j.concepts || []).entries()) {
@@ -61,15 +74,21 @@ if (cmd === "concepts") {
       if (t.status === "SUCCEEDED") { await download(t.image_urls[0], to); console.log(`${j.name}: saved ${to}`); }
       else console.log(`${j.name}: concept ${t.status} ${t.progress ?? ""}% ${t.task_error?.message ?? ""}`);
     }
-    if (j.model) {
+    if (j.model && !existsSync(join(spec.dir, `${j.name}.glb`))) {
       const to = join(spec.dir, `${j.name}.glb`);
-      if (existsSync(to)) continue;
       const t = await api("GET", `/image-to-3d/${j.model}`);
       if (t.status === "SUCCEEDED") { await download(t.model_urls.glb, to); console.log(`${j.name}: saved ${to} (${t.consumed_credits} credits)`); }
       else console.log(`${j.name}: model ${t.status} ${t.progress ?? ""}% ${t.task_error?.message ?? ""}`);
     }
+    if (j.remesh && !existsSync(join(spec.dir, "remesh", `${j.name}.glb`))) {
+      mkdirSync(join(spec.dir, "remesh"), { recursive: true });
+      const to = join(spec.dir, "remesh", `${j.name}.glb`);
+      const t = await api("GET", `/remesh/${j.remesh}`);
+      if (t.status === "SUCCEEDED") { await download(t.model_urls.glb, to); console.log(`${j.name}: saved ${to} (remesh)`); }
+      else console.log(`${j.name}: remesh ${t.status} ${t.progress ?? ""}% ${t.task_error?.message ?? ""}`);
+    }
   }
 } else {
-  console.error("Usage: node scripts/meshy.mjs concepts|models|status <jobs.json>");
+  console.error("Usage: node scripts/meshy.mjs concepts|models|remesh|status <jobs.json>");
   process.exit(1);
 }

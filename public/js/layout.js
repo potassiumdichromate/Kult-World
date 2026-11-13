@@ -32,6 +32,8 @@ export const DISTRICTS = [
   { id: "hub", x0: 30, y0: 2, x1: 45, y1: 26 },
   { id: "deal", x0: 45, y0: 2, x1: 55, y1: 26 },
   { id: "market", x0: 2, y0: 30, x1: 27, y1: 55 },
+  // The KULT Agent Tower, on the avenue below the Deal Room (before "deal": first match wins).
+  { id: "tower", x0: 45, y0: 18, x1: 55, y1: 27 },
   // The Switchyard: Kult Syndicates' rail depot, the front-left of the gardens.
   { id: "switchyard", x0: 30, y0: 43, x1: 39, y1: 56 },
   { id: "garden", x0: 30, y0: 30, x1: 55, y1: 55 }
@@ -55,6 +57,7 @@ disc(POND.x, POND.y, POND.r, "w");
 paint(41, 30, 44, 37, "p");                // garden path to the pond
 paint(48, 31, 51, 40, "p");                // garden path to the Studio Isle bridge
 paint(30, 50, 38, 53, "p");                // the Switchyard's forecourt, off the north-south avenue
+paint(46, 26, 54, 27, "p");                // the Agent Tower's forecourt on the east-west avenue
 // Studio Isle: a path from the bridge round the studio to its forecourt.
 paint(46, 46, 54, 48, "p"); paint(46, 48, 47, 53, "p"); paint(53, 48, 54, 53, "p"); paint(46, 53, 54, 56, "p");
 
@@ -73,7 +76,9 @@ export const BUILDINGS = [
   { id: "market", kind: "market", tab: "okx", slot: "bld-okx-market", x0: 4, y0: 34, x1: 14, y1: 44, h: 13, door: [9, 44], color: "#e8e8e8" },
   { id: "a2a", kind: "market", tab: "jobs", slot: "bld-base-market", x0: 16, y0: 34, x1: 26, y1: 44, h: 11, door: [21, 44], color: "#3d7bff" },
   // Kult Syndicates (the Switchyard), served at /world/syndicates/. Kept clear of Studio Isle's ring of sky.
-  { id: "syndicate", kind: "syndicate", slot: "bld-syndicate", x0: 31, y0: 44, x1: 38, y1: 50, h: 10, door: [34, 50], color: "#ff6a3d" }
+  { id: "syndicate", kind: "syndicate", slot: "bld-syndicate", x0: 31, y0: 44, x1: 38, y1: 50, h: 10, door: [34, 50], color: "#ff6a3d" },
+  // KULT Agent Tower, served at /world/tower/: an agency skyscraper facing the east-west avenue.
+  { id: "tower", kind: "tower", slot: "bld-agent-tower", x0: 47, y0: 19, x1: 53, y1: 26, h: 18, door: [50, 26], color: "#4fd8ff" }
 ];
 export const ENTERABLE = BUILDINGS;
 export const FOUNTAIN = { x: CENTER[0], y: CENTER[1], r: 2.2 };
@@ -215,7 +220,7 @@ for (const [x, y, rot] of [[38.6, 37.6, 0.8], [47.4, 37.6, -0.8], [38.6, 46.6, 2
 for (let i = 0; i < 26; i++) { const x = 31 + rnd() * 22, y = 31 + rnd() * 22; if (free(x, y)) put("flowers", x, y, { rot: rnd() * 6.28 }, false); }
 for (let i = 0; i < 12; i++) { const x = 3 + rnd() * 22, y = 33 + rnd() * 20; if (free(x, y)) put("flowers", x, y, { rot: rnd() * 6.28 }, false); }
 // Billboards.
-put("billboard", 45.5, 21.5, { ad: 0 }); put("billboard", 7, 28.4, { ad: 1 }); put("billboard", 24.5, 49.5, { ad: 2 }); put("billboard", 51.5, 27, { ad: 3 });
+put("billboard", 45.5, 21.5, { ad: 0 }); put("billboard", 7, 28.4, { ad: 1 }); put("billboard", 24.5, 49.5, { ad: 2 }); put("billboard", 54.3, 21.5, { ad: 3 }); // east of the Agent Tower, clear of its door
 put("crane", 31.5, 9.5);
 // Studio Isle: lamps along the garden path and round the forecourt.
 for (let y = 32; y < 40; y += 3.5) { put("lamp", 47.5, y + 0.5, { glow: "#ff7eb6" }, false); put("lamp", 51.5, y + 0.5, { glow: "#4fd8ff" }, false); }

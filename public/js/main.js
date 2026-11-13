@@ -24,6 +24,7 @@ import { createDealRoom } from "./dealroom.js";
 import { createArena, arenaAmount } from "./arena.js";
 import { createHubOS } from "./hubos.js";
 import { createSyndicates } from "./syndicates.js";
+import { createTowerClient } from "./tower.js";
 import {
   CLANS, ARCHETYPES, archetype, TRAITS, rankOf, nextRank, BUSINESSES, GAMES, gameByArenaId, MATCH_MODES,
   agentFromApi, loadProgress, saveProgress
@@ -414,6 +415,7 @@ async function refreshLive() {
   if (agent.status === "fulfilled" && agent.value?.id) { p.raw = agent.value; p.agent = agentFromApi(agent.value); }
   if (state.inWorld) { renderPassport(); renderQuests(); }
   void syndicates.sync();
+  void tower.sync();
 }
 
 function setArena(v) {
@@ -566,7 +568,7 @@ function enterWorld(fresh) {
 }
 
 // ------------------------------------------------------------------ passport drawer
-const STAMPS = [["syndicate", "SYNDICATE", "#ff6a3d"], ["park", "PARK", "#ffc94d"], ["hub", "HUB", "#ff4fa3"], ["create", "CREATE", "#ff7eb6"], ["sports", "SPORTS", "#3ddc84"], ["deal", "DEAL", "#ffd27a"], ["market", "OKX", "#e8e8e8"], ["a2a", "A2A", "#3d7bff"], ["dex", "DEX", "#5ec8f2"], ["production", "FILM", "#ffc94d"]];
+const STAMPS = [["syndicate", "SYNDICATE", "#ff6a3d"], ["tower", "TOWER", "#4fd8ff"], ["park", "PARK", "#ffc94d"], ["hub", "HUB", "#ff4fa3"], ["create", "CREATE", "#ff7eb6"], ["sports", "SPORTS", "#3ddc84"], ["deal", "DEAL", "#ffd27a"], ["market", "OKX", "#e8e8e8"], ["a2a", "A2A", "#3d7bff"], ["dex", "DEX", "#5ec8f2"], ["production", "FILM", "#ffc94d"]];
 const STAMP_ART = { hub: "arcade" };
 const balText = (v) => (v === null || v === undefined ? "—" : fmt(v));
 function battleLine(b, me) {
@@ -639,6 +641,7 @@ function renderPassport() {
         el("span", { class: `st ${b.status}` }, t(b.status === "open" ? "st.open" : "st.soon"))))),
       el("button", { type: "button", class: "btn ghost small", onclick: () => { togglePassport(false); openOkxOwner(); } }, t("okx.manage"))),
     syndicates.section(section),
+    tower.section(section),
     section(t("pp.quests"), t("pp.questsLocal"), p.quests.map((q) => el("div", { class: `quest${q.progress >= q.target ? " done" : ""}` },
       el("div", { class: "qh" }, el("span", { class: "ic ic-quest" }, t(`quest.${q.id}`)), el("span", { class: "qr" }, `+${q.reward} XP`)),
       el("div", { class: "bar" }, el("i", { style: `--c:var(--green);width:${Math.round((Math.min(q.progress, q.target) / q.target) * 100)}%` })),
@@ -720,7 +723,7 @@ addEventListener("keydown", (e) => {
   if (e.key === "Escape") { if (hubos.back()) return; if (anyOpen()) closeOverlays(); else { togglePassport(false); closeAgentCard(); } return; }
   if (anyOpen()) return;
   const k = e.key.toLowerCase();
-  const go = { 1: "create", 2: "park", 3: "hub", 4: "deal", 5: "market", 6: "a2a", 7: "syndicate" }[k];
+  const go = { 1: "create", 2: "park", 3: "hub", 4: "deal", 5: "market", 6: "a2a", 7: "syndicate", 8: "tower" }[k];
   if (go) travel(go); else if (k === "q") openQuickStart(); else if (k === "p") togglePassport(); else if (k === "c") world.recenter(); else if (k === "l") openBoard(); else if (k === "h") setHand(!handOn);
   else if (k === "e") { const b = world.nearDoor(2.2); if (b) openPlace(b); }
 });
@@ -752,6 +755,7 @@ function openPlace(b, then) {
   if (b.kind === "hub") { openHub(then); stamp("hub"); }
   if (b.kind === "deal") { show("deal"); stamp("deal"); void dealRoom.open($("deal-body")); }
   if (b.kind === "syndicate") void syndicates.enter();
+  if (b.kind === "tower") void tower.enter();
   if (b.kind === "market") { marketTab = b.tab; renderMarket(); show("market"); stamp(b.id); }
   commit();
 }
@@ -829,7 +833,7 @@ async function openApp(b) {
   }
   commit();
 }
-$("app-back").addEventListener("click", () => { show("app-frame", false); $("app-iframe").src = "about:blank"; toast(t("toast.back")); syndicates.left(); });
+$("app-back").addEventListener("click", () => { show("app-frame", false); $("app-iframe").src = "about:blank"; toast(t("toast.back")); syndicates.left(); tower.left(); });
 
 // ------------------------------------------------------------------ game hub
 // Real AI Arena battles (js/battle.js): matchmaking, the Unity builds and the
@@ -986,19 +990,32 @@ const syndicates = createSyndicates({
   onReceipt: (r, mission, outcome) => { addActivity(t("act.synReceipt", { mission, outcome })); commit(); },
   onRecord: () => { if (state.inWorld) renderPassport(); },
   goSwitchyard: () => { togglePassport(false); travel("syndicate"); },
-  // The player's Agent as the Switchyard shows it (Kult-Syndicate web/kult-agent.js).
-  agentBridge: () => {
-    const a = state.player?.agent;
-    if (!a) return null;
-    const arch = archetype(a.archetype), r = rankOf(a.elo), clan = CLANS.find((c) => c.id === String(a.clan || "").toUpperCase());
-    const abs = (u) => (u ? new URL(u, location.href).href : null);
-    return { version: 1, agent: {
-      id: a.id, name: a.name, archetype: arch.id, archetypeName: arch.name, color: arch.color, elo: a.elo, wins: a.wins, losses: a.losses, inft: a.inft || null,
-      rank: { name: r.name, color: r.color, badge: abs(`art/${r.badge}`) },
-      clan: clan ? { id: clan.id, name: clan.name, color: clan.color, logo: abs(`art/partners/${clan.logo}.webp`) } : null,
-      portrait: abs(portraitUrl(arch.id)), model: abs(`models/agent-${arch.id}.glb`)
-    } };
-  }
+  agentBridge: () => agentBridge()
+});
+// The player's Agent as the Switchyard and the Agent Tower show it
+// (Kult-Syndicate web/kult-agent.js, Kult-Tower web/app.js).
+function agentBridge() {
+  const a = state.player?.agent;
+  if (!a) return null;
+  const arch = archetype(a.archetype), r = rankOf(a.elo), clan = CLANS.find((c) => c.id === String(a.clan || "").toUpperCase());
+  const abs = (u) => (u ? new URL(u, location.href).href : null);
+  return { version: 1, agent: {
+    id: a.id, name: a.name, archetype: arch.id, archetypeName: arch.name, color: arch.color, elo: a.elo, wins: a.wins, losses: a.losses, inft: a.inft || null,
+    rank: { name: r.name, color: r.color, badge: abs(`art/${r.badge}`) },
+    clan: clan ? { id: clan.id, name: clan.name, color: clan.color, logo: abs(`art/partners/${clan.logo}.webp`) } : null,
+    portrait: abs(portraitUrl(arch.id)), model: abs(`models/agent-${arch.id}.glb`)
+  } };
+}
+// KULT Agent Tower: the tower building opens the Agent Tower directed by the
+// player's Agent (js/tower.js); its shift receipts fill the Passport and 0G memory.
+const tower = createTowerClient({
+  el, t, toast, sound, ago, show,
+  player: () => state.player,
+  onEnter: () => { stamp("tower"); addActivity(t("act.tower")); commit(); },
+  onReceipt: (r) => { addActivity(t("act.towerReceipt", { n: r.shift, d: r.delivered })); commit(); },
+  onRecord: () => { if (state.inWorld) renderPassport(); },
+  goTower: () => { togglePassport(false); travel("tower"); },
+  agentBridge
 });
 // Entering the hub boots KULT-OS on its desktop; a challenge, or the quick
 // start's Play, goes straight to the AI Gaming folder.

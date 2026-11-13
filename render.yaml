@@ -58,3 +58,10 @@ services:
         sync: false
       - key: SYNDICATES_PUBLIC_KEY
         sync: false
+      # KULT Agent Tower, served at /world/tower/ (Kult-Tower's render.yaml)
+      - key: TOWER_URL
+        value: https://kult-agent-tower.onrender.com
+      - key: TOWER_LAUNCH_SECRET
+        sync: false
+      - key: TOWER_RESULT_SECRET
+        sync: false

@@ -348,6 +348,16 @@ export const syndicatesApi = {
   record: async (agentId) => (demo ? demo.syndicateRecord(agentId) : (await syndicatesCall(`/api/syndicates/record${q({ agentId })}`))?.receipts ?? [])
 };
 
+// ------------------------------------------------------------------ KULT Agent Tower
+// The tower (tower/tower.mjs on the server): a signed launch for the
+// player's own Agent, and that Agent's verified shift receipts.
+export const towerApi = {
+  /** { launchUrl }: the Agent Tower, directed by this Agent (one use, 90 s). */
+  launch: async (agentId) => (demo ? { launchUrl: "/world/tower/?embed=1", sandbox: true } : syndicatesCall("/api/tower/launch", { method: "POST", body: { agentId } })),
+  /** The Agent's verified shift receipts, newest first (at most 50). */
+  record: async (agentId) => (demo ? demo.towerRecord(agentId) : (await syndicatesCall(`/api/tower/record${q({ agentId })}`))?.receipts ?? [])
+};
+
 // ------------------------------------------------------------------ admin
 // The game build editor (public/admin/). The Kult backend lets in only the
 // wallets in its ADMIN_WALLETS.

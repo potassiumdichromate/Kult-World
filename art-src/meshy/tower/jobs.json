@@ -1,0 +1,117 @@
+{
+  "dir": "art-src/meshy/tower",
+  "jobs": [
+    {
+      "name": "tower-lobby",
+      "prompt": "Stylized 3D game asset, isometric three-quarter view from the front-right, isolated on a pure black background. One cutaway floor of a futuristic agency skyscraper shown like a dollhouse diorama: a wide rectangular floor slab about twice as wide as it is deep, a back wall and two short side walls, open front and no ceiling, so the whole room is visible. THE LOBBY: a curved reception desk with a glowing top strip, a waiting bench, a potted plant, a large holographic screen on the back wall showing abstract graphs, glass sliding doors in the left side wall. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable shapes. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838) with glowing neon accents in cyan (#4fd8ff) and small magenta (#ff4fa3) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1d39c-f0a8-7635-9cb7-3ab52fd0b50e"
+      ],
+      "pick": "01a1d39c-f0a8-7635-9cb7-3ab52fd0b50e",
+      "model": "01a1d39e-ead5-7048-a818-e038136383ff",
+      "polycount": 20000,
+      "remesh": "01a1d3a8-7477-73d8-ac36-2f5f5442a587"
+    },
+    {
+      "name": "tower-research",
+      "prompt": "Stylized 3D game asset, isometric three-quarter view from the front-right, isolated on a pure black background. One cutaway floor of a futuristic agency skyscraper shown like a dollhouse diorama: a wide rectangular floor slab about twice as wide as it is deep, a back wall and two short side walls, open front and no ceiling, so the whole room is visible. SIGNAL LAB: three computer workstations with glowing screens along the back wall, a round radar-dish console in the middle projecting a holographic waveform, neat cable trays on the floor. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable shapes. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838) with glowing neon accents in cyan (#4fd8ff) and small magenta (#ff4fa3) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1d39c-f405-71a0-91f9-232ece71b916"
+      ],
+      "pick": "01a1d39c-f405-71a0-91f9-232ece71b916",
+      "model": "01a1d39e-f25e-71e5-9d79-6ab21aba8068",
+      "polycount": 20000,
+      "remesh": "01a1d3a8-77d4-716b-9a1b-9e6857b0b56b"
+    },
+    {
+      "name": "tower-workshop",
+      "prompt": "Stylized 3D game asset, isometric three-quarter view from the front-right, isolated on a pure black background. One cutaway floor of a futuristic agency skyscraper shown like a dollhouse diorama: a wide rectangular floor slab about twice as wide as it is deep, a back wall and two short side walls, open front and no ceiling, so the whole room is visible. MAKER BAY: a long workbench with a small robotic arm, a compact 3D printer, tool racks on the back wall, stacked crates, warm work lamps. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable shapes. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838) with glowing neon accents in hot orange (#ff8a3d) and small magenta (#ff4fa3) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1d39c-f54f-76cb-aa6b-2f146f7a1bb0"
+      ],
+      "pick": "01a1d39c-f54f-76cb-aa6b-2f146f7a1bb0",
+      "model": "01a1d39e-f782-7045-872a-7f26ba80818d",
+      "polycount": 20000,
+      "remesh": "01a1d3a8-7940-74f5-a92d-34b5d76651ef"
+    },
+    {
+      "name": "tower-dispatch",
+      "prompt": "Stylized 3D game asset, isometric three-quarter view from the front-right, isolated on a pure black background. One cutaway floor of a futuristic agency skyscraper shown like a dollhouse diorama: a wide rectangular floor slab about twice as wide as it is deep, a back wall and two short side walls, open front and no ceiling, so the whole room is visible. DISPATCH: a row of parcel lockers along the back wall, a short conveyor belt carrying glowing parcels to a launch hatch, a large route-map screen on the back wall. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable shapes. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838) with glowing neon accents in mint green (#6ff0a6) and small magenta (#ff4fa3) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1d39c-f684-74ed-a444-60a8f992d7bb"
+      ],
+      "pick": "01a1d39c-f684-74ed-a444-60a8f992d7bb",
+      "model": "01a1d39e-fcc7-72cb-b85f-d9eb97d9de87",
+      "polycount": 20000,
+      "remesh": "01a1d3a8-7a7d-730d-940a-262da201a63e"
+    },
+    {
+      "name": "tower-recovery",
+      "prompt": "Stylized 3D game asset, isometric three-quarter view from the front-right, isolated on a pure black background. One cutaway floor of a futuristic agency skyscraper shown like a dollhouse diorama: a wide rectangular floor slab about twice as wide as it is deep, a back wall and two short side walls, open front and no ceiling, so the whole room is visible. RECHARGE LOUNGE: two plush recharge pods with softly glowing canopies, a low table with cups, a window panel showing stars on the back wall, floor cushions. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable shapes. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838) with glowing neon accents in violet (#a98bff) and small magenta (#ff4fa3) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1d39c-f7c4-74a4-b9e1-9c5c6a213b7e"
+      ],
+      "pick": "01a1d39c-f7c4-74a4-b9e1-9c5c6a213b7e",
+      "model": "01a1d39f-01a4-714f-8f2f-2347eab48a05",
+      "polycount": 20000,
+      "remesh": "01a1d3a8-7bea-72e3-a322-c4260cd45011"
+    },
+    {
+      "name": "tower-lift",
+      "prompt": "Stylized 3D game asset, isometric three-quarter view from the front-right, isolated on a pure black background: one stackable segment of a glass elevator shaft for a futuristic tower, a narrow tall rectangular frame of dark steel corner pillars with glass side panels and glowing guide rails, open front, flat top and bottom so segments stack, about as tall as one building floor. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable shapes. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838) with glowing neon accents in cyan (#4fd8ff) and small magenta (#ff4fa3) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1d39c-f908-7075-9403-31588698b9aa"
+      ],
+      "pick": "01a1d39c-f908-7075-9403-31588698b9aa",
+      "model": "01a1d39f-074f-715f-9fee-a5c9e7f007ce",
+      "polycount": 6000,
+      "remesh": "01a1d3a8-7d29-747b-9688-2f68638d80f3"
+    },
+    {
+      "name": "tower-roof",
+      "prompt": "Stylized 3D game asset, isometric three-quarter view from the front-right, isolated on a pure black background: the rooftop crown of a futuristic agency skyscraper, a flat rectangular roof slab about twice as wide as it is deep with a glowing antenna spire, a small helipad with a neon ring, rooftop vents and a large beacon light. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable shapes. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838) with glowing neon accents in cyan (#4fd8ff) and gold (#ffc94d) and small magenta (#ff4fa3) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1d39c-fa1c-71b9-bfd8-f6bebe94ba6c"
+      ],
+      "pick": "01a1d39c-fa1c-71b9-bfd8-f6bebe94ba6c",
+      "model": "01a1d39f-0b0a-75cb-bc58-5f36c8b777bf",
+      "polycount": 15000,
+      "remesh": "01a1d3a8-7e68-776d-9964-97a6c1a9e32f"
+    },
+    {
+      "name": "tower-base",
+      "prompt": "Stylized 3D game asset, isometric three-quarter view from the front-right, isolated on a pure black background: an EMPTY entrance platform for a skyscraper on a small floating sky island, nothing standing on top. A wide rectangular stone-and-steel plinth about twice as wide as it is deep with a completely flat, empty top surface, wide steps leading up at the front, glowing neon edge lights along the rim, two small planters at the front corners, craggy violet rock with glowing crystal veins hanging underneath. No building, no tower, no walls on top. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable shapes. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838) with glowing neon accents in cyan (#4fd8ff) and small magenta (#ff4fa3) highlights. No text, no letters, no logos, no people.",
+      "variants": 1,
+      "concepts": [
+        "01a1d39e-e6c9-74c5-b0da-b15514c1b7c5"
+      ],
+      "rejected": [
+        "01a1d39c-fb61-7391-be06-63a506d9a79d"
+      ],
+      "polycount": 20000,
+      "pick": "01a1d39e-e6c9-74c5-b0da-b15514c1b7c5",
+      "model": "01a1d3a8-bfbd-74b3-8bf5-9c2549555d4e",
+      "remesh": "01a1d3ae-c285-74f6-9657-2224f81e02f8"
+    },
+    {
+      "name": "bld-agent-tower",
+      "prompt": "Stylized 3D game building, isometric three-quarter view from the front-right with the main entrance facing the viewer, a single building isolated on a pure black background. KULT AGENT TOWER: a slim futuristic agency skyscraper of stacked glass floors, each floor glowing a different neon colour (cyan, hot orange, mint green, violet), an external glass elevator running up one side, a crown with an antenna and a beacon on top, a wide lobby entrance with glowing sliding doors at the bottom, a small plaza with planters. Chunky toy-like proportions with bevelled edges like Monument Valley, clean readable shapes. Night 'Neon Dusk' palette: deep violet and dark gunmetal (#2a1650, #1b1838) with glowing neon accents in cyan (#4fd8ff) and small magenta (#ff4fa3) highlights. No text, no letters, no logos, no people.",
+      "variants": 2,
+      "concepts": [
+        "01a1d39c-fca1-70b0-8cbb-624239781a25",
+        "01a1d39c-fde1-747e-8ec8-41d44658edbb"
+      ],
+      "pick": "01a1d39c-fca1-70b0-8cbb-624239781a25",
+      "model": "01a1d39f-0eec-7061-8fa1-fc50fdb27498",
+      "polycount": 40000,
+      "remesh": "01a1d3a8-7fa4-737f-82c1-c76aabc35e0b"
+    }
+  ]
+}

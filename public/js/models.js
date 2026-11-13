@@ -24,6 +24,7 @@ export const SLOTS = {
   "bld-okx-market": { size: [10, 10], height: 13 },
   "bld-base-market": { size: [10, 10], height: 11 },
   "bld-syndicate": { size: [7, 6], height: 10 },
+  "bld-agent-tower": { size: [6, 7], height: 18 },
   "fountain": { size: [4.4, 4.4], height: 6 },
   "spawn-pad": { size: [2.4, 2.4], height: 0.4 },
   "tree": { size: [1.6, 1.6], height: 4 },
@@ -356,6 +357,24 @@ function dealRoom({ W, D }) {
 // Kult Syndicates: a rail depot. A sawtooth-roof warehouse, a lit freight
 // door, track in the yard, stacked containers and a signal mast whose light
 // sweeps between amber and red.
+// KULT Agent Tower until its Meshy model loads: stacked glowing floors, a
+// glass lift up the side and a beacon on top.
+function agentTower({ W, D }) {
+  const g = new THREE.Group(), steel = M.metal();
+  g.add(box(W, 0.5, D, M.stoneDark()));
+  const tw = W * 0.62, td = D * 0.62, floors = ["#4fd8ff", "#ff8a3d", "#6ff0a6", "#a98bff", "#4fd8ff"];
+  floors.forEach((c, i) => {
+    g.add(box(tw, 2.6, td, std("#241a46", { roughness: 0.5, metalness: 0.4 }), 0, 0.5 + i * 3, 0));
+    g.add(box(tw * 0.92, 1.4, 0.08, M.glow(c, 1.4), 0, 1.1 + i * 3, td / 2 + 0.02));
+    g.add(box(tw + 0.1, 0.18, td + 0.1, steel, 0, 3.05 + i * 3, 0));
+  });
+  g.add(box(1.1, 15.4, 1.1, std("#4fd8ff", { transparent: true, opacity: 0.25, roughness: 0.1, emissive: "#4fd8ff", emissiveIntensity: 0.35 }), -tw / 2 - 0.7, 0.5, 0));
+  g.add(cyl(0.08, 0.12, 4, steel, 6, 0, 15.6, 0));
+  const beacon = ico(0.35, M.glow("#ffc94d", 3), 0, 19.8, 0, 1); g.add(beacon);
+  g.add(box(2.4, 2.2, 0.2, M.glow("#4fd8ff", 1.6), 0, 0.5, td / 2 + 0.3));
+  animate(g, (t) => { beacon.material.emissiveIntensity = 2 + Math.sin(t * 2) * 1.2; });
+  return g;
+}
 function switchyard({ W, D }) {
   const g = new THREE.Group(), rust = std("#5a2a20", { roughness: 0.75, metalness: 0.3 }), steel = M.metal();
   g.add(box(W, 0.5, D, M.stoneDark()));
@@ -591,7 +610,7 @@ export function capsuleAgent(color) {
 // ------------------------------------------------------------------ registry
 const BUILDERS = {
   "bld-gaming-studio": gamingStudio, "bld-sports": sportsAgency, "bld-dex": dexTower, "bld-film": filmStudio,
-  "campus-gate": campusGate, monument, "bld-game-hub": gameHub, "bld-deal-room": dealRoom, "bld-syndicate": switchyard,
+  "campus-gate": campusGate, monument, "bld-game-hub": gameHub, "bld-deal-room": dealRoom, "bld-syndicate": switchyard, "bld-agent-tower": agentTower,
   "bld-okx-market": (o) => marketplace({ ...o, slot: "bld-okx-market" }), "bld-base-market": (o) => marketplace({ ...o, slot: "bld-base-market" }),
   fountain, "spawn-pad": spawnPad, tree, pine, blossom, bush, flowers, lamp, bench, billboard, car: hoverCar, crane
 };
@@ -714,6 +733,7 @@ const EXTRAS = {
   fountain: (g) => { const l = new THREE.PointLight("#ff4fa3", 30, 16, 1.6); l.position.y = 4.6; g.add(l); },
   "bld-gaming-studio": (g) => nameSign(g, [["sign.create", "GAMING STUDIO"], "KULT CREATE"], ["#ff7eb6", "#ffffff"]),
   "bld-sports": (g) => nameSign(g, [["sign.sports", "SPORTS AGENCY"], "KULT SPORTS"], ["#7ef0a6", "#ffffff"]),
+  "bld-agent-tower": (g) => nameSign(g, [["sign.tower", "AGENT TOWER"], "KULT TOWER"], ["#4fd8ff", "#ffffff"], 1),
   "bld-dex": (g) => nameSign(g, [["sign.dex", "DEX TRADING"], "KULT DEX"], ["#4fd8ff", "#ffffff"]),
   "bld-film": (g) => nameSign(g, [["sign.production", "FILM PRODUCTION"], "KULT PRODUCTION"], ["#ffc94d", "#ffffff"]),
   "bld-game-hub": (g) => brandOver(g, "bld-game-hub"),

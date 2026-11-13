@@ -772,7 +772,16 @@ export function createDemo({ fresh = false, reset = false } = {}) {
     ];
   }
 
-  return { call, a2mcp, privy, syndicateRecord };
+  // The Agent Tower in demo: the tower's own sandbox; two sample shift reports.
+  function towerRecord(agentId) {
+    const now = Date.now();
+    return [
+      { id: `tower_demo_2_${agentId}`, version: "tower-1.4", shift: 2, delivered: 4, missed: 1, creditsDelta: 410, reputationDelta: 6, credits: 1060, reputation: 62, rank: 2, completed: 7, commendations: 1, goal: { title: "Beat the clock: 2 rushed deliveries", achieved: true, progress: 2, target: 2 }, createdAt: Math.floor((now - 1 * H) / 1000) },
+      { id: `tower_demo_1_${agentId}`, version: "tower-1.4", shift: 1, delivered: 3, missed: 2, creditsDelta: 330, reputationDelta: 5, credits: 650, reputation: 56, rank: 2, completed: 3, commendations: 0, goal: { title: "Proof first: 3 verified deliveries", achieved: false, progress: 2, target: 3 }, createdAt: Math.floor((now - 4 * H) / 1000) }
+    ];
+  }
+
+  return { call, a2mcp, privy, syndicateRecord, towerRecord };
 }
 
 // The demo player's Kult World passport (level, stamps, quests), so the HUD
