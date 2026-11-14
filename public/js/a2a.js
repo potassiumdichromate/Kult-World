@@ -15,6 +15,8 @@
 // link to BaseScan.
 
 import { a2aApi, usdc, toBaseUnits } from "./kult.js";
+import { GAMES } from "./data.js";
+import { getLang } from "./i18n.js";
 
 const STAGES = ["POST", "DISCOVER", "NEGOTIATE", "ESCROW", "TRAIN", "DELIVER", "SETTLE"];
 const STAGE_OF = { DRAFT: 0, POSTING: 0, POSTED: 1, NEGOTIATING: 2, ESCROWED: 3, EXECUTING: 4, DELIVERED: 5, SETTLED: 6, REFUNDED: 5, DISPUTED: 5, CANCELLED: 1, FAILED: 1 };
@@ -30,7 +32,7 @@ export function createA2A(ctx) {
 
   const myIds = () => new Set(myAgents().map((a) => a.id));
   const agentName = (id) => myAgents().find((a) => a.id === id)?.name;
-  const metric = (p) => (p ? `${p.metric} ${{ gte: "≥", gt: ">", lte: "≤", lt: "<", eq: "=" }[p.op] || p.op} ${p.value}` : "—");
+  const metric = (p) => (p ? `${String(p.metric).replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()} ${{ gte: "≥", gt: ">", lte: "≤", lt: "<", eq: "=" }[p.op] || p.op} ${p.value}` : "—");
   const money = (bu) => `${usdc(bu)} USDC`;
 
   function stop() { clearInterval(s.pollT); s.pollT = null; }
@@ -95,21 +97,37 @@ export function createA2A(ctx) {
       await identityCard(),
       el("div", { class: "seg-chips" }, ["open", "active", "completed"].map((k) => el("button", { type: "button", style: "--c:#ff7eb6", "aria-pressed": s.scope === k ? "true" : "false", onclick: () => { s.scope = k; renderList(); } }, el("i"), `${t(`a2a.scope.${k}`)} · ${counts[k] ?? 0}`))),
       data.jobs?.length
-        ? el("div", { class: "agency-grid" }, data.jobs.map(jobCard))
+        ? el("div", { class: "agency-grid a2a-jobs" }, data.jobs.map(jobCard))
         : el("p", { class: "muted" }, t(`a2a.empty.${s.scope}`)));
     poll(() => { if (s.view === "list") renderListQuiet(); }, 15000);
   }
   async function renderListQuiet() { try { const d = await a2aApi.listJobs(s.scope); if (s.view === "list") { const grid = s.root.querySelector(".agency-grid"); if (grid) grid.replaceChildren(...d.jobs.map(jobCard)); } } catch { /* keep the last list */ } }
 
+  // A job on the board: status, game, the brief, its target and the money.
+  // Quiet by design: one status colour, no nested boxes, no entrance animation
+  // (the list re-renders every 15 s).
+  const gameName = (id) => GAMES.find((g) => g.arenaId === id || g.id === id)?.name || String(id || "").replace(/[-_]+/g, " ");
+  const posted = (iso) => {
+    const d = new Date(iso); if (Number.isNaN(+d)) return "";
+    const loc = getLang() === "zh" ? "zh-CN" : undefined;
+    return `${d.toLocaleDateString(loc, { month: "short", day: "numeric" })} · ${d.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" })}`;
+  };
   function jobCard(j) {
     const mine = myIds().has(j.creatorAgentId);
-    return el("div", { class: "agency-card a2a-card", style: `--c:${BAD.has(j.status) ? "#ff6b7d" : j.status === "SETTLED" ? "#6ff0a6" : "#ff7eb6"}` },
-      el("div", { class: "ag-top" }, el("span", { class: "kind" }, t(`a2a.status.${j.status}`)), el("span", { class: "kind", style: "--c:#5ec8f2" }, j.gameId), mine ? el("span", { class: "kind", style: "--c:#ffc94d" }, t("a2a.yours")) : null),
-      el("p", { class: "small" }, j.prompt),
-      el("div", { class: "ag-svc" }, el("b", {}, t("a2a.target")), el("small", { class: "muted" }, metric(j.target))),
-      el("div", { class: "ag-foot" },
-        el("div", {}, el("b", {}, j.agreedPrice ? `${j.agreedPrice.display} ${j.agreedPrice.currency}` : `${j.budget.min}–${j.budget.max} ${j.budget.currency}`), el("small", { class: "muted" }, new Date(j.createdAt).toLocaleString())),
-        el("button", { type: "button", class: "btn primary small", onclick: () => { s.view = "job"; s.jobId = j.id; renderJob(j.id); } }, t("a2a.open"))));
+    const tone = BAD.has(j.status) ? "bad" : j.status === "SETTLED" ? "good" : "live";
+    const amount = j.agreedPrice ? j.agreedPrice.display : `${j.budget.min}–${j.budget.max}`;
+    const currency = j.agreedPrice ? j.agreedPrice.currency : j.budget.currency;
+    const open = () => { s.view = "job"; s.jobId = j.id; renderJob(j.id); };
+    return el("article", { class: `a2a-job is-${tone}` },
+      el("div", { class: "a2a-job-top" },
+        el("span", { class: "a2a-job-status" }, el("i"), t(`a2a.status.${j.status}`)),
+        el("span", { class: "a2a-job-game" }, gameName(j.gameId)),
+        mine ? el("span", { class: "a2a-job-mine" }, t("a2a.yours")) : null),
+      el("h3", { class: "a2a-job-title", title: j.prompt }, j.prompt),
+      el("div", { class: "a2a-job-target" }, el("span", {}, t("a2a.target")), el("code", {}, metric(j.target))),
+      el("div", { class: "a2a-job-foot" },
+        el("div", { class: "a2a-job-price" }, el("b", {}, amount), el("span", {}, currency), el("small", {}, posted(j.createdAt))),
+        el("button", { type: "button", class: "a2a-job-view", onclick: open }, t("a2a.open"), el("span", { "aria-hidden": "true" }, "→"))));
   }
 
   // ------------------------------------------------------------------ post a job
