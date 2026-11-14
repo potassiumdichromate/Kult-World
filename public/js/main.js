@@ -870,9 +870,9 @@ function loadScriptOnce(src) {
   if (document.querySelector(`script[src="${src}"]`)) return Promise.resolve();
   return new Promise((resolve, reject) => { const s = el("script", { src }); s.onload = resolve; s.onerror = () => reject(new Error(t("biz.unreachable"))); document.head.append(s); });
 }
-// Both businesses open signed in as the same KULT player: Kult Create takes
-// the Privy session through its embed.js, Kult Sports takes the AI Arena
-// token in ?jwt= (both as their READMEs describe for Kult World).
+// Every business opens signed in as the same KULT player: Kult Create takes
+// the Privy session through its embed.js, Kult Sports and Kult Dex take the
+// AI Arena token in ?jwt= (as their READMEs describe for Kult World).
 async function openApp(b) {
   const c = await config();
   stamp(b.id); quest("open-business");
@@ -888,12 +888,13 @@ async function openApp(b) {
       });
       addActivity(t("act.entered", { brand: b.brand }));
     } catch (e) { toast(e.message, "bad"); }
-  } else if (b.id === "sports") {
-    const url = new URL(`${c.kultSportsUrl}/`);
+  } else if (b.id === "sports" || b.id === "dex") {
+    const base = b.id === "dex" ? c.kultDexUrl : c.kultSportsUrl;
+    const url = new URL(`${base}/`);
     if (c.demo) url.searchParams.set("demo", "1");
     else if (session.arena?.accessToken) { url.searchParams.set("jwt", session.arena.accessToken); url.searchParams.set("source", "kult-world"); }
     $("app-title").textContent = `${b.brand} · ${t(`biz.${b.id}.name`)}`;
-    $("app-newtab").href = `${c.kultSportsUrl}/${c.demo ? "?demo=1" : ""}`;
+    $("app-newtab").href = `${base}/${c.demo ? "?demo=1" : ""}`;
     $("app-iframe").src = url.href;
     show("app-frame");
     addActivity(t("act.entered", { brand: b.brand }));

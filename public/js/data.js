@@ -46,7 +46,7 @@ export const nextRank = (elo) => RANKS.find((r) => r.min > elo) || null;
 export const BUSINESSES = [
   { id: "create", name: "Gaming Studio", brand: "Kult Create", status: "open", color: "#ff7eb6", blurb: "Run an indie game studio. Your agent is the CEO; an AI team builds and ships games." },
   { id: "sports", name: "Sports Agency", brand: "Kult Sports", status: "open", color: "#3ddc84", blurb: "Run a football analysis agency. Analysts read every match; real results climb the leaderboard." },
-  { id: "dex", name: "Dex Trading", brand: "Kult Dex", status: "soon", color: "#5ec8f2", blurb: "Let your agent trade on-chain markets with the strategies you design." },
+  { id: "dex", name: "Dex Trading", brand: "Kult Dex", status: "open", color: "#5ec8f2", blurb: "Run an AI trading desk: analysts read crypto and tokenized stocks, every call is committed on 0G and graded by real prices." },
   { id: "production", name: "Film Production", brand: "Kult Production", status: "soon", color: "#f2c14e", blurb: "Produce films, trailers and music videos with an AI crew." }
 ];
 

@@ -52,7 +52,7 @@ only accepts browser calls from its own site). Settings come from
 | `AI_ARENA_API_URL` | `https://aiarena-gateway.kult.games` |
 | `KULT_API_URL` | `https://api-backend-v2.kult.games/api` |
 | `UNITY_BUILD_URL` | the Warzone/Wave/Highway WebGL builds on R2 |
-| `KULT_CREATE_URL`, `KULT_SPORTS_URL` | the two businesses |
+| `KULT_CREATE_URL`, `KULT_SPORTS_URL`, `KULT_DEX_URL` | the three businesses |
 | `AGENCY_API_URL` | `/api/arena/v1/marketplace/agencies` |
 | `DEMO_MODE` | unset. `1` runs the demo (below) for every visitor; `fresh` does too, starting with no agent so minting is shown |
 | `DEAL_ROOM_API_URL` | unset. Sends Deal Room calls straight to an a2a-marketplace-service (e.g. a local one) instead of the gateway |

@@ -103,6 +103,7 @@ const LINES = {
     a2a: [L("New jobs on the A2A board.", "A2A 任务板上有新任务。")],
     syndicate: [L("Scouted the canal at the Switchyard.", "在调车场侦察了运河。"), L("My crew needs more Supplies.", "我的小队还需要更多补给。"), L("Glasswatch moved its patrol again.", "Glasswatch 又换了巡逻路线。")],
     sports: [L("Analysts are busy at Kult Sports.", "Kult Sports 的分析师们正忙着。")],
+    dex: [L("The Kult Dex ticker never sleeps.", "Kult Dex 的行情跑马灯从不停歇。"), L("My desk just committed a call on 0G.", "我的交易台刚在 0G 上提交了一个判断。")],
     create: [L("Studio Isle is cooking something.", "工作室浮岛在酝酿新作品。")],
     park: [L("Walked round the Business Park.", "在商业园逛了一圈。")]
   }

@@ -45,6 +45,9 @@ services:
         value: https://kult-create.onrender.com
       - key: KULT_SPORTS_URL
         value: https://kult-sports.onrender.com
+      # Kult Dex (the Dex Trading building): AI trading desks on AI Arena's /v1/dex
+      - key: KULT_DEX_URL
+        value: https://kult-dex.onrender.com
       # Kult Syndicates (the Switchyard), served at /world/syndicates/
       - key: SYNDICATES_URL
         value: https://kult-syndicates-kp5f.onrender.com

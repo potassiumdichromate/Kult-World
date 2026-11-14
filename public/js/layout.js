@@ -66,7 +66,7 @@ paint(46, 46, 54, 48, "p"); paint(46, 48, 47, 53, "p"); paint(53, 48, 54, 53, "p
 // The two marketplaces share kind "market"; tab picks which one opens.
 // Footprint in tiles (x1/y1 exclusive); door = the walkable tile in front of the entrance.
 export const BUILDINGS = [
-  { id: "dex", kind: "biz", slot: "bld-dex", x0: 4, y0: 4, x1: 11, y1: 12, h: 24, door: [7, 12], color: "#4fd8ff", status: "soon" },
+  { id: "dex", kind: "biz", slot: "bld-dex", x0: 4, y0: 4, x1: 11, y1: 12, h: 24, door: [7, 12], color: "#4fd8ff", status: "open" },
   { id: "sports", kind: "biz", slot: "bld-sports", x0: 16, y0: 4, x1: 23, y1: 12, h: 13, door: [19, 12], color: "#3ddc84", status: "open" },
   { id: "create", kind: "biz", slot: "bld-gaming-studio", x0: 47, y0: 48, x1: 53, y1: 53, h: 12, door: [50, 53], color: "#ff7eb6", status: "open", isle: true },
   { id: "production", kind: "biz", slot: "bld-film", x0: 16, y0: 16, x1: 23, y1: 22, h: 10, door: [19, 22], color: "#ffc94d", status: "soon" },

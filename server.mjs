@@ -58,6 +58,7 @@ const CONFIG = JSON.stringify({
   tower: TOWER.enabled,
   createApi: "/api/create",
   kultSportsUrl: trim(process.env.KULT_SPORTS_URL || "https://kult-sports.onrender.com"),
+  kultDexUrl: trim(process.env.KULT_DEX_URL || "https://kult-dex.onrender.com"),
   // DEMO_MODE=1 (or "fresh": no agent yet, so minting is shown) runs the page
   // on js/demo.js instead of the KULT backends, for every visitor.
   demo: demoMode(process.env.DEMO_MODE),
