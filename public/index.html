@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="art/brand/kw-favicon-32.png">
   <link rel="icon" type="image/png" sizes="64x64" href="art/brand/kw-favicon-64.png">
   <link rel="apple-touch-icon" href="art/brand/kw-apple-touch.png">
-  <link rel="preload" as="image" href="art/brand/kw-emblem-720.webp">
+  <link rel="preload" as="image" href="art/brand/kw-intro-poster.webp">
   <link rel="preload" as="image" href="art/brand/kw-wordmark.webp">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,25 +27,16 @@
   <div class="vignette" aria-hidden="true"></div>
   <div id="world-tip" class="world-tip glass" hidden></div>
 
-  <!-- Intro: five seconds, then the sign-in page (js/intro.js) -->
+  <!-- Intro: the Kult World film plays while the city builds behind it, then the sign-in page (js/intro.js) -->
   <div id="intro" class="intro" role="status" aria-live="polite">
-    <canvas class="intro-stars" aria-hidden="true"></canvas>
-    <div class="intro-core">
-      <div class="intro-emblem">
-        <svg class="intro-ring" viewBox="0 0 200 200" aria-hidden="true">
-          <defs><linearGradient id="intro-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff4fa3" /><stop offset="0.55" stop-color="#b14dff" /><stop offset="1" stop-color="#4fd8ff" /></linearGradient></defs>
-          <circle class="track" cx="100" cy="100" r="94" />
-          <circle class="fill" cx="100" cy="100" r="94" pathLength="100" />
-          <circle class="ticks" cx="100" cy="100" r="86" pathLength="100" />
-        </svg>
-        <span class="intro-orbit o1" aria-hidden="true"></span><span class="intro-orbit o2" aria-hidden="true"></span>
-        <img src="art/brand/kw-emblem-720.webp" alt="" width="720" height="720">
-        <i class="intro-flare" aria-hidden="true"></i>
-      </div>
-      <img class="intro-word" src="art/brand/kw-wordmark.webp" alt="Kult World" width="1100" height="333">
-      <p class="intro-tag" data-i18n="intro.tag">One agent. Multiple experiences.</p>
+    <div class="intro-backdrop" aria-hidden="true"></div>
+    <video class="intro-video" muted playsinline preload="auto" poster="art/brand/kw-intro-poster.webp" aria-hidden="true" disablepictureinpicture disableremoteplayback></video>
+    <img class="intro-word" src="art/brand/kw-wordmark.webp" alt="Kult World" width="1100" height="333" decoding="async">
+    <div class="intro-hud">
       <div class="intro-load"><span class="intro-load-t" data-i18n="intro.loading">Loading world</span><span class="intro-load-h" data-i18n="boot">Building Kult World…</span><b data-intro-pct>0%</b></div>
+      <div class="intro-bar" aria-hidden="true"><i></i></div>
     </div>
+    <button type="button" class="intro-skip glass" hidden data-i18n="intro.skip">Skip</button>
   </div>
 
   <!-- Language switch (always visible) -->

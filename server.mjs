@@ -70,7 +70,7 @@ function demoMode(v) {
   const s = String(v ?? "").trim().toLowerCase();
   return s === "fresh" ? "fresh" : ["1", "true", "on", "yes"].includes(s) ? "1" : false;
 }
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp", ".ico": "image/x-icon", ".glb": "model/gltf-binary", ".gltf": "model/gltf+json", ".wasm": "application/wasm" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp", ".ico": "image/x-icon", ".glb": "model/gltf-binary", ".gltf": "model/gltf+json", ".wasm": "application/wasm", ".mp4": "video/mp4", ".webm": "video/webm" };
 
 // Request headers worth forwarding; everything else (cookies, origin, host)
 // stays here.
@@ -167,6 +167,18 @@ createServer(async (req, res) => {
     const accept = String(req.headers["accept-encoding"] || "");
     const enc = entry.br && /\bbr\b/.test(accept) ? "br" : entry.gz && /\bgzip\b/.test(accept) ? "gzip" : null;
     if (enc) headers["Content-Encoding"] = enc;
+    else headers["Accept-Ranges"] = "bytes";
+    // Byte ranges for media (Safari only plays video from a server that honours them).
+    const range = !enc && /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range || ""));
+    if (range && (range[1] || range[2])) {
+      const size = entry.raw.length;
+      let start = range[1] ? Number(range[1]) : size - Number(range[2]);
+      let end = range[1] && range[2] ? Number(range[2]) : size - 1;
+      start = Math.max(0, start); end = Math.min(size - 1, end);
+      if (start > end) { res.writeHead(416, { "Content-Range": `bytes */${size}` }); return res.end(); }
+      res.writeHead(206, { ...headers, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": end - start + 1 });
+      return res.end(entry.raw.subarray(start, end + 1));
+    }
     res.writeHead(200, headers);
     res.end(enc === "br" ? entry.br : enc === "gzip" ? entry.gz : entry.raw);
   } catch {

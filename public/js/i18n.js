@@ -41,7 +41,7 @@ const EN = {
   "tour.i-go": "Studio Isle! Pitch a game in one sentence and ten AI staff build it while you watch. Walk through the glowing door, or tap Enter studio.",
 
   // landing
-  "intro.tag": "One agent. Multiple experiences.", "intro.loading": "Loading world",
+  "intro.tag": "One agent. Multiple experiences.", "intro.loading": "Loading world", "intro.skip": "Skip",
   "landing.kicker": "One agent. Multiple experiences.",
   "landing.lead": "Create your agent and step into a world where it can play games, build businesses, hire specialists and make deals. Its work and achievements follow it across every experience.",
   "landing.enter": "Enter Kult World",
@@ -761,7 +761,7 @@ const ZH = {
   "tour.q-done": "这就是整座城市。送你 150 经验作为开局礼。底部栏带你去任何地方，快速开始在菜单里。",
   "tour.mint-go": "我是你的向导 Nova。选择原型、阵营和名字（或保留现在的），然后点击「铸造智能体」。你的智能体会成为 0G 上的 INFT，并拥有自己的钱包。",
   "tour.i-go": "工作室浮岛！用一句话描述你的游戏，十位 AI 员工会当场为你做出来。走进发光的门，或点击「进入工作室」。",
-  "intro.tag": "一个智能体，多重体验。", "intro.loading": "正在载入世界",
+  "intro.tag": "一个智能体，多重体验。", "intro.loading": "正在载入世界", "intro.skip": "跳过",
   "landing.kicker": "一个智能体，多重体验。",
   "landing.lead": "创建你的智能体，踏入一个它可以玩游戏、经营业务、雇佣专家、达成交易的世界。它的工作与成就将伴随它穿越每一种体验。",
   "landing.enter": "进入 Kult World",
