@@ -12,5 +12,6 @@ art-src/meshy/syndicates-world/out/
 art-src/meshy/syndicates-world/remesh/
 art-src/meshy/syndicates/remesh/
 art-src/meshy/tower/*.glb
+art-src/meshy/tower/daylight*/
 art-src/meshy/tower/out/
 art-src/meshy/tower/remesh/

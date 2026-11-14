@@ -11,7 +11,13 @@
       "pick": "01a1d39c-f0a8-7635-9cb7-3ab52fd0b50e",
       "model": "01a1d39e-ead5-7048-a818-e038136383ff",
       "polycount": 20000,
-      "remesh": "01a1d3a8-7477-73d8-ac36-2f5f5442a587"
+      "remesh": "01a1d3a8-7477-73d8-ac36-2f5f5442a587",
+      "daylight": {
+        "retexture": "01a1d908-fb5a-7118-a7bf-9f5ea6c99ebb",
+        "model": "latest",
+        "credits": 10,
+        "at": "2026-11-14"
+      }
     },
     {
       "name": "tower-research",
@@ -23,7 +29,13 @@
       "pick": "01a1d39c-f405-71a0-91f9-232ece71b916",
       "model": "01a1d39e-f25e-71e5-9d79-6ab21aba8068",
       "polycount": 20000,
-      "remesh": "01a1d3a8-77d4-716b-9a1b-9e6857b0b56b"
+      "remesh": "01a1d3a8-77d4-716b-9a1b-9e6857b0b56b",
+      "daylight": {
+        "retexture": "01a1d909-0700-775d-af61-c435b5e77770",
+        "model": "latest",
+        "credits": 10,
+        "at": "2026-11-14"
+      }
     },
     {
       "name": "tower-workshop",
@@ -35,7 +47,13 @@
       "pick": "01a1d39c-f54f-76cb-aa6b-2f146f7a1bb0",
       "model": "01a1d39e-f782-7045-872a-7f26ba80818d",
       "polycount": 20000,
-      "remesh": "01a1d3a8-7940-74f5-a92d-34b5d76651ef"
+      "remesh": "01a1d3a8-7940-74f5-a92d-34b5d76651ef",
+      "daylight": {
+        "retexture": "01a1d909-11d1-77e6-b1b3-8ef95d6392c9",
+        "model": "latest",
+        "credits": 10,
+        "at": "2026-11-14"
+      }
     },
     {
       "name": "tower-dispatch",
@@ -47,7 +65,13 @@
       "pick": "01a1d39c-f684-74ed-a444-60a8f992d7bb",
       "model": "01a1d39e-fcc7-72cb-b85f-d9eb97d9de87",
       "polycount": 20000,
-      "remesh": "01a1d3a8-7a7d-730d-940a-262da201a63e"
+      "remesh": "01a1d3a8-7a7d-730d-940a-262da201a63e",
+      "daylight": {
+        "retexture": "01a1d909-1e24-7466-8e2a-bed91b914c36",
+        "model": "latest",
+        "credits": 10,
+        "at": "2026-11-14"
+      }
     },
     {
       "name": "tower-recovery",
@@ -59,7 +83,13 @@
       "pick": "01a1d39c-f7c4-74a4-b9e1-9c5c6a213b7e",
       "model": "01a1d39f-01a4-714f-8f2f-2347eab48a05",
       "polycount": 20000,
-      "remesh": "01a1d3a8-7bea-72e3-a322-c4260cd45011"
+      "remesh": "01a1d3a8-7bea-72e3-a322-c4260cd45011",
+      "daylight": {
+        "retexture": "01a1d909-270f-74c2-b9a2-09d332ffe8ab",
+        "model": "latest",
+        "credits": 10,
+        "at": "2026-11-14"
+      }
     },
     {
       "name": "tower-lift",
@@ -71,7 +101,13 @@
       "pick": "01a1d39c-f908-7075-9403-31588698b9aa",
       "model": "01a1d39f-074f-715f-9fee-a5c9e7f007ce",
       "polycount": 6000,
-      "remesh": "01a1d3a8-7d29-747b-9688-2f68638d80f3"
+      "remesh": "01a1d3a8-7d29-747b-9688-2f68638d80f3",
+      "daylight": {
+        "retexture": "01a1d909-30e5-70a1-9a1d-a1acb3a7a657",
+        "model": "latest",
+        "credits": 10,
+        "at": "2026-11-14"
+      }
     },
     {
       "name": "tower-roof",
@@ -83,7 +119,13 @@
       "pick": "01a1d39c-fa1c-71b9-bfd8-f6bebe94ba6c",
       "model": "01a1d39f-0b0a-75cb-bc58-5f36c8b777bf",
       "polycount": 15000,
-      "remesh": "01a1d3a8-7e68-776d-9964-97a6c1a9e32f"
+      "remesh": "01a1d3a8-7e68-776d-9964-97a6c1a9e32f",
+      "daylight": {
+        "retexture": "01a1d909-3b5c-7519-b72a-143509045e65",
+        "model": "latest",
+        "credits": 10,
+        "at": "2026-11-14"
+      }
     },
     {
       "name": "tower-base",
@@ -98,7 +140,13 @@
       "polycount": 20000,
       "pick": "01a1d39e-e6c9-74c5-b0da-b15514c1b7c5",
       "model": "01a1d3a8-bfbd-74b3-8bf5-9c2549555d4e",
-      "remesh": "01a1d3ae-c285-74f6-9657-2224f81e02f8"
+      "remesh": "01a1d3ae-c285-74f6-9657-2224f81e02f8",
+      "daylight": {
+        "retexture": "01a1d909-4624-7375-88d1-f0c981c0965a",
+        "model": "latest",
+        "credits": 10,
+        "at": "2026-11-14"
+      }
     },
     {
       "name": "bld-agent-tower",
