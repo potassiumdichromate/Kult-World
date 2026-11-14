@@ -893,8 +893,10 @@ async function openApp(b) {
     const url = new URL(`${base}/`);
     if (c.demo) url.searchParams.set("demo", "1");
     else if (session.arena?.accessToken) { url.searchParams.set("jwt", session.arena.accessToken); url.searchParams.set("source", "kult-world"); }
+    // Kult Dex runs on its own origin, so it is told the player's language.
+    url.searchParams.set("lang", getLang());
     $("app-title").textContent = `${b.brand} · ${t(`biz.${b.id}.name`)}`;
-    $("app-newtab").href = `${base}/${c.demo ? "?demo=1" : ""}`;
+    $("app-newtab").href = `${base}/?${c.demo ? "demo=1&" : ""}lang=${getLang()}`;
     $("app-iframe").src = url.href;
     show("app-frame");
     addActivity(t("act.entered", { brand: b.brand }));
