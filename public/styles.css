@@ -12,8 +12,11 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }
 body { background: var(--bg); color: var(--text); font: 15px/1.45 var(--body); -webkit-font-smoothing: antialiased; }
-button, input, textarea, select { font: inherit; color: inherit; }
+button:where(:not(#headlessui-portal-root *, #kult-privy-root *)), input:where(:not(#headlessui-portal-root *, #kult-privy-root *)), textarea:where(:not(#headlessui-portal-root *, #kult-privy-root *)), select:where(:not(#headlessui-portal-root *, #kult-privy-root *)) { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
+/* Privy's login modal portals outside the app: keep it above the HUD and scrollable on short desktop screens. */
+#headlessui-portal-root { position: relative; z-index: 10000; }
+#privy-modal-content { max-height: calc(100dvh - 32px) !important; overflow-y: auto !important; }
 h1, h2, h3 { font-family: var(--display); margin: 0; }
 .muted { color: var(--muted); } .small { font-size: 13px; } .tiny { font-size: 12px; }
 .eyebrow { font: 600 12px var(--display); color: var(--gold); margin: 0 0 6px; letter-spacing: 0.22em; text-transform: uppercase; }
@@ -66,8 +69,8 @@ h1, h2, h3 { font-family: var(--display); margin: 0; }
 @keyframes pop { from { transform: translateY(18px) scale(0.96); opacity: 0; } }
 .field { display: grid; gap: 7px; margin-top: 16px; }
 .label { font: 600 11px var(--display); color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase; }
-input, textarea { width: 100%; background: rgba(10, 6, 26, 0.55); border: 1px solid var(--stroke); border-radius: var(--r-sm); padding: 12px 14px; outline: none; resize: vertical; transition: border 0.2s, box-shadow 0.2s; }
-input:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(79, 216, 255, 0.18); }
+input:where(:not(#headlessui-portal-root *, #kult-privy-root *)), textarea:where(:not(#headlessui-portal-root *, #kult-privy-root *)) { width: 100%; background: rgba(10, 6, 26, 0.55); border: 1px solid var(--stroke); border-radius: var(--r-sm); padding: 12px 14px; outline: none; resize: vertical; transition: border 0.2s, box-shadow 0.2s; }
+input:where(:not(#headlessui-portal-root *, #kult-privy-root *)):focus, textarea:where(:not(#headlessui-portal-root *, #kult-privy-root *)):focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(79, 216, 255, 0.18); }
 .actions { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
 #toast { position: fixed; left: 50%; top: 86px; transform: translateX(-50%); z-index: 60; padding: 12px 20px; border-radius: 999px; max-width: min(560px, calc(100% - 32px)); font-weight: 600; animation: toast 0.35s cubic-bezier(.2, 1.3, .4, 1); }
 #toast.good { border-color: rgba(111, 240, 166, 0.6); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 0 30px rgba(111, 240, 166, 0.25); }
