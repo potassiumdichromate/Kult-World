@@ -1188,6 +1188,8 @@ $("kp-pill").addEventListener("click", openUnits);
 const dealRoom = createDealRoom({
   el, t, toast, sound, burst, portrait, ago,
   player: () => state.player,
+  // A Deal Room payment: the player's wallet signs an EIP-2612 permit for $ARENA on 0G (free, no gas).
+  signPermit: async (typedData) => (await privyClient()).signTypedData(session.wallet, 16661, typedData),
   onMatch: (m) => {
     if (!state.player || m.agent?.id !== state.player.agent.id) return;
     if (m.kind === "VERIFIED") quest("verified-action");

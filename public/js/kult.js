@@ -448,13 +448,19 @@ export const dealRoomApi = {
   start: async (agentId, kind) => (await arena(`${DR}/matches`, { method: "POST", body: { agentId, kind } }))?.match,
   match: (id) => arena(`${DR}/matches/${enc(id)}`, { auth: false }),
   audit: (id) => arena(`${DR}/matches/${enc(id)}/audit`, { auth: false }),
-  buy: (pairId, serviceId) => arena(`${DR}/purchases`, { method: "POST", body: { pairId, serviceId } }),
+  // On-chain $ARENA: the first call answers { stage: "sign", permit }, the second carries the signature.
+  buy: (pairId, serviceId, extra = {}) => arena(`${DR}/purchases`, { method: "POST", body: { pairId, serviceId, ...extra } }),
   retest: async (pairId) => (await arena(`${DR}/pairs/${enc(pairId)}/retest`, { method: "POST", body: {} }))?.match,
   abandon: (pairId) => arena(`${DR}/pairs/${enc(pairId)}/abandon`, { method: "POST", body: {} }),
   discover: async (minNegotiation, minReliability) => (await arena(`${DR}/discover${q({ minNegotiation, minReliability })}`, { auth: false }))?.agents ?? [],
-  hire: async (providerAgentId, assetKey) => (await arena(`${DR}/hires`, { method: "POST", body: { providerAgentId, assetKey } }))?.hire,
+  hire: (providerAgentId, assetKey, extra = {}) => arena(`${DR}/hires`, { method: "POST", body: { providerAgentId, assetKey, ...extra } }),
   hireStatus: async (id) => (await arena(`${DR}/hires/${enc(id)}`))?.hire,
-  wallet: () => arena(`${DR}/wallet`)
+  wallet: () => arena(`${DR}/wallet`),
+  // Agent vs agent
+  versus: async (agentId, opponentAgentId) => (await arena(`${DR}/versus`, { method: "POST", body: { agentId, ...(opponentAgentId && { opponentAgentId }) } }))?.match,
+  versusMatch: (id) => arena(`${DR}/versus/${enc(id)}`, { auth: false }),
+  versusOf: (agentId) => arena(`${DR}/agents/${enc(agentId)}/versus`, { auth: false }),
+  versusBoard: async () => (await arena(`${DR}/versus/leaderboard?limit=10`, { auth: false }))?.leaderboard ?? []
 };
 
 // ------------------------------------------------------------------ Kult OKX gateway

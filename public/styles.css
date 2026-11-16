@@ -1952,3 +1952,33 @@ button.pill { cursor: pointer; font: inherit; color: inherit; }
 .world-fab.open .fab-knob { box-shadow: 0 10px 26px rgba(5, 0, 20, 0.55), 0 0 0 3px #fff; }
 .fab-knob::after { right: -3px; bottom: -3px; }
 .world-fab[data-side="right"] .fab-knob::after { left: -3px; }
+
+/* ---------------------------------------------------------------- Deal Room: engine, payments, versus */
+.dr-head-side { display: grid; gap: 8px; justify-items: end; margin-right: 44px; }
+.dr-engine { display: grid; grid-template-columns: auto auto; align-items: center; column-gap: 8px; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(79, 216, 255, 0.4); background: rgba(79, 216, 255, 0.06); max-width: 280px; }
+.dr-engine i { grid-row: span 2; width: 9px; height: 9px; border-radius: 50%; background: var(--blue); }
+.dr-engine b { font: 700 11px var(--display); letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+.dr-engine small { font-size: 11px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dr-engine.policy { border-color: var(--stroke-2); background: rgba(255, 255, 255, 0.04); }
+.dr-engine.policy i { background: var(--muted); } .dr-engine.policy b { color: var(--muted); }
+.dr-engine.off { border-color: rgba(255, 107, 125, 0.55); background: rgba(255, 107, 125, 0.08); }
+.dr-engine.off i { background: var(--red); } .dr-engine.off b { color: var(--red); }
+.dr-engine.off small { white-space: normal; }
+.dr-tx { font: 600 12px var(--display); color: var(--blue); text-decoration: none; }
+.dr-kind.versus, .dr-kind.buyer, .dr-kind.seller { color: var(--pink-2); border-color: rgba(255, 126, 182, 0.45); background: rgba(255, 79, 163, 0.08); }
+.dr-kind.seller { color: var(--gold); border-color: rgba(255, 201, 77, 0.45); background: rgba(255, 201, 77, 0.06); }
+.dr-vs-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.dr-vs-board { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.dr-vs-board li { display: grid; grid-template-columns: 34px 36px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); }
+.dr-vs-board li.you { border-color: rgba(255, 201, 77, 0.45); }
+.dr-vs-board .rk { font: 700 12px var(--display); color: var(--dim); }
+.dr-vs-board .who { display: grid; min-width: 0; } .dr-vs-board .who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dr-vs-board .who small { font-size: 11px; color: var(--dim); }
+.dr-vs-board .rt { font: 700 15px var(--display); font-variant-numeric: tabular-nums; }
+.dr-vs-board .lf { width: 36px; height: 36px; }
+.dr-vs-split { display: flex; gap: 2px; height: 26px; margin: 10px 0 4px; border-radius: 8px; overflow: hidden; font: 700 11px/26px var(--display); letter-spacing: 0.04em; }
+.dr-vs-split > div { min-width: 0; padding: 0 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #120a24; }
+.dr-vs-split .b { background: var(--pink-2); } .dr-vs-split .s { background: var(--gold); text-align: right; }
+.dr-vs-deltas { flex-wrap: wrap; gap: 6px 16px; }
+.dr-vs-deltas .up { color: var(--green); } .dr-vs-deltas .down { color: var(--red); }
+@media (max-width: 760px) { .dr-vs-cols { grid-template-columns: 1fr; } .dr-head-side { justify-items: start; } }
