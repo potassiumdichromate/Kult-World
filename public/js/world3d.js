@@ -514,22 +514,47 @@ export class World {
   // Name tags never pile up: the player's, a talking agent's and the hovered
   // one win; any other tag that would overlap one already shown fades out.
   // Zoomed far out, only the player's and talking agents' tags show.
+  // Every label in the world (door prompt, the player, the Studio Isle sign,
+  // talking agents, district names, "N inside" chips, other agents) competes
+  // for the same screen, in that order of priority; a label that overlaps one
+  // already placed is hidden. On a phone it is stricter: no "inside" chips and
+  // at most three other agents, all near the player.
   declutter() {
-    const rects = [], me = this.player, far = this.zoom < 0.7, list = [];
+    const phone = this.cw <= 640, me = this.player, far = this.zoom < 0.7, items = [];
+    const rectOf = (el) => { const r = el.getBoundingClientRect(); return r.width ? r : null; };
+    const add = (el, pri, extra) => { if (!el || el.hidden || !el.isConnected) return; const r = rectOf(el); if (r) items.push({ el, pri, r, ...extra }); };
+    if (this.prompt?.element && !this.prompt.element.hidden) add(this.prompt.element, -1, { keep: true });
     for (const a of this.agents.values()) {
       if (a.inside || !a.label.visible) continue;
-      const v = TMP.copy(a.group.position); v.y += 2.9; v.project(this.camera);
-      const off = v.z >= 1 || Math.abs(v.x) > 1.05 || Math.abs(v.y) > 1.05;
-      const pri = a.isPlayer ? 0 : a.saying ? 1 : a === this.hoverAgent ? 1.5 : 2 + (me ? Math.hypot(a.x - me.x, a.y - me.y) / 100 : 0);
-      list.push({ a, x: (v.x + 1) / 2 * this.cw, y: (1 - v.y) / 2 * this.ch, off, pri });
+      const el = a.label.element, d = me ? Math.hypot(a.x - me.x, a.y - me.y) : 0;
+      let r = rectOf(el); if (!r) continue;
+      const say = a.saying && el.querySelector(".say.on");
+      if (say) { const q = say.getBoundingClientRect(); r = { left: Math.min(r.left, q.left), right: Math.max(r.right, q.right), top: Math.min(r.top, q.top), bottom: Math.max(r.bottom, q.bottom) }; }
+      const pri = a.isPlayer ? 0 : a === this.hoverAgent ? 1 : a.saying ? 1.5 + d / 100 : 4 + d / 100;
+      items.push({ el, pri, r, agent: a, d, keep: a.isPlayer });
     }
-    list.sort((p, q) => p.pri - q.pri);
-    for (const it of list) {
-      const el = it.a.label.element;
-      const w = (el._w ||= el.offsetWidth || 100) / 2 + 4, h = 13;
-      const hit = it.off || (far && it.pri >= 2) || rects.some((r) => Math.abs(r.x - it.x) < r.w + w && Math.abs(r.y - it.y) < r.h + h);
-      if (el.classList.contains("cull") !== hit) el.classList.toggle("cull", hit);
-      if (!hit) rects.push({ x: it.x, y: it.y, w, h });
+    if (this.isleSign) add(this.isleSign, 0.5);
+    for (const l of this.districtLabels || []) if (l.el.classList.contains("on")) add(l.el, 2.5);
+    for (const { chip } of this.bld?.values() || []) add(chip, 3, { chip: true });
+    items.sort((p, q) => p.pri - q.pri);
+    // The HUD, dock, map tools and feed are taken first: no label slides under them.
+    const taken = [], pad = phone ? 6 : 4;
+    for (const el of document.querySelectorAll("#topbar .hud-player, #topbar .hud-right, #dock, #map-tools, #feed .feed-item, #minimap-wrap, #quest-tracker")) {
+      const r = el.getClientRects().length ? el.getBoundingClientRect() : null; if (r && r.width) taken.push(r);
+    }
+    let others = 0;
+    for (const it of items) {
+      const r = it.r;
+      const off = r.right < 0 || r.left > this.cw || r.bottom < 0 || r.top > this.ch;
+      let hit = !it.keep && (off || taken.some((t) => r.left < t.right + pad && r.right > t.left - pad && r.top < t.bottom + pad && r.bottom > t.top - pad));
+      if (!hit && it.agent && !it.agent.isPlayer) {
+        if (far && !it.agent.saying && it.agent !== this.hoverAgent) hit = true;
+        else if (phone && (it.d > 12 || others >= 3)) hit = true;
+        if (!hit) others++;
+      }
+      if (!hit && phone && it.chip) hit = true;
+      if (it.el.classList.contains("cull") !== hit) it.el.classList.toggle("cull", hit);
+      if (!hit) taken.push(r);
     }
   }
   // A speech bubble over the agent's head for `ms`.

@@ -775,6 +775,10 @@ for (const b of document.querySelectorAll("[data-act]")) b.addEventListener("cli
   else world.recenter();
 });
 $("menu-btn").addEventListener("click", () => show("menu", $("menu").hidden));
+// Phones keep sound and language in the menu, and the minimap behind a button.
+$("menu-sound").addEventListener("click", () => { $("sound-btn").click(); show("menu", false); });
+$("menu-lang").addEventListener("click", () => { $("lang-btn").click(); show("menu", false); });
+$("map-btn").addEventListener("click", () => { const on = !document.body.classList.contains("mm-open"); document.body.classList.toggle("mm-open", on); $("map-btn").setAttribute("aria-pressed", String(on)); });
 for (const b of document.querySelectorAll("[data-goto]")) b.addEventListener("click", () => { show("menu", false); if (anyOpen()) closeOverlays(true); travel(b.dataset.goto); });
 $("sign-out").addEventListener("click", () => signOut());
 // Log out: the HUD button asks first (a second click within 3 s); the
