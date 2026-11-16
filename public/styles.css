@@ -1901,3 +1901,54 @@ button.pill { cursor: pointer; font: inherit; color: inherit; }
   .hud-player .hp-main { display: none; }
   .hud-player { padding: 4px; }
 }
+
+/* ---------------------------------------------------------------- experiences: full screen + the floater
+   The experience gets the whole screen; the way back is one Kult World button
+   on the edge (main.js). It sits above Kult Create's own frame too. */
+.app-frame { grid-template-rows: 1fr !important; gap: 0 !important; padding: 0 !important; background: #0b0717 !important; }
+.app-frame iframe { border: 0 !important; border-radius: 0 !important; }
+.world-fab { position: fixed; z-index: 2147483001; top: 42%; left: 10px; transform: translateY(-50%); pointer-events: none; transition: top 0.25s cubic-bezier(.2, 1, .3, 1); }
+.world-fab[data-side="right"] { left: auto; right: 10px; }
+.world-fab > * { pointer-events: auto; }
+.fab-knob { position: relative; display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 16px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+  background: rgba(16, 10, 36, 0.92); box-shadow: 0 8px 24px rgba(5, 0, 20, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.16); transition: transform 0.2s, box-shadow 0.2s; }
+.fab-knob img { width: 42px; height: 42px; pointer-events: none; }
+.fab-knob::after { content: "\2039"; position: absolute; right: -5px; bottom: -5px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font: 700 15px/1 var(--display); color: #fff; background: var(--pink); box-shadow: 0 0 0 2px #0b0717; }
+.world-fab[data-side="right"] .fab-knob::after { right: auto; left: -5px; }
+.fab-knob:hover { transform: scale(1.05); box-shadow: 0 10px 28px rgba(5, 0, 20, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.24), 0 0 0 5px rgba(255, 79, 163, 0.22); }
+.fab-knob:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.world-fab.open .fab-knob { box-shadow: 0 10px 28px rgba(5, 0, 20, 0.55), 0 0 0 2px var(--pink); }
+.world-fab.dragging { transition: none; }
+.world-fab.dragging .fab-knob { cursor: grabbing; transform: scale(1.08); }
+.world-fab.hello .fab-knob { animation: fab-hello 1.2s ease-out 3; }
+@keyframes fab-hello { 0% { box-shadow: 0 8px 24px rgba(5, 0, 20, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.16), 0 0 0 0 rgba(255, 79, 163, 0.55); } 100% { box-shadow: 0 8px 24px rgba(5, 0, 20, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.16), 0 0 0 16px rgba(255, 79, 163, 0); } }
+.fab-panel { position: absolute; top: 50%; left: 64px; display: grid; gap: 4px; width: max-content; max-width: min(340px, calc(100vw - 96px)); padding: 12px 12px 12px 14px; border-radius: 16px;
+  background: rgba(16, 10, 36, 0.97); border: 1px solid rgba(255, 255, 255, 0.14); box-shadow: 0 18px 50px rgba(5, 0, 20, 0.6); color: var(--text);
+  opacity: 0; visibility: hidden; transform: translate(-8px, -50%) scale(0.96); transform-origin: left center; transition: opacity 0.18s, transform 0.22s cubic-bezier(.2, 1.2, .3, 1), visibility 0.18s; }
+.world-fab[data-side="right"] .fab-panel { left: auto; right: 64px; transform: translate(8px, -50%) scale(0.96); transform-origin: right center; }
+.world-fab.open .fab-panel { opacity: 1; visibility: visible; transform: translate(0, -50%) scale(1); }
+.fab-eyebrow { font: 600 10px var(--display); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+#app-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 14px var(--display); letter-spacing: 0.04em; color: var(--text); text-transform: none; }
+.fab-actions { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.fab-actions .btn { white-space: nowrap; }
+.fab-newtab { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 12px; color: var(--muted); background: rgba(255, 255, 255, 0.05); border: 1px solid var(--stroke-2); transition: color 0.2s, border-color 0.2s; }
+.fab-newtab:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.4); }
+.fab-newtab svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fab-newtab[hidden] { display: none; }
+@media (max-width: 640px) {
+  .world-fab { left: 6px; } .world-fab[data-side="right"] { right: 6px; }
+  .fab-knob { width: 46px; height: 46px; border-radius: 14px; }
+  .fab-knob img { width: 36px; height: 36px; }
+  .fab-panel { left: 56px; max-width: calc(100vw - 72px); padding: 10px 10px 10px 12px; }
+  .world-fab[data-side="right"] .fab-panel { right: 56px; }
+  .fab-actions .btn { padding: 9px 12px; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { .world-fab.hello .fab-knob { animation: none; } }
+
+/* The floater knob is the Kult logo itself: a disc with a soft ring and shadow. */
+.fab-knob { border-radius: 50%; background: none; box-shadow: 0 8px 22px rgba(5, 0, 20, 0.5), 0 0 0 3px rgba(255, 255, 255, 0.14); }
+.fab-knob img { width: 100%; height: 100%; }
+.fab-knob:hover { box-shadow: 0 10px 26px rgba(5, 0, 20, 0.55), 0 0 0 3px rgba(255, 255, 255, 0.28), 0 0 0 7px rgba(150, 33, 210, 0.25); }
+.world-fab.open .fab-knob { box-shadow: 0 10px 26px rgba(5, 0, 20, 0.55), 0 0 0 3px #fff; }
+.fab-knob::after { right: -3px; bottom: -3px; }
+.world-fab[data-side="right"] .fab-knob::after { left: -3px; }

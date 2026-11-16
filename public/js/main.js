@@ -892,6 +892,7 @@ async function openApp(b) {
       const privy = await privyClient();
       window.KultCreate.open({
         demo: Boolean(c.demo),
+        floatingExit: true, // Kult World's floater is the way out
         getSession: async () => (privy.authenticated ? privy.tokens() : null),
         login: async () => { await privy.login(); },
         onExit: () => toast(t("toast.back"))
@@ -913,7 +914,60 @@ async function openApp(b) {
   }
   commit();
 }
-$("app-back").addEventListener("click", () => { show("app-frame", false); $("app-iframe").src = "about:blank"; toast(t("toast.back")); syndicates.left(); tower.left(); });
+$("app-back").addEventListener("click", () => {
+  fabOpen(false);
+  // Kult Create (Gaming Studio) runs in its own frame from embed.js.
+  if (createOpen()) { window.KultCreate?.close(); return; }
+  show("app-frame", false); $("app-iframe").src = "about:blank"; toast(t("toast.back")); syndicates.left(); tower.left();
+});
+
+// ------------------------------------------------------------------ the floater
+// One Kult World button over every experience. It shows whenever an
+// experience covers the city (the app frame, or Kult Create's own frame);
+// a tap opens it, a drag moves it along either screen edge.
+const fab = $("world-fab"), fabKnob = $("fab-toggle"), FAB_KEY = "kultworld.fab";
+const clampY = (y) => Math.min(innerHeight - 56, Math.max(56, y));
+let fabPos = { side: "left", y: 0.42 };
+try { const p = JSON.parse(localStorage.getItem(FAB_KEY) || "null"); if (p && (p.side === "left" || p.side === "right") && p.y > 0 && p.y < 1) fabPos = p; } catch { /* default */ }
+function placeFab() { fab.dataset.side = fabPos.side; fab.style.top = `${clampY(fabPos.y * innerHeight)}px`; }
+function fabOpen(on) { fab.classList.toggle("open", on); fabKnob.setAttribute("aria-expanded", String(on)); }
+function createOpen() { return Boolean(document.querySelector('iframe[title="Kult Create"]')); }
+let fabHello = false;
+function syncFab() {
+  const frame = !$("app-frame").hidden, create = createOpen(), on = frame || create;
+  if (create && !frame) { $("app-title").textContent = t("biz.create.name") || "Kult Create"; $("app-newtab").hidden = true; }
+  else $("app-newtab").hidden = !$("app-newtab").getAttribute("href");
+  if (fab.hidden !== !on) { fab.hidden = !on; if (on) placeFab(); else fabOpen(false); }
+  // The first time in a session, the button says hello so it is found.
+  if (on && !fabHello) { fabHello = true; fab.classList.add("hello"); setTimeout(() => fab.classList.remove("hello"), 3800); }
+}
+new MutationObserver(syncFab).observe($("app-frame"), { attributes: true, attributeFilter: ["hidden"] });
+new MutationObserver(syncFab).observe(document.body, { childList: true });
+addEventListener("resize", () => { if (!fab.hidden) placeFab(); });
+let fabDrag = null;
+fabKnob.addEventListener("pointerdown", (e) => { fabDrag = { id: e.pointerId, x: e.clientX, y: e.clientY, moved: false }; try { fabKnob.setPointerCapture(e.pointerId); } catch { /* still works without capture */ } });
+fabKnob.addEventListener("pointermove", (e) => {
+  if (!fabDrag || e.pointerId !== fabDrag.id) return;
+  if (!fabDrag.moved && Math.hypot(e.clientX - fabDrag.x, e.clientY - fabDrag.y) < 6) return;
+  if (!fabDrag.moved) { fabDrag.moved = true; fab.classList.add("dragging"); fabOpen(false); }
+  fab.style.top = `${clampY(e.clientY)}px`; fab.dataset.side = e.clientX < innerWidth / 2 ? "left" : "right";
+});
+const fabUp = (e) => {
+  if (!fabDrag || e.pointerId !== fabDrag.id) return;
+  const moved = fabDrag.moved; fabDrag = null; fab.classList.remove("dragging");
+  if (moved) {
+    fabPos = { side: fab.dataset.side, y: clampY(e.clientY) / innerHeight };
+    try { localStorage.setItem(FAB_KEY, JSON.stringify(fabPos)); } catch { /* not remembered */ }
+    placeFab();
+  } else if (e.type === "pointerup") fabOpen(!fab.classList.contains("open"));
+};
+fabKnob.addEventListener("pointerup", fabUp);
+fabKnob.addEventListener("pointercancel", fabUp);
+// Keyboard (Enter/Space) gives a click without pointer events.
+fabKnob.addEventListener("click", (e) => { if (e.detail === 0) fabOpen(!fab.classList.contains("open")); });
+// Tapping back into the experience (its frame takes focus) or Escape closes it.
+addEventListener("blur", () => fabOpen(false));
+addEventListener("keydown", (e) => { if (e.key === "Escape" && fab.classList.contains("open")) fabOpen(false); });
 
 // ------------------------------------------------------------------ game hub
 // Real AI Arena battles (js/battle.js): matchmaking, the Unity builds and the

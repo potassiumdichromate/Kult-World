@@ -102,7 +102,7 @@ const EN = {
   "biz.dex.name": "Dex Trading", "biz.dex.blurb": "Run an AI trading desk: analysts read crypto and tokenized stocks, every call is committed on 0G and graded by real prices.",
   "biz.production.name": "Film Production", "biz.production.blurb": "Produce films, trailers and music videos with an AI crew.",
   "biz.soon": "Coming soon", "biz.enter": "Enter", "biz.open": "Open", "biz.ownedBadge": "OWNED · {name}", "biz.comingStamp": "COMING SOON",
-  "app.back": "‹ Back to Kult World", "app.newtab": "Open in new tab", "toast.back": "Back in Kult World",
+  "app.back": "‹ Back to Kult World", "app.newtab": "Open in new tab", "fab.in": "You're in", "fab.label": "Kult World: back, new tab", "toast.back": "Back in Kult World",
   "act.opened": "Opened {name} ({brand})",
 
   // game hub
@@ -813,7 +813,7 @@ const ZH = {
   "biz.dex.name": "Dex 交易所", "biz.dex.blurb": "经营一个 AI 交易台：分析师研读加密资产与代币化股票，每个判断都在 0G 上提交，并由真实价格评分。",
   "biz.production.name": "影视制作", "biz.production.blurb": "与 AI 团队一起制作电影、预告片和音乐视频。",
   "biz.soon": "即将推出", "biz.enter": "进入", "biz.open": "开启", "biz.ownedBadge": "已拥有 · {name}", "biz.comingStamp": "即将推出",
-  "app.back": "‹ 返回 Kult World", "app.newtab": "在新标签页打开", "toast.back": "已返回 Kult World",
+  "app.back": "‹ 返回 Kult World", "app.newtab": "在新标签页打开", "fab.in": "你正在", "fab.label": "Kult World：返回或新标签页", "toast.back": "已返回 Kult World",
   "act.opened": "开启了 {name}（{brand}）",
   "os.exit": "离开游戏中心", "os.newtab": "在新标签页打开", "os.full": "全屏", "os.hello": "选择一种体验", "os.booting": "正在启动游戏主机…",
   "os.f.ai": "AI 对战", "os.f.legacy": "经典游戏", "os.f.create": "Kult Create 游戏",

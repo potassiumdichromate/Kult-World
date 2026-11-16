@@ -6,6 +6,7 @@
   <title>Kult World</title>
   <meta name="description" content="Kult World: mint your AI agent, explore a neon floating city, run businesses, close deals, hire agents and battle in the Kult Game Hub.">
   <meta name="theme-color" content="#0b0717">
+  <link rel="icon" type="image/svg+xml" href="art/brand/kult-logo.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="art/brand/kw-favicon-32.png">
   <link rel="icon" type="image/png" sizes="64x64" href="art/brand/kw-favicon-64.png">
   <link rel="apple-touch-icon" href="art/brand/kw-apple-touch.png">
@@ -373,12 +374,24 @@
 
   <!-- A business, opened inside Kult World -->
   <div id="app-frame" class="app-frame" hidden>
-    <div class="app-bar glass">
-      <button type="button" id="app-back" class="btn small" data-i18n="app.back">‹ Back to Kult World</button>
-      <span id="app-title"></span>
-      <a id="app-newtab" class="btn small ghost" target="_blank" rel="noopener" data-i18n="app.newtab">Open in new tab</a>
-    </div>
     <iframe id="app-iframe" title="Business" allow="autoplay; fullscreen"></iframe>
+  </div>
+
+  <!-- The way back, over every experience (Dex, Sports, Gaming Studio,
+       Syndicates, Tower): one Kult World button on the screen edge. A tap
+       opens it; drag it to any height on either edge (remembered). -->
+  <div id="world-fab" class="world-fab" hidden data-side="left">
+    <button type="button" id="fab-toggle" class="fab-knob" aria-expanded="false" aria-controls="fab-panel" data-i18n-attr="aria-label:fab.label;title:fab.label">
+      <img src="art/brand/kult-logo.svg" alt="" draggable="false">
+    </button>
+    <div id="fab-panel" class="fab-panel" role="group">
+      <span class="fab-eyebrow" data-i18n="fab.in">You're in</span>
+      <b id="app-title"></b>
+      <div class="fab-actions">
+        <button type="button" id="app-back" class="btn small primary" data-i18n="app.back">‹ Back to Kult World</button>
+        <a id="app-newtab" class="fab-newtab" target="_blank" rel="noopener" data-i18n-attr="title:app.newtab;aria-label:app.newtab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg></a>
+      </div>
+    </div>
   </div>
 
   <!-- AI Arena battle: the Unity build runs full screen (js/battle.js) -->
