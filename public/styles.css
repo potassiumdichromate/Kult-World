@@ -1836,3 +1836,11 @@ button.pill { cursor: pointer; font: inherit; color: inherit; }
 .a2a-job-view:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.3); }
 .a2a-job-view:hover span { transform: translateX(2px); }
 .a2a-job:hover .a2a-job-view { border-color: color-mix(in srgb, var(--tone) 55%, transparent); }
+
+/* ---------------------------------------------------------------- performance
+   No backdrop blur anywhere: every blurred panel, button and name tag had to be
+   re-blurred each frame over the live 3D city, which was the main cause of lag.
+   Panels are a little more opaque instead, so they read the same. */
+*, *::before, *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+:root { --glass: rgba(22, 15, 48, 0.9); --glass-2: rgba(34, 24, 70, 0.92); }
+.agent-tag { background: rgba(16, 10, 36, 0.82); }

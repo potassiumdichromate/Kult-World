@@ -141,15 +141,21 @@ function tick(now) {
   requestAnimationFrame(tick);
   try { frame(now); } catch (e) { if (!frameError) { frameError = true; console.error("[kult-world] frame", e); } }
 }
+let behindDt = 0, behindN = 0;
 function frame(now) {
   // A frame stamped before the loop started would make dt (and the clock) negative.
-  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
+  let dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
   // A full-screen app (a game, the Switchyard) covers the city: let its own
   // 3D have the GPU instead of drawing a world nobody can see.
   if (!$("app-frame").hidden) return;
+  // A sheet (market, deal room, wallet...) dims the city behind it: draw it at
+  // about 12 fps meanwhile so the sheet itself scrolls and types smoothly.
+  const behind = anyOpen();
+  if (behind) { behindDt += dt; if (++behindN % 5) return; dt = Math.min(0.12, behindDt); behindDt = 0; }
+  else { behindDt = 0; behindN = 0; }
   world.update(dt); world.draw();
   if (state.inWorld) {
-    world.autoQuality(dt);
+    if (!behind) world.autoQuality(dt);
     const p = world.player;
     sound.update(world.t, { walking: p?.walking, fountainDist: p && world.fountainPos ? p.group.position.distanceTo(world.fountainPos) : 99 });
   }

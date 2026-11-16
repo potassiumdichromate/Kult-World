@@ -48,7 +48,9 @@ export class World {
     this.tr = (k) => k;
     this.quality = 2;
 
-    const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+    // No canvas MSAA: every frame goes through the EffectComposer's own render
+    // targets, so a multisampled canvas only cost GPU memory and fill rate.
+    const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
     // A lost WebGL context (GPU reset, driver crash, too many tabs) blanks the
     // canvas while the page's HTML (toasts, HUD) stays. three.js asks the
     // browser for it back; until then, don't draw and let the page say so.
@@ -655,7 +657,9 @@ export class World {
   resize(cw, ch, dpr) {
     cw = Math.max(1, cw); ch = Math.max(1, ch);
     this.cw = cw; this.ch = ch; this.baseDpr = dpr;
-    dpr = this.quality === 1 ? Math.min(dpr, 1) : this.quality === 0 ? Math.min(dpr, 0.8) : dpr;
+    // Full quality caps the pixel ratio at 1.25: bloom and soft shadows cost per
+    // pixel, and above that the city looks the same at a laptop's distance.
+    dpr = this.quality === 1 ? Math.min(dpr, 1) : this.quality === 0 ? Math.min(dpr, 0.8) : Math.min(dpr, 1.25);
     this.renderer.setPixelRatio(dpr); this.renderer.setSize(cw, ch, false);
     this.canvas.style.width = `${cw}px`; this.canvas.style.height = `${ch}px`;
     this.composer.setPixelRatio(dpr); this.composer.setSize(cw, ch);
@@ -744,7 +748,8 @@ export class World {
   draw() {
     if (this.contextLost) return;
     this.frame = (this.frame || 0) + 1;
-    if (this.quality !== 0 && this.frame % (this.quality === 1 ? 4 : 2) === 0) this.renderer.shadowMap.needsUpdate = true;
+    // Shadows only move with the agents; a refresh every 3rd (or 6th) frame is enough.
+    if (this.quality !== 0 && this.frame % (this.quality === 1 ? 6 : 3) === 0) this.renderer.shadowMap.needsUpdate = true;
     this.composer.render(); this.labels.render(this.scene, this.camera);
   }
 
@@ -763,13 +768,14 @@ export class World {
   }
   autoQuality(dt) {
     if (this.qualityLocked) return;
-    this.perf ||= { sum: 0, n: 0, wait: 4 };
+    this.perf ||= { sum: 0, n: 0, wait: 3 };
     const P = this.perf;
     if ((P.wait -= dt) > 0) return;
     P.sum += dt; P.n++;
-    if (P.n < 90) return;
+    if (P.n < 60) return;
     const avg = P.sum / P.n; P.sum = 0; P.n = 0;
-    if (avg > 0.034 && this.quality > 0) { this.setQuality(this.quality - 1); P.wait = 4; console.info(`[world] quality -> ${this.quality} (avg ${(avg * 1000).toFixed(0)} ms)`); }
+    // Step down below ~36 fps (it used to wait for ~29 fps, which already feels laggy).
+    if (avg > 0.028 && this.quality > 0) { this.setQuality(this.quality - 1); P.wait = 4; console.info(`[world] quality -> ${this.quality} (avg ${(avg * 1000).toFixed(0)} ms)`); }
   }
 
   // ---------------------------------------------------------------- minimap
